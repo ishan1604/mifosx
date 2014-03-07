@@ -500,6 +500,17 @@ public class CommandWrapperBuilder {
         }
     }
 
+    public CommandWrapperBuilder registerDBDatatable(final String datatable,final String apptable)
+    {
+        this.actionName = "REGISTER";
+        this.entityName = "DATATABLE";
+        this.entityId = null;
+        this.href = "/datatables/register/" + datatable+"/"+apptable;
+
+        return this;
+
+    }
+
     public CommandWrapperBuilder createLoanCharge(final Long loanId) {
         this.actionName = "CREATE";
         this.entityName = "LOANCHARGE";

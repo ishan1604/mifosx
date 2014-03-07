@@ -123,6 +123,10 @@ public class CommandWrapper {
     public boolean isUpdateDatatable() {
         return this.actionName.equalsIgnoreCase("UPDATE") && this.href.startsWith("/datatables/") && this.entityId == null;
     }
+    public boolean isRegisterDatatable() {
+        return this.actionName.equalsIgnoreCase("REGISTER") && this.href.startsWith("/datatables/") && this.entityId == null;
+    }
+
 
     public String getTaskPermissionName() {
         return this.taskPermissionName;

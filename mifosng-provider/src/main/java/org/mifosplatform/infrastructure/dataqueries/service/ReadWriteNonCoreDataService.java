@@ -20,7 +20,10 @@ public interface ReadWriteNonCoreDataService {
     DatatableData retrieveDatatable(String datatable);
 
     @PreAuthorize(value = "hasAnyRole('ALL_FUNCTIONS', 'REGISTER_DATATABLE')")
-    void registerDatatable(String datatable, String appTable);
+    void registerDatatable(JsonCommand command);
+
+    @PreAuthorize(value = "hasAnyRole('ALL_FUNCTIONS', 'REGISTER_DATATABLE')")
+    void registerDatatable(String dataTableName,String applicationTableName);
 
     @PreAuthorize(value = "hasAnyRole('ALL_FUNCTIONS', 'DEREGISTER_DATATABLE')")
     void deregisterDatatable(String datatable);
@@ -42,5 +45,8 @@ public interface ReadWriteNonCoreDataService {
     CommandProcessingResult deleteDatatableEntries(String datatable, Long appTableId);
 
     CommandProcessingResult deleteDatatableEntry(String datatable, Long appTableId, Long datatableId);
+
+    String getTableName(String Url);
+    String getDataTableName(String Url);
 
 }
