@@ -323,6 +323,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         if(category ==null) category = DataTableApiConstant.CATEGORY_DEFAULT;
         return category;
     }
+<<<<<<< HEAD
 
     private boolean isSurveyCategory(final Integer category)
     {
@@ -331,6 +332,16 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
     public String getDataTableName(String url){
 
+=======
+
+    private boolean isSurveyCategory(final Integer category)
+    {
+        return category.equals(DataTableApiConstant.CATEGORY_PPI);
+    }
+
+    public String getDataTableName(String url){
+
+>>>>>>> 5942932... PPI implementation
         String [] urlParts = url.split("/");
 
         return urlParts[3];

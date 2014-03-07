@@ -10,17 +10,11 @@ import org.mifosplatform.infrastructure.configuration.data.GlobalConfigurationPr
 
 import java.util.List;
 
+import java.util.List;
+
 public interface ConfigurationReadPlatformService {
 
-<<<<<<< HEAD
-    GlobalConfigurationData retrieveGlobalConfiguration();
-    
     GlobalConfigurationPropertyData retrieveGlobalConfiguration(Long configId);
-=======
-    //GlobalConfigurationData retrieveGlobalConfiguration();
     GlobalConfigurationData retrieveGlobalConfiguration(boolean survey);
-
-   // GlobalConfigurationData retrieveGlobalConfiguration(List<String> configurationName);
->>>>>>> 5942932... PPI implementation
 
 }

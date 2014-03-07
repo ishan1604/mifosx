@@ -67,6 +67,8 @@ public class ConfigurationReadPlatformServiceImpl implements ConfigurationReadPl
 
 
 
+
+
     private static final class GlobalConfigurationRowMapper implements RowMapper<GlobalConfigurationPropertyData> {
 
         
