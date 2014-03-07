@@ -12,6 +12,8 @@ import java.util.List;
 
 import java.util.List;
 
+import java.util.List;
+
 public interface ConfigurationReadPlatformService {
 
     GlobalConfigurationPropertyData retrieveGlobalConfiguration(Long configId);
