@@ -154,6 +154,10 @@ public class CommandWrapper {
     public boolean isUpdateDatatable() {
         return this.actionName.equalsIgnoreCase("UPDATE") && this.href.startsWith("/datatables/") && this.entityId == null;
     }
+    public boolean isRegisterDatatable() {
+        return this.actionName.equalsIgnoreCase("REGISTER") && this.href.startsWith("/datatables/") && this.entityId == null;
+    }
+
 
     public String getTaskPermissionName() {
         return this.taskPermissionName;
@@ -719,4 +723,24 @@ public class CommandWrapper {
     public boolean isCacheResource() {
         return this.entityName.equalsIgnoreCase("CACHE");
     }
+
+    public boolean isLikelihoodResource() {
+        return this.entityName.equalsIgnoreCase("Likelihood");
+    }
+    public boolean isSurveyResource() {
+
+        return this.href.startsWith("/survey/");
+
+    }
+    public boolean isUpdateLikelihood() {
+        return this.actionName.equalsIgnoreCase("UPDATE");
+    }
+    public boolean isRegisterSurvey() {
+        return this.actionName.equalsIgnoreCase("REGISTER");
+    }
+    public boolean isFullFilSurvey() {
+        return this.actionName.equalsIgnoreCase("CREATE");
+    }
+
+
 }
