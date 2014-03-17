@@ -7,10 +7,11 @@ import java.util.List;
  */
 public class PpiPovertyLineData {
 
-    final List<LikeliHoodPovertyLineData> likeliHoodPovertyLineData;
     final String ppi;
+    final List<LikeliHoodPovertyLineData> likeliHoodPovertyLineData;
 
-    PpiPovertyLineData(final List<LikeliHoodPovertyLineData> likeliHoodPovertyLineData,
+
+    public PpiPovertyLineData(final List<LikeliHoodPovertyLineData> likeliHoodPovertyLineData,
                        final String ppi){
 
         this.likeliHoodPovertyLineData = likeliHoodPovertyLineData;

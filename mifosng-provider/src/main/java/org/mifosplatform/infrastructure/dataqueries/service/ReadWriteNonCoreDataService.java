@@ -6,11 +6,13 @@
 package org.mifosplatform.infrastructure.dataqueries.service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.dataqueries.data.DatatableData;
 import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
+import org.mifosplatform.infrastructure.dataqueries.data.ResultsetColumnHeaderData;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 public interface ReadWriteNonCoreDataService {
@@ -25,6 +27,9 @@ public interface ReadWriteNonCoreDataService {
     @PreAuthorize(value = "hasAnyRole('ALL_FUNCTIONS', 'REGISTER_DATATABLE')")
     void registerDatatable(String dataTableName,String applicationTableName);
 
+    @PreAuthorize(value = "hasAnyRole('ALL_FUNCTIONS', 'REGISTER_DATATABLE')")
+    void registerDatatable(JsonCommand command,String permissionTable);
+
     @PreAuthorize(value = "hasAnyRole('ALL_FUNCTIONS', 'DEREGISTER_DATATABLE')")
     void deregisterDatatable(String datatable);
 
@@ -37,6 +42,7 @@ public interface ReadWriteNonCoreDataService {
     void deleteDatatable(String datatableName);
 
     CommandProcessingResult createNewDatatableEntry(String datatable, Long appTableId, JsonCommand command);
+    CommandProcessingResult createPPIEntry(String datatable, Long appTableId, JsonCommand command);
 
     CommandProcessingResult updateDatatableEntryOneToOne(String datatable, Long appTableId, JsonCommand command);
 
@@ -48,5 +54,7 @@ public interface ReadWriteNonCoreDataService {
 
     String getTableName(String Url);
     String getDataTableName(String Url);
+
+
 
 }

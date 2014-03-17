@@ -8,12 +8,12 @@ public class PovertyLineData {
     final Long resourceId;
     final Long scoreFrom;
     final Long scoreTo;
-    final Long povertyLine;
+    final Double povertyLine;
 
     public PovertyLineData(final Long resourceId,
             final Long scoreFrom,
             final Long scoreTo,
-            final Long povertyLine){
+            final Double povertyLine){
 
         this.resourceId = resourceId;
         this.scoreTo = scoreTo;

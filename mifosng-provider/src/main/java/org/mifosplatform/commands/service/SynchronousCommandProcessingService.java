@@ -630,6 +630,14 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
                 throw new UnsupportedCommandException(wrapper.commandName());
             }
 
+
+
+        }else if (wrapper.isLikelihoodResource()) {
+            if (wrapper.isUpdateLikelihood()) {
+                handler = this.applicationContext.getBean("updateLikelihoodCommandHandler", NewCommandSourceHandler.class);
+            } else {
+                throw new UnsupportedCommandException(wrapper.commandName());
+            }
         } else {
 
             throw new UnsupportedCommandException(wrapper.commandName());
