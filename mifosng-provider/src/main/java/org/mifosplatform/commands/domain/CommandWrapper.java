@@ -687,4 +687,12 @@ public class CommandWrapper {
     public boolean isCacheResource() {
         return this.entityName.equalsIgnoreCase("CACHE");
     }
+
+    public boolean isLikelihoodResource() {
+        return this.entityName.equalsIgnoreCase("Likelihood");
+    }
+
+    public boolean isUpdateLikelihood() {
+        return this.actionName.equalsIgnoreCase("UPDATE");
+    }
 }

@@ -1521,4 +1521,12 @@ public class CommandWrapperBuilder {
         this.href = "/cache";
         return this;
     }
+
+    public CommandWrapperBuilder updateLikelihood(final Long entityId) {
+        this.actionName = "UPDATE";
+        this.entityName = "LIKELIHOOD";
+        this.href = "/likelihood/"+entityId;
+        this.entityId = entityId;
+        return this;
+    }
 }
