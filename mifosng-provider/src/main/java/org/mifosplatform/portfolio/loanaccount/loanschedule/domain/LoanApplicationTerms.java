@@ -141,9 +141,9 @@ public final class LoanApplicationTerms {
         final Money principalMoney = loanProductRelatedDetail.getPrincipal();
 
         //
-        final Integer graceOnPrincipalPayment = 0;
-        final Integer graceOnInterestPayment = 0;
-        final Integer graceOnInterestCharged = 0;
+        final Integer graceOnPrincipalPayment = loanProductRelatedDetail.graceOnPrincipalPayment() ;
+        final Integer graceOnInterestPayment = loanProductRelatedDetail.graceOnInterestPayment() ;
+        final Integer graceOnInterestCharged = loanProductRelatedDetail.graceOnInterestCharged();
         final LocalDate interestChargedFromDate = null;
 
         return new LoanApplicationTerms(applicationCurrency, loanTermFrequency, loanTermPeriodFrequencyType, numberOfRepayments,
