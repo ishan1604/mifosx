@@ -356,10 +356,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         final String deleteRegisteredDatatableSql = "delete from x_registered_table where registered_table_name = '" + datatable + "'";
 
-        String[] sqlArray = new String[3];
+        final String deleteFromConfigurationSql = "delete from c_configuration where name ='"+datatable+"'";
+
+        String[] sqlArray = new String[4];
         sqlArray[0] = deleteRolePermissionsSql;
         sqlArray[1] = deletePermissionsSql;
         sqlArray[2] = deleteRegisteredDatatableSql;
+        sqlArray[3] = deleteFromConfigurationSql ;
 
         this.jdbcTemplate.batchUpdate(sqlArray);
     }
@@ -1359,7 +1362,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 pValueWrite = "null";
             } else {
                 pValueWrite = singleQuote + this.genericDataService.replace(pValue, singleQuote, singleQuote + singleQuote) + singleQuote;
+
                 scoresId +=pValueWrite +" ,";
+
 
             }
             columnName = "`" + key + "`";
@@ -1367,17 +1372,20 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             selectColumns += "," + pValueWrite + " as " + columnName;
         }
 
+
+        scoresId = scoresId.replaceAll(" ,$", "");
+
         addSql = "insert into `" + datatable + "` (`" + fkName + "` " + insertColumns + ")" + " select " + appTableId + " as id"
                 + selectColumns;
 
-        String vaddSql = "insert into `" + datatable + "` (`" + fkName + "` " + insertColumns + " `score` )" + " select " + appTableId + " as id"
-                + selectColumns + " ( SELECT SUM ( code_score ) FROM m_code_value WHERE m_code.code_id IN " + scoresId + " ) as score";
+        String vaddSql = "insert into `" + datatable + "` (`" + fkName + "` " + insertColumns + ", `score` )" + " select " + appTableId + " as id"
+                + selectColumns + " , ( SELECT SUM( code_score ) FROM m_code_value WHERE m_code_value.id IN (" + scoresId + " ) ) as score";
 
 
 
         logger.info(vaddSql);
 
-        return addSql;
+        return vaddSql;
     }
 
     private String getUpdateSql(final String datatable, final String keyFieldName, final Long keyFieldValue,

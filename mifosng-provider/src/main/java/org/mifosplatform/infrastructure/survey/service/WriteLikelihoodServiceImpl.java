@@ -67,10 +67,6 @@ public class WriteLikelihoodServiceImpl implements WriteLikelihoodService{
                                      " WHERE t.ppi_name = '" + likelihood.getPpiName()
                                    + "' AND t.id !=" +likelihood.getId()+ " ) ";
 
-//            String Select = ( SELECT lkp.id FROM ppi_likelihoods_ppi lkp "
-//                    +" WHERE lkp.ppi_name = '"+likelihood.getPpiName()+"'"
-//                    +" AND lkp.id !="+likelihood.getId()+" ) "
-
 
             if (!likelihood.update(command).isEmpty()) {
                 this.repository.save(likelihood);
