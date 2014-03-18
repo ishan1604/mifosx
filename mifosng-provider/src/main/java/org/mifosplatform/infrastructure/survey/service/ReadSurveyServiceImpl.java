@@ -8,6 +8,7 @@ import org.mifosplatform.infrastructure.dataqueries.data.ResultsetColumnHeaderDa
 import org.mifosplatform.infrastructure.dataqueries.service.GenericDataService;
 import org.mifosplatform.infrastructure.dataqueries.service.ReadWriteNonCoreDataService;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
+import org.mifosplatform.infrastructure.survey.data.ClientScoresOverview;
 import org.mifosplatform.infrastructure.survey.data.SurveyDataTableData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,4 +118,15 @@ public class ReadSurveyServiceImpl implements ReadSurveyService {
 
         return datatableData;
     }
+
+//    public List<ClientScoresOverview> retrieveClientSurveyScoreOverview(String surveyName, Long clientId)
+//    {
+//
+//        final String Sql = "SELECT "
+//         // get the active likelihood
+//
+//        // get the score & the pii date
+//
+//        // get the likelihood coresponding to that score
+//    }
 }

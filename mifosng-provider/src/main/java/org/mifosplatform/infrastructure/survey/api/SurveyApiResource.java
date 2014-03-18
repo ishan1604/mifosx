@@ -12,6 +12,7 @@ import org.mifosplatform.infrastructure.core.serialization.ApiRequestJsonSeriali
 import org.mifosplatform.infrastructure.core.serialization.DefaultToApiJsonSerializer;
 import org.mifosplatform.infrastructure.dataqueries.data.DatatableData;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
+import org.mifosplatform.infrastructure.survey.data.ClientScoresOverview;
 import org.mifosplatform.infrastructure.survey.data.SurveyData;
 import org.mifosplatform.infrastructure.survey.data.SurveyDataTableData;
 import org.mifosplatform.infrastructure.survey.service.ReadSurveyService;
@@ -91,13 +92,44 @@ public class SurveyApiResource {
                                        final String apiRequestBodyAsJson) {
 
         final CommandWrapper commandRequest = new CommandWrapperBuilder() //
-                .createDatatable(datatable, apptableId, null) //
+                .fullFilSurvey(datatable, apptableId) //
                 .withJson(apiRequestBodyAsJson) //
                 .build();
 
         final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
 
         return this.toApiJsonSerializer.serialize(result);
+    }
+
+//    @GET
+//    @Path("{surveyName}/{clientId}")
+//    @Consumes({ MediaType.APPLICATION_JSON })
+//    @Produces({ MediaType.APPLICATION_JSON })
+//    public String getClientSurveyOverview(@PathParam("surveyName") final String surveyName, @PathParam("clientId") final Long clientId,
+//                                       final String apiRequestBodyAsJson) {
+//
+//
+//        this.context.authenticatedUser().validateHasReadPermission(SurveyApiConstants.SURVEY_RESOURCE_NAME);
+//
+//        List<ClientScoresOverview> scores = this.readSurveyService.retrieveClientSurveyScoreOverview(surveyName,clientId);
+//
+//        return this.toApiJsonSerializer.serialize(scores);
+//    }
+
+    @PUT
+    @Path("register/{surveyName}/{apptable}")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String register(@PathParam("surveyName") final String datatable, @PathParam("apptable") final String apptable,
+                                       final String apiRequestBodyAsJson) {
+
+
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().registerSurvey( datatable,apptable).withJson(apiRequestBodyAsJson).build();
+
+        final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+
+        return this.toApiJsonSerializer.serialize(result);
+
     }
 
     private boolean is(final String commandParam, final String commandValue) {

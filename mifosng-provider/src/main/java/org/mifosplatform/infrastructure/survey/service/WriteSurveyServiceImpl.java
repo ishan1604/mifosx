@@ -70,12 +70,14 @@ public class WriteSurveyServiceImpl implements WriteSurveyService {
 
     @Override
     @Transactional
-    public void registerSurvey(JsonCommand command)
+    public CommandProcessingResult registerSurvey(JsonCommand command)
     {
 
         final String dataTableName = this.readWriteNonCoreDataService.getDataTableName(command.getUrl());
         final String permissionSql = this._getPermissionSql(dataTableName);
         this.readWriteNonCoreDataService.registerDatatable(command, permissionSql);
+
+        return CommandProcessingResult.commandOnlyResult(command.commandId());
 
     }
 

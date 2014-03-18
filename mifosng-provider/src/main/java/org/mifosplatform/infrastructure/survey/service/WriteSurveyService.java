@@ -8,7 +8,7 @@ import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
  */
 public interface WriteSurveyService {
 
-    void registerSurvey(JsonCommand command);
+    CommandProcessingResult registerSurvey(JsonCommand command);
 
     CommandProcessingResult fullFillSurvey(String datatable, Long appTableId, JsonCommand command);
 }
