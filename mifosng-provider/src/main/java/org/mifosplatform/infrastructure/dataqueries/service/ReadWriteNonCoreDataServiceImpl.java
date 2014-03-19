@@ -1075,7 +1075,6 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     public GenericResultsetData retrieveDataTableGenericResultSet(final String dataTableName, final Long appTableId, final String order,
             final Long id) {
 
-        logger.debug("::2 we are in the retrieveDataTableGenericResultSet");
 
         final String appTable = queryForApplicationTableName(dataTableName);
 

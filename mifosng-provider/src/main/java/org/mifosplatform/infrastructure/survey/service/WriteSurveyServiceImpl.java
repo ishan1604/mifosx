@@ -121,7 +121,7 @@ public class WriteSurveyServiceImpl implements WriteSurveyService {
                 + deletePermission
                 + ", 'DELETE', '"
                 + dataTableName
-                + "', true),"
+                + "', false),"
                 + "('datatable', "
                 + deletePermissionChecker
                 + ", 'DELETE', '"

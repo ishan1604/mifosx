@@ -1,14 +1,17 @@
 package org.mifosplatform.infrastructure.survey.service;
 
+import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.infrastructure.dataqueries.api.DataTableApiConstant;
 import org.mifosplatform.infrastructure.dataqueries.data.DatatableData;
+import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
 import org.mifosplatform.infrastructure.dataqueries.data.ResultsetColumnHeaderData;
 import org.mifosplatform.infrastructure.dataqueries.service.GenericDataService;
 import org.mifosplatform.infrastructure.dataqueries.service.ReadWriteNonCoreDataService;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.infrastructure.survey.data.ClientScoresOverview;
+import org.mifosplatform.infrastructure.survey.data.LikelihoodStatus;
 import org.mifosplatform.infrastructure.survey.data.SurveyDataTableData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,14 +122,41 @@ public class ReadSurveyServiceImpl implements ReadSurveyService {
         return datatableData;
     }
 
-//    public List<ClientScoresOverview> retrieveClientSurveyScoreOverview(String surveyName, Long clientId)
-//    {
-//
-//        final String Sql = "SELECT "
-//         // get the active likelihood
-//
-//        // get the score & the pii date
-//
-//        // get the likelihood coresponding to that score
-//    }
+    public List<ClientScoresOverview> retrieveClientSurveyScoreOverview(String surveyName, Long clientId)
+    {
+
+        final String sql = "SELECT tz.id, lkh.name, lkh.code, poverty_line, tz.date, tz.score FROM ppi_tanzania_2012 tz"
+        +" JOIN ppi_likelihoods_ppi lkp on lkp.ppi_name = '"+surveyName+"' AND enabled = '"+ LikelihoodStatus.ENABLED
+        +"' JOIN ppi_scores sc on score_from  <= tz.score AND score_to >=tz.score"
+        +" JOIN ppi_poverty_line pvl on pvl.likelihood_ppi_id = lkp.id AND pvl.score_id = sc.id"
+        +" JOIN ppi_likelihoods lkh on lkh.id = lkp.likelihood_id "
+        +" WHERE  client_id = "+clientId;
+
+        final SqlRowSet rs = this.jdbcTemplate.queryForRowSet(sql);
+
+        List<ClientScoresOverview> scoresOverviews = new ArrayList<ClientScoresOverview>();
+
+        while(rs.next())
+        {
+            scoresOverviews.add(new ClientScoresOverview(
+                    rs.getString("code"),
+                    rs.getString("name"),
+                    rs.getLong("score"),
+                    rs.getDouble("poverty_line"),
+                    new LocalDate(rs.getTimestamp("date").getTime()),
+                    rs.getLong("id")
+            ));
+        }
+
+
+        return scoresOverviews ;
+    }
+
+    public GenericResultsetData retrieveSurveyEntry(String surveyName, Long clientId, Long entryId)
+    {
+
+          return  readWriteNonCoreDataService.retrieveDataTableGenericResultSet(surveyName, clientId,
+                    null,  entryId);
+
+    }
 }
