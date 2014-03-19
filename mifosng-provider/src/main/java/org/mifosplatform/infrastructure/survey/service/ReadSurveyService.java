@@ -1,6 +1,7 @@
 package org.mifosplatform.infrastructure.survey.service;
 
 import org.mifosplatform.infrastructure.dataqueries.data.DatatableData;
+import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
 import org.mifosplatform.infrastructure.survey.data.ClientScoresOverview;
 import org.mifosplatform.infrastructure.survey.data.SurveyDataTableData;
 
@@ -15,7 +16,9 @@ public interface ReadSurveyService {
 
     SurveyDataTableData retrieveSurvey(String surveyName);
 
-   // List<ClientScoresOverview>retrieveClientSurveyScoreOverview(String surveyName, Long clientId);
+    List<ClientScoresOverview>retrieveClientSurveyScoreOverview(String surveyName, Long clientId);
+
+    GenericResultsetData retrieveSurveyEntry(String surveyName, Long clientId, Long entryId);
 
 }
 
