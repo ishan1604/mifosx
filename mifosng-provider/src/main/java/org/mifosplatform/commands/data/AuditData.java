@@ -51,6 +51,20 @@ public final class AuditData {
     @SuppressWarnings("unused")
     private final String url;
 
+    @SuppressWarnings("unused")
+    private Double loanDisbursementAmount;
+    @SuppressWarnings("unused")
+    private DateTime loanDisbursementDate;
+    @SuppressWarnings("unused")
+    private Double loanOutStanding;
+    @SuppressWarnings("unused")
+    private String loanStatus;
+
+    @SuppressWarnings("unused")
+    private Double savingOutStanding;
+    @SuppressWarnings("unused")
+    private String savingStatus;
+
     public AuditData(final Long id, final String actionName, final String entityName, final Long resourceId, final Long subresourceId,
             final String maker, final DateTime madeOnDate, final String checker, final DateTime checkedOnDate,
             final String processingResult, final String commandAsJson, final String officeName, final String groupLevelName,
@@ -77,6 +91,49 @@ public final class AuditData {
         this.clientId = clientId;
         this.loanId = loanId;
         this.url = url;
+
+        this.loanDisbursementAmount = null;
+        this.loanDisbursementDate = null;
+        this.loanOutStanding = null;
+        this.loanStatus = null;
+        this.savingOutStanding = null;
+        this.savingStatus = null;
+    }
+
+    public AuditData(final Long id, final String actionName, final String entityName, final Long resourceId, final Long subresourceId,
+             final String maker, final DateTime madeOnDate, final String checker, final DateTime checkedOnDate,
+             final String processingResult, final String commandAsJson, final String officeName, final String groupLevelName,
+             final String groupName, final String clientName, final String loanAccountNo, final String savingsAccountNo,
+             final Long clientId, final Long loanId, final String url,final Double disbursementAmount, final DateTime disbursementDate,
+             final Double loanOutStanding, final String loanStatus,final Double savingOutStanding, final String savingStatus) {
+
+        this.id = id;
+        this.actionName = actionName;
+        this.entityName = entityName;
+        this.resourceId = resourceId;
+        this.subresourceId = subresourceId;
+        this.maker = maker;
+        this.madeOnDate = madeOnDate;
+        this.checker = checker;
+        this.checkedOnDate = checkedOnDate;
+        this.commandAsJson = commandAsJson;
+        this.processingResult = processingResult;
+        this.officeName = officeName;
+        this.groupLevelName = groupLevelName;
+        this.groupName = groupName;
+        this.clientName = clientName;
+        this.loanAccountNo = loanAccountNo;
+        this.savingsAccountNo = savingsAccountNo;
+        this.clientId = clientId;
+        this.loanId = loanId;
+        this.url = url;
+
+        this.loanDisbursementAmount = disbursementAmount;
+        this.loanDisbursementDate =disbursementDate;
+        this.loanOutStanding =loanOutStanding;
+        this.loanStatus = loanStatus;
+        this.savingStatus = savingStatus;
+        this.savingOutStanding = savingOutStanding;
     }
 
     public void setCommandAsJson(final String commandAsJson) {

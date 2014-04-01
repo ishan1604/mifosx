@@ -197,12 +197,19 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final LocalDate transactionDate = command.localDateValueOfParameterNamed("transactionDate");
         final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
 
+
         final Map<String, Object> changes = new LinkedHashMap<String, Object>();
+
+
+
         final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
         boolean isAccountTransfer = false;
         boolean isRegularTransaction = true;
         final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(account, fmt, transactionDate,
                 transactionAmount, paymentDetail, isAccountTransfer, isRegularTransaction);
+
+        changes.put("transactionDate", command.stringValueOfParameterNamed("transactionDate"));
+        changes.put("transactionAmount", command.stringValueOfParameterNamed("transactionAmount"));
 
         return new CommandProcessingResultBuilder() //
                 .withEntityId(deposit.getId()) //
@@ -232,7 +239,12 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final DateTimeFormatter fmt = DateTimeFormat.forPattern(command.dateFormat()).withLocale(locale);
 
         final Map<String, Object> changes = new LinkedHashMap<String, Object>();
+
+
         final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
+
+        changes.put("transactionDate", command.stringValueOfParameterNamed("transactionDate"));
+        changes.put("transactionAmount", command.stringValueOfParameterNamed("transactionAmount"));
 
         final SavingsAccount account = this.savingAccountAssembler.assembleFrom(savingsId);
         checkClientOrGroupActive(account);
