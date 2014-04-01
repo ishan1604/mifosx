@@ -21,6 +21,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.lang.StringUtils;
+import org.hibernate.annotations.common.util.impl.LoggerFactory;
 import org.mifosplatform.commands.data.AuditData;
 import org.mifosplatform.commands.data.AuditSearchData;
 import org.mifosplatform.commands.service.AuditReadPlatformService;
@@ -31,6 +32,9 @@ import org.mifosplatform.infrastructure.core.serialization.ApiRequestJsonSeriali
 import org.mifosplatform.infrastructure.core.serialization.DefaultToApiJsonSerializer;
 import org.mifosplatform.infrastructure.core.service.Page;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
+import org.slf4j.Logger;
+
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -51,6 +55,8 @@ public class AuditsApiResource {
     private final ApiRequestParameterHelper apiRequestParameterHelper;
     private final DefaultToApiJsonSerializer<AuditData> toApiJsonSerializer;
     private final DefaultToApiJsonSerializer<AuditSearchData> toApiJsonSerializerSearchTemplate;
+
+    private final static Logger logger = org.slf4j.LoggerFactory.getLogger(AuditsApiResource.class);
 
     @Autowired
     public AuditsApiResource(final PlatformSecurityContext context, final AuditReadPlatformService auditReadPlatformService,
@@ -86,10 +92,17 @@ public class AuditsApiResource {
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
 
         if (parameters.isPaged()) {
+
+            logger.debug("Is paged ::::");
+
             final Page<AuditData> auditEntries = this.auditReadPlatformService.retrievePaginatedAuditEntries(extraCriteria,
                     settings.isIncludeJson(), parameters);
             return this.toApiJsonSerializer.serialize(settings, auditEntries, this.RESPONSE_DATA_PARAMETERS);
         }
+
+        logger.debug("Is not pagged");
+
+        logger.debug("Setting include jsonm is ::"+settings.isIncludeJson());
 
         final Collection<AuditData> auditEntries = this.auditReadPlatformService.retrieveAuditEntries(extraCriteria,
                 settings.isIncludeJson());
