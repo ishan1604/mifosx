@@ -8,6 +8,8 @@ package org.mifosplatform.commands.service;
 import java.lang.reflect.Type;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import net.fortuna.ical4j.model.Date;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.mifosplatform.commands.data.AuditData;
@@ -97,10 +100,17 @@ public class AuditReadPlatformServiceImpl implements AuditReadPlatformService {
                 commandAsJsonString = ", aud.command_as_json as commandAsJson ";
             }
 
+            logger.debug("THeJSON IS ::::"+commandAsJsonString);
+
             String partSql = " aud.id as id, aud.action_name as actionName, aud.entity_name as entityName,"
                     + " aud.resource_id as resourceId, aud.subresource_id as subresourceId,aud.client_id as clientId, aud.loan_id as loanId,"
-                    + " mk.username as maker, aud.made_on_date as madeOnDate, "
-                    + "ck.username as checker, aud.checked_on_date as checkedOnDate, ev.enum_message_property as processingResult "
+                    + " mk.username as maker, aud.made_on_date as madeOnDate,"
+                    + " l.principal_amount as disbursementAmount, l.disbursedon_date as disbursementDate,"
+                    + " l.total_repayment_derived as loanOutStanding, eve.enum_message_property as loanStatus, "
+
+                    + " s.account_balance_derived as savingOutStanding, evee.enum_message_property as savingStatus, "
+
+                    + " ck.username as checker, aud.checked_on_date as checkedOnDate, ev.enum_message_property as processingResult "
                     + commandAsJsonString + ", "
                     + " o.name as officeName, gl.level_name as groupLevelName, g.display_name as groupName, c.display_name as clientName, "
                     + " l.account_no as loanAccountNo, s.account_no as savingsAccountNo " + " from m_portfolio_command_source aud "
@@ -108,7 +118,9 @@ public class AuditReadPlatformServiceImpl implements AuditReadPlatformService {
                     + " left join m_office o on o.id = aud.office_id" + " left join m_group g on g.id = aud.group_id"
                     + " left join m_group_level gl on gl.id = g.level_id" + " left join m_client c on c.id = aud.client_id"
                     + " left join m_loan l on l.id = aud.loan_id" + " left join m_savings_account s on s.id = aud.savings_account_id"
-                    + " left join r_enum_value ev on ev.enum_name = 'processing_result_enum' and ev.enum_id = aud.processing_result_enum";
+                    + " left join r_enum_value ev on ev.enum_name = 'processing_result_enum' and ev.enum_id = aud.processing_result_enum"
+                    + " left join r_enum_value eve on eve.enum_name = 'loan_status_id' and eve.enum_id = l.loan_status_id "
+                     + " left join r_enum_value evee on evee.enum_name = 'loan_status_id' and evee.enum_id = s.status_enum ";
 
             // data scoping: head office (hierarchy = ".") can see all audit
             // entries
@@ -134,6 +146,17 @@ public class AuditReadPlatformServiceImpl implements AuditReadPlatformService {
             final String checker = rs.getString("checker");
             final DateTime checkedOnDate = JdbcSupport.getDateTime(rs, "checkedOnDate");
             final String processingResult = rs.getString("processingResult");
+
+
+            final Double disbursementAmount = rs.getDouble("disbursementAmount");
+            final DateTime disbursementDate =JdbcSupport.getDateTime(rs, "disbursementDate");
+            final Double loanOutStanding = rs.getDouble("loanOutStanding");
+            final String loanStatus = rs.getString("loanStatus");
+
+            final Double savingOutStanding = rs.getDouble("savingOutStanding");
+            final String savingStatus = rs.getString("savingStatus");
+
+
             String commandAsJson;
             // commandAsJson might not be on the select list of columns
             try {
@@ -141,6 +164,8 @@ public class AuditReadPlatformServiceImpl implements AuditReadPlatformService {
             } catch (final SQLException e) {
                 commandAsJson = null;
             }
+
+            logger.debug("Retreived json is ::::"+commandAsJson);
 
             final String officeName = rs.getString("officeName");
             final String groupLevelName = rs.getString("groupLevelName");
@@ -151,7 +176,7 @@ public class AuditReadPlatformServiceImpl implements AuditReadPlatformService {
 
             return new AuditData(id, actionName, entityName, resourceId, subresourceId, maker, madeOnDate, checker, checkedOnDate,
                     processingResult, commandAsJson, officeName, groupLevelName, groupName, clientName, loanAccountNo, savingsAccountNo,
-                    clientId, loanId);
+                    clientId, loanId,disbursementAmount, disbursementDate,loanOutStanding,loanStatus,savingOutStanding,savingStatus);
         }
     }
 
