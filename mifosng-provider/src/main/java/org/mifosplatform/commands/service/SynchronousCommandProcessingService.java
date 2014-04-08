@@ -5,8 +5,6 @@
  */
 package org.mifosplatform.commands.service;
 
-import java.util.Map;
-
 import com.jcraft.jsch.Logger;
 import org.joda.time.DateTime;
 import org.mifosplatform.commands.domain.CommandSource;
@@ -28,6 +26,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
 
 @Service
 public class SynchronousCommandProcessingService implements CommandProcessingService {
@@ -335,7 +335,9 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
                 handler = this.applicationContext.getBean("undoDisbursalLoanCommandHandler", NewCommandSourceHandler.class);
             } else if (wrapper.isLoanRepayment()) {
                 handler = this.applicationContext.getBean("loanRepaymentCommandHandler", NewCommandSourceHandler.class);
-            } else if (wrapper.isLoanRepaymentAdjustment()) {
+            } else if (wrapper.isLoanRecoveryPayment()){
+                handler = this.applicationContext.getBean("loanRecoveryPaymentCommandHandler", NewCommandSourceHandler.class);
+            }else if (wrapper.isLoanRepaymentAdjustment()) {
                 handler = this.applicationContext.getBean("loanRepaymentAdjustmentCommandHandler", NewCommandSourceHandler.class);
             } else if (wrapper.isWaiveInterestPortionOnLoan()) {
                 handler = this.applicationContext.getBean("waiveInterestPortionOnLoanCommandHandler", NewCommandSourceHandler.class);
