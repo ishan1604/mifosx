@@ -56,6 +56,10 @@ public class CashBasedAccountingProcessorForLoan implements AccountingProcessorF
                 createJournalEntriesForRepayments(loanDTO, loanTransactionDTO, office);
             }
 
+//            else if ( loanTransactionDTO.getTransactionType().isWaiveCharges()) {
+//                createJournalEntriesForRepayments(loanDTO, loanTransactionDTO, office);
+//            }
+
             /** Logic for Refunds of Overpayments **/
             else if (loanTransactionDTO.getTransactionType().isRefund()) {
                 createJournalEntriesForRefund(loanDTO, loanTransactionDTO, office);
