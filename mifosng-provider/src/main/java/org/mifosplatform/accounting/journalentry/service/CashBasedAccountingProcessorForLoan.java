@@ -55,8 +55,7 @@ public class CashBasedAccountingProcessorForLoan implements AccountingProcessorF
                     || loanTransactionDTO.getTransactionType().isChargePayment()) {
                 createJournalEntriesForRepayments(loanDTO, loanTransactionDTO, office);
             }
-
-
+            
             /** Logic for handling recovery payments **/
             else if (loanTransactionDTO.getTransactionType().isRecoveryRepayment()) {
                 createJournalEntriesForRecoveryRepayments(loanDTO, loanTransactionDTO, office);
