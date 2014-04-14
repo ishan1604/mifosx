@@ -15,7 +15,7 @@
 	<bean id="dataSource"
 		class="org.springframework.jdbc.datasource.DriverManagerDataSource"
 		p:driverClassName="com.mysql.jdbc.Driver" p:url="jdbc:mysql://localhost:3306/mifosplatform-tenants"
-		p:username="root" p:password="sander" />
+		p:username="root" p:password="mysql" />
 
 	<bean id="hibernateExceptionTranslator"
 		class="org.springframework.orm.hibernate4.HibernateExceptionTranslator" />
