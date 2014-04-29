@@ -484,12 +484,49 @@ public final class Client extends AbstractPersistable<Long> {
             final LocalDate newValue = command.localDateValueOfParameterNamed(ClientApiConstants.dateOfBirthParamName);
             this.dateOfBirth = newValue.toDate();
         }
+        
+        if (command.isChangeInLocalDateParameterNamed(ClientApiConstants.submittedOnDateParamName,getSubmittedOnDate())) {
+            final String valueAsInput = command.stringValueOfParameterNamed(ClientApiConstants.submittedOnDateParamName);
+            actualChanges.put(ClientApiConstants.submittedOnDateParamName, valueAsInput);
+            actualChanges.put(ClientApiConstants.dateFormatParamName, dateFormatAsInput);
+            actualChanges.put(ClientApiConstants.localeParamName, localeAsInput);
+
+            final LocalDate newValue = command.localDateValueOfParameterNamed(ClientApiConstants.submittedOnDateParamName);
+            this.submittedOnDate = newValue.toDate();
+        }
 
         validate();
 
         deriveDisplayName();
 
         return actualChanges;
+    }
+
+    private void validateSubmittedOnDate()
+    {
+        final List<ApiParameterError> dataValidationErrors = new ArrayList<ApiParameterError>();
+
+
+        if (getSubmittedOnDate() != null && isDateInTheFuture(getSubmittedOnDate())) {
+
+            final String defaultUserMessage = "submitted date cannot be in the future.";
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.clients.submittedOnDate.in.the.future",
+                    defaultUserMessage, ClientApiConstants.submittedOnDateParamName, this.submittedOnDate);
+
+            dataValidationErrors.add(error);
+        }
+
+        if (getActivationLocalDate() != null && getSubmittedOnDate() != null && getSubmittedOnDate().isAfter(getActivationLocalDate())) {
+
+            final String defaultUserMessage = "submitted date cannot be after the activation date";
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.clients.submittedOnDate.after.activation.date",
+                    defaultUserMessage, ClientApiConstants.submittedOnDateParamName, this.submittedOnDate);
+
+            dataValidationErrors.add(error);
+        }
+
+        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
+
     }
 
     private void validateNameParts(final List<ApiParameterError> dataValidationErrors) {
