@@ -24,7 +24,6 @@ import org.hibernate.service.config.internal.ConfigurationServiceImpl;
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.codes.service.CodeReadPlatformService;
 import org.mifosplatform.infrastructure.configuration.domain.ConfigurationDomainService;
-
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.ApiParameterError;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
@@ -805,6 +804,27 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
 
     }
+    
+    /** 
+     * Update data table, set column value to empty string where current value is NULL. 
+     * Run update SQL only if the "mandatory" property is set to true
+     * 
+     * @param datatableName Name of data table
+     * @param column JSON encoded array of column properties
+     * @author Emmanuel Nnaa <https://www.github.com/emmanuelnnaa>
+     * @see https://mifosforge.jira.com/browse/MIFOSX-1145
+     **/
+    private void removeNullValuesFromColumn(final String datatableName, final JsonObject column) {
+        final Boolean mandatory = (column.has("mandatory")) ? column.get("mandatory").getAsBoolean() : false;
+        final String name = (column.has("name")) ? column.get("name").getAsString() : null;
+        
+        if((mandatory != null) && mandatory) {
+            StringBuilder sqlBuilder = new StringBuilder();
+            sqlBuilder.append("UPDATE `" + datatableName + "` SET `" + name + "` = '' WHERE `" + name + "` IS NULL");
+            
+            this.jdbcTemplate.update(sqlBuilder.toString());
+        }
+    }
 
     @Transactional
     @Override
@@ -910,6 +930,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 final Map<String, Long> codeMappings = new HashMap<String, Long>();
                 final List<String> removeMappings = new ArrayList<String>();
                 for (final JsonElement column : changeColumns) {
+                    removeNullValuesFromColumn(datatableName, column.getAsJsonObject());
                     parseDatatableColumnForUpdate(column.getAsJsonObject(), mapColumnNameDefinition, sqlBuilder, datatableName,
                             constrainBuilder, codeMappings, removeMappings, isConstraintApproach);
                 }
@@ -1514,7 +1535,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         String paramValue = pValue;
         if (columnHeader.isDateDisplayType() || columnHeader.isIntegerDisplayType() || columnHeader.isDecimalDisplayType()) {
-            paramValue = paramValue.trim();
+            // only trim if string is not empty and is not null.
+            // throws a NULL pointer exception if the check below is not applied
+            paramValue = StringUtils.isNotEmpty(paramValue) ? paramValue.trim() : paramValue;
         }
 
         if (StringUtils.isEmpty(paramValue) && columnHeader.isMandatory()) {
