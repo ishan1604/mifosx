@@ -514,9 +514,11 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
                 handler = this.applicationContext.getBean("assignGroupStaffCommandHandler", NewCommandSourceHandler.class);
             } else if (wrapper.isTransferClientsBetweenGroups()) {
                 handler = this.applicationContext.getBean("transferClientsBetweenGroupsCommandHandler", NewCommandSourceHandler.class);
-            } else if (wrapper.isGroupClose()) {
+            }else if (wrapper.isGroupClose()) {
                 handler = this.applicationContext.getBean("closeGroupCommandHandler", NewCommandSourceHandler.class);
-            } else {
+            }else if (wrapper.isTransferGroupBetweenBranches()) {
+                handler = this.applicationContext.getBean("transferGroupBetweenBranchesCommandHandler", NewCommandSourceHandler.class);
+            }else {
                 throw new UnsupportedCommandException(wrapper.commandName());
             }
         } else if (wrapper.isCenterResource()) {
