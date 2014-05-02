@@ -306,7 +306,7 @@ public class LoanCharge extends AbstractPersistable<Long> {
         this.paid = false;
         this.waived = false;
         for (final LoanInstallmentCharge installmentCharge : this.loanInstallmentCharge) {
-            installmentCharge.resetPaidAmount(currency);
+            installmentCharge.resetToOriginal(currency);
         }
     }
 
@@ -823,6 +823,9 @@ public class LoanCharge extends AbstractPersistable<Long> {
 
     public void setActive(boolean active) {
         this.active = active;
+        if (!active) {
+            this.overdueInstallmentCharge = null;
+        }
     }
 
     public BigDecimal amountOrPercentage() {
