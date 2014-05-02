@@ -388,6 +388,7 @@ public class CommandWrapperBuilder {
         return this;
     }
 
+
     public CommandWrapperBuilder proposeAndAcceptClientTransfer(final Long clientId) {
         this.actionName = "PROPOSEANDACCEPTTRANSFER";
         this.entityName = "CLIENT";
@@ -1216,6 +1217,14 @@ public class CommandWrapperBuilder {
         this.entityId = sourceGroupId;
         this.groupId = sourceGroupId;
         this.href = "/groups/" + sourceGroupId + "?command=transferClients";
+        return this;
+    }
+    public CommandWrapperBuilder transferGroupBetweenBranches(final Long sourceGroupId) {
+        this.actionName = "TRANSFERGROUP";
+        this.entityName = "GROUP";
+        this.entityId = sourceGroupId;
+        this.groupId = sourceGroupId;
+        this.href = "/groups/" + sourceGroupId + "?command=transferGroup";
         return this;
     }
 
