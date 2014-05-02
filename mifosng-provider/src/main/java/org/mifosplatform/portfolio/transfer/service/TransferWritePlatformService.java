@@ -22,4 +22,6 @@ public interface TransferWritePlatformService {
 
     CommandProcessingResult proposeAndAcceptClientTransfer(final Long clientId, final JsonCommand jsonCommand);
 
+    CommandProcessingResult transferGroupBetweenBranches(final Long sourceGroupId,final JsonCommand jsonCommand);
+
 }
