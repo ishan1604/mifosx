@@ -715,6 +715,10 @@ public class CommandWrapper {
     	return this.entityName.equalsIgnoreCase("GROUP") && this.actionName.equalsIgnoreCase("TRANSFERGROUP");
     }
 
+    public boolean isTransferStaffToGroup(){
+        return this.entityName.equalsIgnoreCase("GROUP") && this.actionName.equalsIgnoreCase("TRANSFERSTAFF");
+    }
+
     public boolean isClientAssignStaff() {
         return this.actionName.equalsIgnoreCase("ASSIGNSTAFF") && this.entityName.equalsIgnoreCase("CLIENT");
     }
