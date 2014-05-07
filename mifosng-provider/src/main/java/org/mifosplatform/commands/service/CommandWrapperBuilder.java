@@ -1455,6 +1455,15 @@ public class CommandWrapperBuilder {
         return this;
     }
 
+    public CommandWrapperBuilder transferStaffToGroup(final Long sourceGroupId) {
+        this.actionName = "TRANSFERSTAFF";
+        this.entityName = "GROUP";
+        this.entityId = sourceGroupId;
+        this.groupId =  sourceGroupId;
+        this.href = "/groups/" + sourceGroupId + "?command=transferStaff";
+        return this;
+    }
+
     public CommandWrapperBuilder unassignGroupStaff(final Long groupId) {
         this.actionName = "UNASSIGNSTAFF";
         this.entityName = "GROUP";
