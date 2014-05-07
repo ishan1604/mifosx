@@ -24,4 +24,9 @@ public interface TransferWritePlatformService {
 
     CommandProcessingResult transferGroupBetweenBranches(final Long sourceGroupId,final JsonCommand jsonCommand);
 
+    CommandProcessingResult transferLoanOfficerToGroup(final Long sourceGroupId,final JsonCommand jsonCommand);
+
+
+
+
 }
