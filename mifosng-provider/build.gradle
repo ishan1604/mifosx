@@ -148,7 +148,7 @@ dependencies {
 
 task dist(type:Zip){
 	baseName= 'mifosplatform'
-	version = qualifyVersionIfNecessary(releaseVersion)
+	version = qualifyVersionIfNecessary( releaseVersion)
 	from('../') {
 		fileMode = 0755
 		include '*.md'
