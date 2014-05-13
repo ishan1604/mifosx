@@ -388,6 +388,7 @@ public class AppUser extends AbstractPersistable<Long> implements PlatformUser {
         final String authorizationMessage = "User has no authority to view " + resourceType.toLowerCase() + "s";
         final String matchPermission = "READ_" + resourceType.toUpperCase();
 
+        logger.debug(matchPermission);
         if (!hasNotPermissionForAnyOf("ALL_FUNCTIONS", "ALL_FUNCTIONS_READ", matchPermission)) { return; }
 
         throw new NoAuthorizationException(authorizationMessage);
