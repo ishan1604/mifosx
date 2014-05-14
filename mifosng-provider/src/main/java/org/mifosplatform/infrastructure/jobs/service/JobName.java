@@ -15,7 +15,8 @@ public enum JobName {
     EXECUTE_STANDING_INSTRUCTIONS("Execute Standing Instruction"),
     ADD_ACCRUAL_ENTRIES("Add Accrual Transactions"),
     UPDATE_NPA("Update Non Performing Assets"),
-    UPDATE_DEPOSITS_ACCOUNT_MATURITY_DETAILS("Update Deposit Accounts Maturity details");
+    UPDATE_DEPOSITS_ACCOUNT_MATURITY_DETAILS("Update Deposit Accounts Maturity details"),
+    UPDATE_SMS_OUTBOUND_WITH_CAMPAIGN_MESSAGE("Update Sms Outbound with campaign message");
 
     private final String name;
 
