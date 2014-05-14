@@ -5,6 +5,7 @@
  */
 package org.mifosplatform.infrastructure.sms.data;
 
+import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 
 /**
@@ -21,14 +22,17 @@ public class SmsData {
     private final String sourceAddress;
     private final String mobileNo;
     private final String message;
+    private final String campaignName;
+	private final LocalDate sentDate;
 
-    public static SmsData instance(final Long id, Long externalId, final Long groupId, final Long clientId, final Long staffId, final EnumOptionData status,
-    		final String sourceAddress, final String mobileNo, final String message) {
-        return new SmsData(id, externalId, groupId, clientId, staffId, status, sourceAddress, mobileNo, message);
+
+	public static SmsData instance(final Long id, Long externalId, final Long groupId, final Long clientId, final Long staffId, final EnumOptionData status,
+    		final String sourceAddress, final String mobileNo, final String message,final String campaignName,final LocalDate sentDate) {
+        return new SmsData(id, externalId, groupId, clientId, staffId, status, sourceAddress, mobileNo, message, campaignName,sentDate);
     }
 
     private SmsData(final Long id, Long externalId, final Long groupId, final Long clientId, final Long staffId, final EnumOptionData status,
-            final String sourceAddress, final String mobileNo, final String message) {
+            final String sourceAddress, final String mobileNo, final String message, final String campaignName,final LocalDate sentDate) {
         this.id = id;
         this.externalId = externalId;
         this.groupId = groupId;
@@ -38,6 +42,8 @@ public class SmsData {
         this.sourceAddress = sourceAddress;
         this.mobileNo = mobileNo;
         this.message = message;
+        this.campaignName = campaignName;
+		this.sentDate = sentDate;
     }
 
 	/**
@@ -102,4 +108,8 @@ public class SmsData {
 	public String getMessage() {
 		return message;
 	}
+
+	public String getCampaignName() {return this.campaignName;}
+
+	public LocalDate getSentDate() { return this.sentDate; }
 }
