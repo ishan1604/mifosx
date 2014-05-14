@@ -14,12 +14,31 @@ import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import com.google.common.io.CharStreams;
+import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
+import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
+import org.mifosplatform.infrastructure.dataqueries.service.GenericDataService;
+import org.mifosplatform.infrastructure.dataqueries.service.ReadReportingService;
 import org.mifosplatform.template.domain.Template;
-import org.mifosplatform.template.domain.TemplateFunctions;
+import org.mifosplatform.useradministration.domain.AppUser;
+import org.pentaho.reporting.libraries.base.util.LinkedMap;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -30,18 +49,16 @@ import com.github.mustachejava.MustacheFactory;
 @Service
 public class TemplateMergeService {
 
-//    private final FromJsonHelper fromApiJsonHelper;
+    //    private final FromJsonHelper fromApiJsonHelper;
     private Map<String, Object> scopes;
 
-//    @Autowired
-//    public TemplateMergeService(final FromJsonHelper fromApiJsonHelper) {
-//        this.fromApiJsonHelper = fromApiJsonHelper;
-//    }
+    private Map<String,Object> smsParams;
+
+
 
     public String compile(final Template template, final Map<String, Object> scopes) throws MalformedURLException, IOException {
-
         this.scopes = scopes;
-        this.scopes.put("static", new TemplateFunctions());
+        this.scopes.put("static", TemplateMergeService.now());
 
         final MustacheFactory mf = new DefaultMustacheFactory();
         final Mustache mustache = mf.compile(new StringReader(template.getText()), template.getName());
@@ -55,6 +72,13 @@ public class TemplateMergeService {
         return stringWriter.toString();
     }
 
+    public static String now() {
+        final DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
+        final Date date = new Date();
+
+        return dateFormat.format(date);
+    }
+
     private Map<String, Object> getCompiledMapFromMappers(final Map<String, String> data) {
 
         final MustacheFactory mf = new DefaultMustacheFactory();
@@ -64,7 +88,7 @@ public class TemplateMergeService {
 
                 final Mustache mappersMustache = mf.compile(new StringReader(entry.getValue()), "");
                 final StringWriter stringWriter = new StringWriter();
-
+                System.out.println("see whats in scopes " + this.scopes);
                 mappersMustache.execute(stringWriter, this.scopes);
                 String url = stringWriter.toString();
                 if (!url.startsWith("http")) {
@@ -83,32 +107,33 @@ public class TemplateMergeService {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> getMapFromUrl(final String url) throws MalformedURLException, IOException {
+    private  Map<String, Object>  getMapFromUrl(final String url) throws MalformedURLException, IOException {
 
         final HttpURLConnection connection = getConnection(url);
 
         final String response = getStringFromInputStream(connection.getInputStream());
         HashMap<String, Object> result = new HashMap<String, Object>();
-        if (connection.getContentType().equals("text/plain")) {
+        if(connection.getContentType().equals("text/plain")) {
             result.put("src", response);
         } else {
             result = new ObjectMapper().readValue(response, HashMap.class);
         }
+
         return result;
     }
 
     private HttpURLConnection getConnection(final String url) {
 
-        final String name = SecurityContextHolder.getContext().getAuthentication().getName();
-        final String password = SecurityContextHolder.getContext().getAuthentication().getCredentials().toString();
+            final String name =SecurityContextHolder.getContext().getAuthentication().getName();
+            final String password = SecurityContextHolder.getContext().getAuthentication().getCredentials().toString();
+            Authenticator.setDefault(new Authenticator() {
 
-        Authenticator.setDefault(new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(name, password.toCharArray());
+                }
+            });
 
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(name, password.toCharArray());
-            }
-        });
 
         HttpURLConnection connection = null;
         try {
@@ -159,4 +184,59 @@ public class TemplateMergeService {
 
         return sb.toString();
     }
+    /*
+      Gets the object from a runReport query
+     */
+    private List<HashMap<String,Object>> getRunReportObject(final String url) throws MalformedURLException, IOException{
+
+        final HttpURLConnection connection = getConnection(url);
+
+        final String response = getStringFromInputStream(connection.getInputStream());
+        List<HashMap<String, Object>> result = new ArrayList<HashMap<String, Object>>();
+        result = new ObjectMapper().readValue(response, new TypeReference<List<HashMap<String,Object>>>(){});
+        return result;
+    }
+
+
+
+
+
+
+     public Map<String, List<HashMap<String,Object>>> compileMappers(final Map<String, String> templateMappers,Map<String,Object> smsParams) {
+
+        final MustacheFactory mf = new DefaultMustacheFactory();
+
+        final Map<String,List<HashMap<String,Object>>> runReportObject = new HashMap<String, List<HashMap<String,Object>>>();
+
+        if(templateMappers !=null){
+            for(Map.Entry<String,String> entry : templateMappers.entrySet()){
+                /*
+                    "mapperkey": "runreports",
+                    "mappervalue": "runreports/{{runreportId}}?associations=all&tenantIdentifier={{tenantIdentifier}}",
+                    entry.getValue represents mapperValue
+                 */
+                final Mustache urlMustache = mf.compile(new StringReader(entry.getValue()),"");
+
+                final StringWriter stringWriter = new StringWriter();
+                //execute to replace params in the mapperValue above ex {{loanId}} = 4
+                urlMustache.execute(stringWriter,smsParams);
+                String url = stringWriter.toString(); //holds the url to query for object from runReport
+                if (!url.startsWith("http")) {
+                    url = smsParams.get("BASE_URI") + url;
+                }
+                try{
+                    runReportObject.put(entry.getKey(), getRunReportObject(url));
+                }catch(final MalformedURLException e){
+                    //TODO throw something here
+                }catch (final IOException e){
+                   // TODO throw something here
+                }
+            }
+
+        }
+        return runReportObject; //contains list of runReport object runReport,{Object}
+    }
+
+
+
 }

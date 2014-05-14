@@ -18,8 +18,9 @@ public enum JobName {
     UPDATE_DEPOSITS_ACCOUNT_MATURITY_DETAILS("Update Deposit Accounts Maturity details"),
     TRANSFER_INTEREST_TO_SAVINGS("Transfer Interest To Savings"), 
     SEND_MESSAGES_TO_SMS_GATEWAY("Send messages to SMS gateway"), 
-    GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY("Get delivery reports from SMS gateway");
-    
+    GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY("Get delivery reports from SMS gateway"),
+    UPDATE_SMS_OUTBOUND_WITH_CAMPAIGN_MESSAGE("Update Sms Outbound with campaign message");
+
     private final String name;
 
     private JobName(final String name) {
