@@ -268,10 +268,24 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
         } else if (wrapper.isSmsResource()) {
             if (wrapper.isCreate()) {
                 handler = this.applicationContext.getBean("createSmsCommandHandler", NewCommandSourceHandler.class);
-            } else if (wrapper.isUpdate()) {
+            } else if(wrapper.isUpdate()) {
                 handler = this.applicationContext.getBean("updateSmsCommandHandler", NewCommandSourceHandler.class);
-            } else if (wrapper.isDelete()) {
+            } else if(wrapper.isDelete()) {
                 handler = this.applicationContext.getBean("deleteSmsCommandHandler", NewCommandSourceHandler.class);
+            } else {
+                throw new UnsupportedCommandException(wrapper.commandName());
+            }
+        } else if(wrapper.isSmsCampaignResource()){
+            if(wrapper.isCreate()){
+                handler = this.applicationContext.getBean("createSmsCampaignCommandHandler",NewCommandSourceHandler.class);
+            } else if(wrapper.isUpdate()){
+                handler = this.applicationContext.getBean("updateSmsCampaignCommandHandler",NewCommandSourceHandler.class);
+            } else if(wrapper.isDelete()){
+                handler = this.applicationContext.getBean("deleteSmsCampaignCommandHandler",NewCommandSourceHandler.class);
+            }else if(wrapper.isSmsCampaignActivation()){
+                handler= this.applicationContext.getBean("activateSmsCampaignCommandHandler",NewCommandSourceHandler.class);
+            } else if (wrapper.isSmsCampaignClosure()){
+                handler= this.applicationContext.getBean("closeSmsCampaignCommandHandler",NewCommandSourceHandler.class);
             } else {
                 throw new UnsupportedCommandException(wrapper.commandName());
             }
