@@ -53,15 +53,18 @@ public class SmsMessage extends AbstractPersistable<Long> {
     @Column(name = "message", nullable = false)
     private String message;
 
+    @Column(name = "campaign_name", nullable = true)
+    private String campaignName;
+
     public static SmsMessage pendingSms(final Long externalId, final Group group, final Client client, final Staff staff, final String message,
-    		final String sourceAddress, final String mobileNo) {
-        return new SmsMessage(externalId, group, client, staff, SmsMessageStatusType.PENDING, message, sourceAddress, mobileNo);
+    		final String sourceAddress, final String mobileNo, final String campaignName) {
+        return new SmsMessage(externalId, group, client, staff, SmsMessageStatusType.PENDING, message, sourceAddress, mobileNo,campaignName);
     }
     
     public static SmsMessage instance(final Long externalId, final Group group, final Client client, final Staff staff, final SmsMessageStatusType statusType,
-            final String message, final String sourceAddress, final String mobileNo) {
+            final String message, final String sourceAddress, final String mobileNo, final String campaignName) {
     	
-    	return new SmsMessage(externalId, group, client, staff, statusType, message, sourceAddress, mobileNo);
+    	return new SmsMessage(externalId, group, client, staff, statusType, message, sourceAddress, mobileNo, campaignName);
     }
 
     protected SmsMessage() {
@@ -69,7 +72,7 @@ public class SmsMessage extends AbstractPersistable<Long> {
     }
 
     private SmsMessage(final Long externalId, final Group group, final Client client, final Staff staff, final SmsMessageStatusType statusType,
-            final String message, final String sourceAddress, final String mobileNo) {
+            final String message, final String sourceAddress, final String mobileNo, final String campaignName) {
         this.externalId = externalId;
     	this.group = group;
         this.client = client;
@@ -78,6 +81,7 @@ public class SmsMessage extends AbstractPersistable<Long> {
         this.mobileNo = mobileNo;
         this.sourceAddress = sourceAddress;
         this.message = message;
+        this.campaignName = campaignName;
     }
 
     public Map<String, Object> update(final JsonCommand command) {
@@ -136,4 +140,9 @@ public class SmsMessage extends AbstractPersistable<Long> {
     public void setSourceAddress(final String sourceAddress) {
     	this.sourceAddress = sourceAddress;
     }
+
+    public String getCampaignName() {
+        return this.campaignName;
+    }
+
 }
