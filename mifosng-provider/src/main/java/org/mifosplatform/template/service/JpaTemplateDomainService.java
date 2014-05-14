@@ -6,6 +6,7 @@ import java.util.List;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
+import org.mifosplatform.template.data.TemplateData;
 import org.mifosplatform.template.domain.Template;
 import org.mifosplatform.template.domain.TemplateEntity;
 import org.mifosplatform.template.domain.TemplateMapper;
@@ -99,5 +100,10 @@ public class JpaTemplateDomainService implements TemplateDomainService {
     public List<Template> getAllByEntityAndType(final TemplateEntity entity, final TemplateType type) {
 
         return this.templateRepository.findByEntityAndType(entity, type);
+    }
+
+    @Override
+    public TemplateData retrieveEntityAndTypeTemplate() {
+        return TemplateData.template();
     }
 }

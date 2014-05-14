@@ -269,6 +269,17 @@ public class CommandWrapper {
         return this.entityName.equalsIgnoreCase("SMS");
     }
 
+    public boolean isSmsCampaignResource(){
+        return this.entityName.equals("SMS_CAMPAIGN");
+    }
+
+    public boolean isSmsCampaignActivation() {
+        return this.actionName.equalsIgnoreCase("ACTIVATE") && this.entityName.equalsIgnoreCase("SMS_CAMPAIGN");
+    }
+    public boolean isSmsCampaignClosure() {
+        return this.actionName.equalsIgnoreCase("CLOSE") && this.entityName.equalsIgnoreCase("SMS_CAMPAIGN");
+    }
+
     public boolean isCodeResource() {
         return this.entityName.equalsIgnoreCase("CODE");
     }
