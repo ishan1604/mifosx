@@ -22,6 +22,8 @@ import javax.persistence.UniqueConstraint;
 import org.apache.commons.lang3.StringUtils;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
+import org.mifosplatform.portfolio.client.api.ClientApiConstants;
+import org.mifosplatform.template.data.TemplateApiConstants;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 
 import com.google.gson.JsonArray;
@@ -63,12 +65,12 @@ public class Template extends AbstractPersistable<Long> {
     }
 
     public static Template fromJson(final JsonCommand command) {
-        final String name = command.stringValueOfParameterNamed("name");
-        final String text = command.stringValueOfParameterNamed("text");
+        final String name = command.stringValueOfParameterNamed(TemplateApiConstants.documentName);
+        final String text = command.stringValueOfParameterNamed(TemplateApiConstants.templateText);
         final TemplateEntity entity = TemplateEntity.values()[command
-                .integerValueSansLocaleOfParameterNamed("entity")];
+                .integerValueSansLocaleOfParameterNamed(TemplateApiConstants.entity)];
         final int templateTypeId = command
-                .integerValueSansLocaleOfParameterNamed("type");
+                .integerValueSansLocaleOfParameterNamed(TemplateApiConstants.documentType);
         TemplateType type = null;
         switch (templateTypeId) {
             case 0 :
@@ -79,7 +81,7 @@ public class Template extends AbstractPersistable<Long> {
                 break;
         }
 
-        final JsonArray array = command.arrayOfParameterNamed("mappers");
+        final JsonArray array = command.arrayOfParameterNamed(TemplateApiConstants.mappers);
 
         final List<TemplateMapper> mappersList = new ArrayList<>();
 
@@ -96,7 +98,7 @@ public class Template extends AbstractPersistable<Long> {
     public LinkedHashMap<String, String> getMappersAsMap() {
         final LinkedHashMap<String, String> map = new LinkedHashMap<>();
         for (final TemplateMapper mapper : getMappers()) {
-            map.put(mapper.getMapperkey(), mapper.getMappervalue());
+            map.put(mapper.getMapperKey(), mapper.getMapperValue());
         }
         return map;
     }

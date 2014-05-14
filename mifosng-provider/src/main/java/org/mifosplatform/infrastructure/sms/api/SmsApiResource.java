@@ -6,6 +6,7 @@
 package org.mifosplatform.infrastructure.sms.api;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,6 +23,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
 
+import org.mifosplatform.accounting.journalentry.api.DateParam;
 import org.mifosplatform.commands.domain.CommandWrapper;
 import org.mifosplatform.commands.service.CommandWrapperBuilder;
 import org.mifosplatform.commands.service.PortfolioCommandSourceWritePlatformService;
@@ -29,6 +31,7 @@ import org.mifosplatform.infrastructure.core.api.ApiRequestParameterHelper;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.serialization.ApiRequestJsonSerializationSettings;
 import org.mifosplatform.infrastructure.core.serialization.DefaultToApiJsonSerializer;
+import org.mifosplatform.infrastructure.core.service.Page;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.infrastructure.sms.data.SmsConfigurationData;
 import org.mifosplatform.infrastructure.sms.data.SmsData;
@@ -113,6 +116,28 @@ public class SmsApiResource {
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings, smsMessages);
     }
+
+    @GET
+    @Path("messageByStatus")
+    public String retrieveAllSmsByStatus(@Context final UriInfo uriInfo, @QueryParam("limit") final Long limit,@QueryParam("status") final Long status,
+                                         @QueryParam("fromDate") final DateParam fromDateParam, @QueryParam("toDate") final DateParam toDateParam,
+                                         @QueryParam("locale") final String locale, @QueryParam("dateFormat") final String dateFormat) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+        Date fromDate = null;
+        if (fromDateParam != null) {
+            fromDate = fromDateParam.getDate("fromDate", dateFormat, locale);
+        }
+        Date toDate = null;
+        if (toDateParam != null) {
+            toDate = toDateParam.getDate("toDate", dateFormat, locale);
+        }
+
+        final Page<SmsData> smsMessages = this.readPlatformService.retrieveSmsByStatus(limit.intValue(),status.intValue(),fromDate,toDate);
+
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.toApiJsonSerializer.serialize(settings, smsMessages);
+    }
     
     @GET
     @Path("failedsms")
@@ -138,7 +163,7 @@ public class SmsApiResource {
     	
     	return this.toApiJsonSerializer.serialize(smsCreditsMap);
     }
-
+    
     @POST
     public String create(final String apiRequestBodyAsJson) {
 

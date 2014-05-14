@@ -27,8 +27,9 @@ public enum JobName {
     GENERATE_RD_SCEHDULE("Generate Mandatory Savings Schedule"),
     GENERATE_LOANLOSS_PROVISIONING("Generate Loan Loss Provisioning"),
     SEND_MESSAGES_TO_SMS_GATEWAY("Send messages to SMS gateway"), 
-    GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY("Get delivery reports from SMS gateway");
-    
+    GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY("Get delivery reports from SMS gateway"),
+    UPDATE_SMS_OUTBOUND_WITH_CAMPAIGN_MESSAGE("Update Sms Outbound with campaign message");
+
     private final String name;
 
     private JobName(final String name) {

@@ -293,6 +293,53 @@ public class CommandWrapperBuilder {
         return this;
     }
 
+    public CommandWrapperBuilder createSmsCampaign() {
+        this.actionName = "CREATE";
+        this.entityName = "SMS_CAMPAIGN";
+        this.entityId = null;
+        this.href = "/sms/campaign";
+        return this;
+    }
+
+    public CommandWrapperBuilder updateSmsCampaign(final Long resourceId) {
+        this.actionName = "UPDATE";
+        this.entityName = "SMS_CAMPAIGN";
+        this.entityId = resourceId;
+        this.href = "/sms/campaign/"+resourceId;
+        return this;
+    }
+
+    public CommandWrapperBuilder deleteSmsCampaign(final Long resourceId) {
+        this.actionName = "DELETE";
+        this.entityName = "SMS_CAMPAIGN";
+        this.entityId = resourceId;
+        this.href = "/sms/campaign/"+resourceId;
+        return this;
+    }
+
+    public CommandWrapperBuilder activateSmsCampaign(final Long resourceId) {
+        this.actionName = "ACTIVATE";
+        this.entityName = "SMS_CAMPAIGN";
+        this.entityId = resourceId;
+        this.href = "/sms/campaign/"+resourceId + "?command=activate";
+        return this;
+    }
+
+    public CommandWrapperBuilder closeSmsCampaign(final Long resourceId) {
+        this.actionName = "CLOSE";
+        this.entityName = "SMS_CAMPAIGN";
+        this.entityId = resourceId;
+        this.href = "/sms/campaign/"+resourceId + "?command=close";
+        return this;
+    }
+    public CommandWrapperBuilder reactivateSmsCampaign(final Long resourceId) {
+        this.actionName = "REACTIVATE";
+        this.entityName = "SMS_CAMPAIGN";
+        this.entityId = resourceId;
+        this.href = "/sms/campaign/"+resourceId + "?command=reactivate";
+        return this;
+    }
+
     public CommandWrapperBuilder createCode() {
         this.actionName = "CREATE";
         this.entityName = "CODE";

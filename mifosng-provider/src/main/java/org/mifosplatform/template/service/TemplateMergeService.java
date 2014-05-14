@@ -19,14 +19,18 @@ import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.codehaus.jackson.map.ObjectMapper;
-import org.mifosplatform.infrastructure.core.service.ThreadLocalContextUtil;
+import org.codehaus.jackson.type.TypeReference;
 import org.mifosplatform.template.domain.Template;
-import org.mifosplatform.template.domain.TemplateFunctions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,7 +44,6 @@ import com.github.mustachejava.MustacheFactory;
 public class TemplateMergeService {
 	private final static Logger logger = LoggerFactory.getLogger(TemplateMergeService.class);
 	
-
     // private final FromJsonHelper fromApiJsonHelper;
     private Map<String, Object> scopes;
     private String authToken;
@@ -58,7 +61,7 @@ public class TemplateMergeService {
 
     public String compile(final Template template, final Map<String, Object> scopes) throws MalformedURLException, IOException {
         this.scopes = scopes;
-        this.scopes.put("static", new TemplateFunctions());
+        this.scopes.put("static", TemplateMergeService.now());
         
         final MustacheFactory mf = new DefaultMustacheFactory();
         final Mustache mustache = mf.compile(new StringReader(template.getText()), template.getName());
@@ -72,6 +75,13 @@ public class TemplateMergeService {
         mustache.execute(stringWriter, this.scopes);
 
         return stringWriter.toString();
+    }
+    
+    public static String now() {
+        final DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
+        final Date date = new Date();
+
+        return dateFormat.format(date);
     }
 
 	private Map<String, Object> getCompiledMapFromMappers(final Map<String, String> data) {
@@ -197,4 +207,51 @@ public class TemplateMergeService {
 		}		
 	}
 
+	/*
+	 * Gets the object from a runReport query
+	 */
+	private List<HashMap<String,Object>> getRunReportObject(final String url) throws MalformedURLException, IOException{
+
+	    final HttpURLConnection connection = getConnection(url);
+
+	    final String response = getStringFromInputStream(connection.getInputStream());
+	    List<HashMap<String, Object>> result = new ArrayList<HashMap<String, Object>>();
+	    result = new ObjectMapper().readValue(response, new TypeReference<List<HashMap<String,Object>>>(){});
+	    return result;
+	}
+	
+	public Map<String, List<HashMap<String,Object>>> compileMappers(final Map<String, String> templateMappers,Map<String,Object> smsParams) {
+	    final MustacheFactory mf = new DefaultMustacheFactory();
+
+	    final Map<String,List<HashMap<String,Object>>> runReportObject = new HashMap<String, List<HashMap<String,Object>>>();
+
+	    if(templateMappers !=null){
+	        for(Map.Entry<String,String> entry : templateMappers.entrySet()){
+	            /*
+	                "mapperkey": "runreports",
+	                "mappervalue": "runreports/{{runreportId}}?associations=all&tenantIdentifier={{tenantIdentifier}}",
+	                entry.getValue represents mapperValue
+	             */
+	            final Mustache urlMustache = mf.compile(new StringReader(entry.getValue()),"");
+
+	            final StringWriter stringWriter = new StringWriter();
+	            //execute to replace params in the mapperValue above ex {{loanId}} = 4
+	            urlMustache.execute(stringWriter,smsParams);
+	            String url = stringWriter.toString(); //holds the url to query for object from runReport
+	            if (!url.startsWith("http")) {
+	                url = smsParams.get("BASE_URI") + url;
+	            }
+	            try{
+	                runReportObject.put(entry.getKey(), getRunReportObject(url));
+	            }catch(final MalformedURLException e){
+	                //TODO throw something here
+	            }catch (final IOException e){
+	               // TODO throw something here
+	            }
+	        }
+
+	    }
+
+	    return runReportObject; //contains list of runReport object runReport,{Object}
+	}
 }
