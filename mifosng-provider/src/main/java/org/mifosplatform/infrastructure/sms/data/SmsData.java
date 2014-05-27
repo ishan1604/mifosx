@@ -23,22 +23,25 @@ public class SmsData {
     @SuppressWarnings("unused")
     private final EnumOptionData status;
     @SuppressWarnings("unused")
+    private final String externalId;
+    @SuppressWarnings("unused")
     private final String mobileNo;
     @SuppressWarnings("unused")
     private final String message;
 
     public static SmsData instance(final Long id, final Long groupId, final Long clientId, final Long staffId, final EnumOptionData status,
-            final String mobileNo, final String message) {
-        return new SmsData(id, groupId, clientId, staffId, status, mobileNo, message);
+            final String externalId, final String mobileNo, final String message) {
+        return new SmsData(id, groupId, clientId, staffId, status, externalId, mobileNo, message);
     }
 
     private SmsData(final Long id, final Long groupId, final Long clientId, final Long staffId, final EnumOptionData status,
-            final String mobileNo, final String message) {
+            final String externalId, final String mobileNo, final String message) {
         this.id = id;
         this.groupId = groupId;
         this.clientId = clientId;
         this.staffId = staffId;
         this.status = status;
+        this.externalId = externalId;
         this.mobileNo = mobileNo;
         this.message = message;
     }

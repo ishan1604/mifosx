@@ -1,5 +1,5 @@
 /**
- * This Source Code Form is subject to the terms of the Mozilla Public
+ * This Source Code Form is subject to the eterms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  */
@@ -40,6 +40,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
         public SmsMapper() {
             final StringBuilder sql = new StringBuilder(300);
             sql.append("smo.id as id, ");
+            sql.append("smo.external_id as externalId, ");
             sql.append("smo.group_id as groupId, ");
             sql.append("smo.client_id as clientId, ");
             sql.append("smo.staff_id as staffId, ");
@@ -62,6 +63,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
             final Long groupId = JdbcSupport.getLong(rs, "groupId");
             final Long clientId = JdbcSupport.getLong(rs, "clientId");
             final Long staffId = JdbcSupport.getLong(rs, "staffId");
+            final String externalId = rs.getString("externalId");
 
             final String mobileNo = rs.getString("mobileNo");
             final String message = rs.getString("message");
@@ -69,7 +71,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
             final Integer statusId = JdbcSupport.getInteger(rs, "statusId");
             final EnumOptionData status = SmsMessageEnumerations.status(statusId);
 
-            return SmsData.instance(id, groupId, clientId, staffId, status, mobileNo, message);
+            return SmsData.instance(id, groupId, clientId, staffId, status, externalId, mobileNo, message);
         }
     }
 

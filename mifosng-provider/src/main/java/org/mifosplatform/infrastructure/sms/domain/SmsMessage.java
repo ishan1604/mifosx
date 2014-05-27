@@ -37,6 +37,9 @@ public class SmsMessage extends AbstractPersistable<Long> {
     @ManyToOne
     @JoinColumn(name = "staff_id", nullable = true)
     private Staff staff;
+    
+    @Column(name = "external_id", nullable = true)
+    private String externalId;
 
     @Column(name = "status_enum", nullable = false)
     private Integer statusType;
@@ -47,9 +50,9 @@ public class SmsMessage extends AbstractPersistable<Long> {
     @Column(name = "message", nullable = false)
     private String message;
 
-    public static SmsMessage pendingSms(final Group group, final Client client, final Staff staff, final String message,
+    public static SmsMessage pendingSms(final Group group, final Client client, final Staff staff, final String externalId, final String message,
             final String mobileNo) {
-        return new SmsMessage(group, client, staff, SmsMessageStatusType.PENDING, message, mobileNo);
+        return new SmsMessage(group, client, staff, SmsMessageStatusType.PENDING, externalId, message, mobileNo);
     }
 
     protected SmsMessage() {
@@ -57,11 +60,12 @@ public class SmsMessage extends AbstractPersistable<Long> {
     }
 
     private SmsMessage(final Group group, final Client client, final Staff staff, final SmsMessageStatusType statusType,
-            final String message, final String mobileNo) {
+            final String externalId, final String message, final String mobileNo) {
         this.group = group;
         this.client = client;
         this.staff = staff;
         this.statusType = statusType.getValue();
+        this.externalId = externalId;
         this.mobileNo = mobileNo;
         this.message = message;
     }
@@ -77,5 +81,68 @@ public class SmsMessage extends AbstractPersistable<Long> {
         }
 
         return actualChanges;
+    }
+    
+    /** 
+     * @return the SMS gateway message identifier
+     **/
+    public String getExternalId() {
+    	return this.externalId;
+    }
+    
+    /** 
+     * Set the value of external ID 
+     **/
+    public void setExternalId(String externalId) {
+    	this.externalId = externalId;
+    }
+    
+    /** 
+     * @return the status type of the SMS message
+     **/
+    public Integer getStatusType() {
+        return this.statusType;
+    }
+
+    /** 
+     * Set the value of this.statusType
+     **/
+    public void setStatus(SmsMessageStatusType status) {
+        this.statusType = status.getValue();
+    }
+
+    /** 
+     * @return Group object if SMS message recipient is a group
+     **/
+    public Group getGroup() {
+        return this.group;
+    }
+
+    /** 
+     * @return Client object if SMS message recipient is a client
+     **/
+    public Client getClient() {
+        return this.client;
+    }
+
+    /** 
+     * @return Staff object if SMS message recipient is a staff
+     **/
+    public Staff getStaff() {
+        return this.staff;
+    }
+
+    /** 
+     * @return SMS message recipient's mobile number
+     **/
+    public String getMobileNo() {
+        return this.mobileNo;
+    }
+
+    /** 
+     * @return the SMS message text 
+     **/
+    public String getMessage() {
+        return this.message;
     }
 }

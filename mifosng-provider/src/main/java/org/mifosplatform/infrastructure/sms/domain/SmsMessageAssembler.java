@@ -45,6 +45,8 @@ public class SmsMessageAssembler {
         final JsonElement element = command.parsedJson();
 
         String mobileNo = null;
+        
+        String externalId = null;
 
         Group group = null;
         if (this.fromApiJsonHelper.parameterExists(SmsApiConstants.groupIdParamName, element)) {
@@ -68,7 +70,7 @@ public class SmsMessageAssembler {
 
         final String message = this.fromApiJsonHelper.extractStringNamed(SmsApiConstants.messageParamName, element);
 
-        return SmsMessage.pendingSms(group, client, staff, message, mobileNo);
+        return SmsMessage.pendingSms(group, client, staff, externalId, message, mobileNo);
     }
 
     public SmsMessage assembleFromResourceId(final Long resourceId) {
