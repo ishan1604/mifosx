@@ -23,8 +23,10 @@ public enum JobName {
     UPDATE_DEPOSITS_ACCOUNT_MATURITY_DETAILS("Update Deposit Accounts Maturity details"),
     TRANSFER_INTEREST_TO_SAVINGS("Transfer Interest To Savings"),
     ADD_PERIODIC_ACCRUAL_ENTRIES("Add Periodic Accrual Transactions"),
-    RECALCULATE_INTEREST_FOR_LOAN("Recalculate Interest For Loans");
-
+    RECALCULATE_INTEREST_FOR_LOAN("Recalculate Interest For Loans"),
+    SEND_MESSAGES_TO_SMS_GATEWAY("Send messages to SMS gateway"), 
+    GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY("Get delivery reports from SMS gateway");
+    
     private final String name;
 
     private JobName(final String name) {
