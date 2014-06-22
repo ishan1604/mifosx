@@ -6,6 +6,8 @@
 package org.mifosplatform.infrastructure.sms.api;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -15,6 +17,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
@@ -27,7 +30,9 @@ import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.serialization.ApiRequestJsonSerializationSettings;
 import org.mifosplatform.infrastructure.core.serialization.DefaultToApiJsonSerializer;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
+import org.mifosplatform.infrastructure.sms.data.SmsConfigurationData;
 import org.mifosplatform.infrastructure.sms.data.SmsData;
+import org.mifosplatform.infrastructure.sms.service.SmsConfigurationReadPlatformService;
 import org.mifosplatform.infrastructure.sms.service.SmsReadPlatformService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -47,16 +52,19 @@ public class SmsApiResource {
     private final DefaultToApiJsonSerializer<SmsData> toApiJsonSerializer;
     private final ApiRequestParameterHelper apiRequestParameterHelper;
     private final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService;
+    private final SmsConfigurationReadPlatformService smsConfigurationReadPlatformService;
 
     @Autowired
     public SmsApiResource(final PlatformSecurityContext context, final SmsReadPlatformService readPlatformService,
             final DefaultToApiJsonSerializer<SmsData> toApiJsonSerializer, final ApiRequestParameterHelper apiRequestParameterHelper,
-            final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService) {
+            final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
+            SmsConfigurationReadPlatformService smsConfigurationReadPlatformService) {
         this.context = context;
         this.readPlatformService = readPlatformService;
         this.toApiJsonSerializer = toApiJsonSerializer;
         this.apiRequestParameterHelper = apiRequestParameterHelper;
         this.commandsSourceWritePlatformService = commandsSourceWritePlatformService;
+        this.smsConfigurationReadPlatformService = smsConfigurationReadPlatformService;
     }
 
     @GET
@@ -68,6 +76,67 @@ public class SmsApiResource {
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings, smsMessages);
+    }
+
+    @GET
+    @Path("pendingSms")
+    public String retrievePendingSms(@Context final UriInfo uriInfo,@QueryParam("limit") final Long limit) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+
+        final Collection<SmsData> smsMessages = this.readPlatformService.retrieveAllPending(limit.intValue());
+
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.toApiJsonSerializer.serialize(settings, smsMessages);
+    }
+    
+    @GET
+    @Path("sentSms")
+    public String retrieveSentSms(@Context final UriInfo uriInfo, @QueryParam("limit") final Long limit) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+
+        final Collection<SmsData> smsMessages = this.readPlatformService.retrieveAllSent(limit.intValue());
+
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.toApiJsonSerializer.serialize(settings, smsMessages);
+    }
+    
+    @GET
+    @Path("deliveredSms")
+    public String retrieveDeliveredSms(@Context final UriInfo uriInfo, @QueryParam("limit") final Long limit) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+
+        final Collection<SmsData> smsMessages = this.readPlatformService.retrieveAllDelivered(limit.intValue());
+
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.toApiJsonSerializer.serialize(settings, smsMessages);
+    }
+    
+    @GET
+    @Path("failedsms")
+    public String retrieveFailedSms(@Context final UriInfo uriInfo, @QueryParam("limit") final Long limit) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+
+        final Collection<SmsData> smsMessages = this.readPlatformService.retrieveAllFailed(limit.intValue());
+
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.toApiJsonSerializer.serialize(settings, smsMessages);
+    }
+    
+    @GET
+    @Path("smscredits")
+    public String retrieveSmsCredits() {
+    	this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+    	
+    	SmsConfigurationData smsConfigurationData = this.smsConfigurationReadPlatformService.retrieveOne("SMS_CREDITS");
+    	
+    	Map<String, String> smsCreditsMap = new HashMap<String, String>();
+    	smsCreditsMap.put("smsCredits", smsConfigurationData.getValue());
+    	
+    	return this.toApiJsonSerializer.serialize(smsCreditsMap);
     }
 
     @POST
