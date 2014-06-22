@@ -6,6 +6,7 @@
 package org.mifosplatform.infrastructure.sms.service;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.mifosplatform.infrastructure.sms.data.SmsData;
 
@@ -14,4 +15,10 @@ public interface SmsReadPlatformService {
     Collection<SmsData> retrieveAll();
 
     SmsData retrieveOne(Long resourceId);
+    
+    Collection<SmsData> retrieveAllPending(Integer limit);
+    
+    Collection<SmsData> retrieveAllSent(Integer limit);
+    
+    List<Long> retrieveExternalIdsOfAllSent(Integer limit);
 }
