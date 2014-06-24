@@ -136,6 +136,7 @@ public class CodeValueWritePlatformServiceJpaRepositoryImpl implements CodeValue
             if (code == null) { throw new CodeNotFoundException(codeId); }
 
             final CodeValue codeValueToDelete = this.codeValueRepositoryWrapper.findOneWithNotFoundDetection(codeValueId);
+            code.deleteDefaultValue(codeValueToDelete);
 
             final boolean removed = code.remove(codeValueToDelete);
             if (removed) {

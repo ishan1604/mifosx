@@ -63,7 +63,7 @@ public class Code extends AbstractPersistable<Long> {
     }
 
     public CodeValue getCodeValue() {
-        return codeValue;
+        return this.codeValue;
     }
 
     public Long getCodeValueId(){
@@ -116,5 +116,14 @@ public class Code extends AbstractPersistable<Long> {
 
     public boolean remove(final CodeValue codeValueToDelete) {
         return this.values.remove(codeValueToDelete);
+    }
+
+    public void deleteDefaultValue(CodeValue codeValue){
+        for(CodeValue cv : this.values){
+              if(codeValue.getId().equals(cv.getId())){
+                  this.codeValue = null;
+                  break;
+              }
+        }
     }
 }
