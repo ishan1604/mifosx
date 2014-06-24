@@ -53,12 +53,12 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	private final SmsConfigurationReadPlatformService configurationReadPlatformService;
 	private static final Logger logger = LoggerFactory.getLogger(SmsMessageScheduledJobServiceImpl.class);
 	RestTemplate restTemplate = new RestTemplate();
-    private final String apiAuthUsername;
-    private final String apiAuthPassword;
-    private final String apiBaseUrl;
+    private String apiAuthUsername;
+    private String apiAuthPassword;
+    private String apiBaseUrl;
     HttpEntity<String> requestEntity;
     private final Map<String, String> configuration = new HashMap<String, String>();
-    private final String sourceAddress;
+    private String sourceAddress;
     private final MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
     private Integer smsCredits;
     private Integer smsSqlLimit = 300;
@@ -75,12 +75,7 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 		this.smsConfigurationRepository = smsConfigurationRepository;
 		this.configurationReadPlatformService = readPlatformService;
 		this.smsReadPlatformService = smsReadPlatformService;
-		setConfiguration();
-		apiAuthUsername = configuration.get("API_AUTH_USERNAME");
-		apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
-		apiBaseUrl = configuration.get("API_BASE_URL");
-		sourceAddress = configuration.get("SMS_SOURCE_ADDRESS");
-		smsCredits = Integer.parseInt(configuration.get("SMS_CREDITS"));
+		
 	}
 	
 	/** 
@@ -122,6 +117,13 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	@Transactional
 	@CronTarget(jobName = JobName.SEND_MESSAGES_TO_SMS_GATEWAY)
 	public void sendMessages() {
+		
+		setConfiguration();
+		apiAuthUsername = configuration.get("API_AUTH_USERNAME");
+		apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
+		apiBaseUrl = configuration.get("API_BASE_URL");
+		sourceAddress = configuration.get("SMS_SOURCE_ADDRESS");
+		smsCredits = Integer.parseInt(configuration.get("SMS_CREDITS"));
 		
 		if(smsCredits > 0) {
 			
@@ -220,6 +222,13 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	@Transactional
 	@CronTarget(jobName = JobName.GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY)
 	public void getDeliveryReports() {
+		
+		setConfiguration();
+		apiAuthUsername = configuration.get("API_AUTH_USERNAME");
+		apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
+		apiBaseUrl = configuration.get("API_BASE_URL");
+		sourceAddress = configuration.get("SMS_SOURCE_ADDRESS");
+		smsCredits = Integer.parseInt(configuration.get("SMS_CREDITS"));
 		
 		try{
 			List<Long> smsMessageExternalIds = this.smsReadPlatformService.retrieveExternalIdsOfAllSent(smsSqlLimit);
