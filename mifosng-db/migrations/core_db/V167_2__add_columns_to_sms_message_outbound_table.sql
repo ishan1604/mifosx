@@ -1,5 +1,5 @@
 ALTER TABLE `sms_messages_outbound` ADD `external_id` BIGINT(20) NULL COMMENT 'ID of the message in the smsOutboundMessage table in the mlite-sms database' AFTER `id`;
-ALTER TABLE `sms_messages_outbound` ADD `source_address` VARCHAR(50) NULL AFTER `status_enum` COMMENT 'Sender of the SMS message.';
+ALTER TABLE `sms_messages_outbound` ADD `source_address` VARCHAR(50) NULL COMMENT 'Sender of the SMS message.' AFTER `status_enum`;
 ALTER TABLE `sms_messages_outbound` CHANGE `message` `message` VARCHAR(254) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;
 
 
