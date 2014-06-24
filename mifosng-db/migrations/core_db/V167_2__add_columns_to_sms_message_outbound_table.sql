@@ -11,6 +11,6 @@ INSERT INTO `sms_configuration` (`id`, `name`, `value`) VALUES (NULL, 'API_AUTH_
 
 INSERT INTO `sms_configuration` (`id`, `name`, `value`) VALUES (NULL, 'API_AUTH_PASSWORD', 'localhost');
 
-INSERT INTO `sms_configuration` (`id`, `name`, `value`) VALUES (NULL, 'OUTBOUND_SMS_LIMIT', '1000');
+INSERT INTO `sms_configuration` (`id`, `name`, `value`) VALUES (NULL, 'SMS_CREDITS', '1000');
 
 INSERT INTO `sms_configuration` (`id`, `name`, `value`) VALUES (NULL, 'SMS_SOURCE_ADDRESS', 'Musoni Services');
