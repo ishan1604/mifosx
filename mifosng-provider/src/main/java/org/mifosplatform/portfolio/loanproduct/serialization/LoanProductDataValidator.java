@@ -109,7 +109,7 @@ public final class LoanProductDataValidator {
         baseDataValidator.reset().parameter("inMultiplesOf").value(inMultiplesOf).ignoreIfNull().integerZeroOrGreater();
 
         final BigDecimal principal = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed("principal", element);
-        baseDataValidator.reset().parameter("principal").value(principal).notNull().positiveAmount();
+        baseDataValidator.reset().parameter("principal").value(principal).positiveAmount();
 
         final String minPrincipalParameterName = "minPrincipal";
         BigDecimal minPrincipalAmount = null;
@@ -125,7 +125,7 @@ public final class LoanProductDataValidator {
             baseDataValidator.reset().parameter(maxPrincipalParameterName).value(maxPrincipalAmount).ignoreIfNull().positiveAmount();
         }
 
-        if (maxPrincipalAmount != null && maxPrincipalAmount.compareTo(BigDecimal.ZERO) != -1) {
+        if (maxPrincipalAmount != null && maxPrincipalAmount.compareTo(BigDecimal.ZERO) != -1 && principal != null) {
             if (minPrincipalAmount != null && minPrincipalAmount.compareTo(BigDecimal.ZERO) != -1) {
                 baseDataValidator.reset().parameter(maxPrincipalParameterName).value(maxPrincipalAmount).notLessThanMin(minPrincipalAmount);
                 if (minPrincipalAmount.compareTo(maxPrincipalAmount) <= 0) {
@@ -135,7 +135,7 @@ public final class LoanProductDataValidator {
             } else {
                 baseDataValidator.reset().parameter("principal").value(principal).notGreaterThanMax(maxPrincipalAmount);
             }
-        } else if (minPrincipalAmount != null && minPrincipalAmount.compareTo(BigDecimal.ZERO) != -1) {
+        } else if (minPrincipalAmount != null && minPrincipalAmount.compareTo(BigDecimal.ZERO) != -1 && principal !=null) {
             baseDataValidator.reset().parameter("principal").value(principal).notLessThanMin(minPrincipalAmount);
         }
 
