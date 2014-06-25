@@ -15,6 +15,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
@@ -69,6 +70,30 @@ public class SmsApiResource {
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings, smsMessages);
     }
+
+    @GET
+    @Path("pendingSms")
+    public String retrievePendingSms(@Context final UriInfo uriInfo,@QueryParam("limit") final Long limit) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+
+        final Collection<SmsData> smsMessages = this.readPlatformService.retrieveAllPending(limit.intValue());
+
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.toApiJsonSerializer.serialize(settings, smsMessages);
+    }
+    @GET
+    @Path("sentSms")
+    public String retrieveSentSms(@Context final UriInfo uriInfo, @QueryParam("limit") final Long limit) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+
+        final Collection<SmsData> smsMessages = this.readPlatformService.retrieveAllSent(limit.intValue());
+
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.toApiJsonSerializer.serialize(settings, smsMessages);
+    }
+
 
     @POST
     public String create(final String apiRequestBodyAsJson) {
