@@ -21,14 +21,15 @@ public class SmsData {
     private final String sourceAddress;
     private final String mobileNo;
     private final String message;
+    private final String campaignName;
 
     public static SmsData instance(final Long id, Long externalId, final Long groupId, final Long clientId, final Long staffId, final EnumOptionData status,
-    		final String sourceAddress, final String mobileNo, final String message) {
-        return new SmsData(id, externalId, groupId, clientId, staffId, status, sourceAddress, mobileNo, message);
+    		final String sourceAddress, final String mobileNo, final String message,final String campaignName) {
+        return new SmsData(id, externalId, groupId, clientId, staffId, status, sourceAddress, mobileNo, message, campaignName);
     }
 
     private SmsData(final Long id, Long externalId, final Long groupId, final Long clientId, final Long staffId, final EnumOptionData status,
-            final String sourceAddress, final String mobileNo, final String message) {
+            final String sourceAddress, final String mobileNo, final String message, final String campaignName) {
         this.id = id;
         this.externalId = externalId;
         this.groupId = groupId;
@@ -38,6 +39,7 @@ public class SmsData {
         this.sourceAddress = sourceAddress;
         this.mobileNo = mobileNo;
         this.message = message;
+        this.campaignName = campaignName;
     }
 
 	/**

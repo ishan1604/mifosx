@@ -68,7 +68,7 @@ public class SmsMessageAssembler {
 
         final String message = this.fromApiJsonHelper.extractStringNamed(SmsApiConstants.messageParamName, element);
 
-        return SmsMessage.pendingSms(null, group, client, staff, message, null, mobileNo);
+        return SmsMessage.pendingSms(null, group, client, staff, message, null, mobileNo,null);
     }
 
     public SmsMessage assembleFromResourceId(final Long resourceId) {
