@@ -93,6 +93,17 @@ public class SmsApiResource {
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings, smsMessages);
     }
+    @GET
+    @Path("deliveredSms")
+    public String retrieveDeliveredSms(@Context final UriInfo uriInfo, @QueryParam("limit") final Long limit) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+
+        final Collection<SmsData> smsMessages = this.readPlatformService.retrieveAllDelivered(limit.intValue());
+
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.toApiJsonSerializer.serialize(settings, smsMessages);
+    }
 
 
     @POST
