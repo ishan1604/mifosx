@@ -15,6 +15,7 @@ import net.fortuna.ical4j.model.DateTime;
 import net.fortuna.ical4j.model.Recur;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
+import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalDateTime;
 import org.joda.time.LocalTime;
@@ -188,7 +189,7 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
         final Collection<SmsCampaignData>  smsCampaignDataCollection = this.smsCampaignReadPlatformService.retrieveAllScheduleActiveCampaign();
         if(smsCampaignDataCollection != null){
             for(SmsCampaignData  smsCampaignData : smsCampaignDataCollection){
-                org.joda.time.DateTime tenantDateNow = DateUtils.getLocalDateOfTenant().toDateTime(new LocalTime());
+                org.joda.time.DateTime tenantDateNow = DateUtils.getLocalDateOfTenant().toDateTime(new LocalTime(),DateTimeZone.UTC);
                 org.joda.time.DateTime nextTriggerDate = smsCampaignData.getNextTriggerDate();
                 logger.info("tenant time " + tenantDateNow.toString() + " trigger time "+nextTriggerDate.toString());
                 if(nextTriggerDate.isBefore(tenantDateNow)){
