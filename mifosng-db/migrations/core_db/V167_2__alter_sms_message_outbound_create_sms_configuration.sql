@@ -14,3 +14,5 @@ INSERT INTO `sms_configuration` (`id`, `name`, `value`) VALUES (NULL, 'API_AUTH_
 INSERT INTO `sms_configuration` (`id`, `name`, `value`) VALUES (NULL, 'SMS_CREDITS', '1000');
 
 INSERT INTO `sms_configuration` (`id`, `name`, `value`) VALUES (NULL, 'SMS_SOURCE_ADDRESS', 'Musoni Services');
+
+INSERT INTO `sms_configuration` (`id`, `name`, `value`) VALUES (NULL, 'COUNTRY_CALLING_CODE', '31');
