@@ -59,7 +59,6 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
     HttpEntity<String> requestEntity;
     private final Map<String, String> configuration = new HashMap<String, String>();
     private String sourceAddress;
-    private final MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
     private Integer smsCredits;
     private Integer smsSqlLimit = 300;
     
@@ -124,6 +123,8 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 		apiBaseUrl = configuration.get("API_BASE_URL");
 		sourceAddress = configuration.get("SMS_SOURCE_ADDRESS");
 		smsCredits = Integer.parseInt(configuration.get("SMS_CREDITS"));
+		
+		MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
 		
 		if(smsCredits > 0) {
 			
@@ -229,6 +230,8 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 		apiBaseUrl = configuration.get("API_BASE_URL");
 		sourceAddress = configuration.get("SMS_SOURCE_ADDRESS");
 		smsCredits = Integer.parseInt(configuration.get("SMS_CREDITS"));
+		
+		MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
 		
 		try{
 			List<Long> smsMessageExternalIds = this.smsReadPlatformService.retrieveExternalIdsOfAllSent(smsSqlLimit);
