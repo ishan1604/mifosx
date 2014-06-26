@@ -216,7 +216,6 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
         final LocalDateTime newTriggerDateWithTime = LocalDateTime.parse(dateString,simpleDateFormat);
         smsCampaign.setNextTriggerDate(newTriggerDateWithTime.toDate());
         this.smsCampaignRepository.saveAndFlush(smsCampaign);
-
     }
 
     @Transactional
@@ -247,10 +246,12 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
             if (smsCampaign.isSchedule()) {
                 final LocalDate nextTriggerDate = CalendarUtils.getNextRecurringDate(smsCampaign.getRecurrence(), smsCampaign.getRecurrenceStartDate(), new LocalDate());
                 final LocalDateTime getTime = smsCampaign.getRecurrenceStartDateTime();
+                /*
                 final String dateString = nextTriggerDate.toString() + " " + getTime.getHourOfDay()+":"+getTime.getMinuteOfHour()+":"+getTime.getSecondOfMinute();
                 final DateTimeFormatter simpleDateFormat = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
                 final LocalDateTime nextTriggerDateWithTime = LocalDateTime.parse(dateString,simpleDateFormat);
-                smsCampaign.setNextTriggerDate(nextTriggerDateWithTime.toDate());
+                */
+                smsCampaign.setNextTriggerDate(getTime.toDate());
                 this.smsCampaignRepository.saveAndFlush(smsCampaign);
             }
         }
