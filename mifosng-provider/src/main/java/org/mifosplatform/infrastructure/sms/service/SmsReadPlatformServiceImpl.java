@@ -139,4 +139,13 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
 
         return this.jdbcTemplate.query(sql, this.smsRowMapper, new Object[] {});
     }
+
+	@Override
+	public Collection<SmsData> retrieveAllFailed(Integer limit) {
+		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
+        final String sql = "select " + this.smsRowMapper.schema() + " where smo.status_enum = "
+                + SmsMessageStatusType.FAILED.getValue() + sqlPlusLimit;
+
+        return this.jdbcTemplate.query(sql, this.smsRowMapper, new Object[] {});
+	}
 }
