@@ -22,5 +22,7 @@ public interface SmsReadPlatformService {
 
     Collection<SmsData> retrieveAllDelivered(Integer limit);
     
+    Collection<SmsData> retrieveAllFailed(Integer limit);
+    
     List<Long> retrieveExternalIdsOfAllSent(Integer limit);
 }
