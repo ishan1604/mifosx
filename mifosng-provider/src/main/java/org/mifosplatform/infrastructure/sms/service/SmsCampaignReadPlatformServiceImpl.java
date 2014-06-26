@@ -131,6 +131,7 @@ public class SmsCampaignReadPlatformServiceImpl implements SmsCampaignReadPlatfo
             sql.append("sr.id as id, ");
             sql.append("sr.report_name as reportName, ");
             sql.append("sr.report_type as reportType, ");
+            sql.append("sr.description as description, ");
             sql.append("sp.parameter_variable as params, ");
             sql.append("sp.parameter_FormatType as paramType, ");
             sql.append("sp.parameter_label as paramLabel, ");
@@ -162,10 +163,11 @@ public class SmsCampaignReadPlatformServiceImpl implements SmsCampaignReadPlatfo
                     final String reportType = rs.getString("reportType");
                     final String paramName  = rs.getString("paramName");
                     final String paramLabel = rs.getString("paramLabel");
+                    final String description = rs.getString("description");
 
                     Map<String,Object> hashMap = new HashMap<String, Object>();
                     hashMap.put(paramLabel,paramName);
-                    smsBusinessRulesData = SmsBusinessRulesData.instance(id,reportName,reportType,hashMap);
+                    smsBusinessRulesData = SmsBusinessRulesData.instance(id,reportName,reportType,hashMap,description);
                     mapOfSameObjects.put(id,smsBusinessRulesData);
                     //add to the list
                     smsBusinessRulesDataList.add(smsBusinessRulesData);
