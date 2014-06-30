@@ -120,7 +120,7 @@ public class SmsApiResource {
 
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
 
-        final Collection<SmsData> smsMessages = this.readPlatformService.retrieveAllDelivered(limit.intValue());
+        final Collection<SmsData> smsMessages = this.readPlatformService.retrieveAllFailed(limit.intValue());
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings, smsMessages);
