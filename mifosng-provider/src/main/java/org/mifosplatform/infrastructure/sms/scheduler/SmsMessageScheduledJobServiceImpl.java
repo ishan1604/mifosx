@@ -62,13 +62,6 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	private final SmsConfigurationReadPlatformService configurationReadPlatformService;
 	private static final Logger logger = LoggerFactory.getLogger(SmsMessageScheduledJobServiceImpl.class);
 	RestTemplate restTemplate = new RestTemplate();
-    private String apiAuthUsername;
-    private String apiAuthPassword;
-    private String apiBaseUrl;
-    HttpEntity<String> requestEntity;
-    private final Map<String, String> configuration = new HashMap<String, String>();
-    private String sourceAddress;
-    private Integer smsCredits;
     private Integer smsSqlLimit = 300;
     
     /** 
@@ -86,12 +79,14 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	}
 	
 	/** 
-     * get all configuration from the db and put them in the "configuration" map 
+     * get the sms configuration 
      * 
-     * @return void
+     * @return hash map containing name/value pairs
      **/
-    private void setConfiguration() {
-    	Collection<SmsConfigurationData> configurationDataCollection = configurationReadPlatformService.retrieveAll();
+    private Map<String, String> getConfiguration() {
+    	Map<String, String> configuration = new HashMap<String, String>();
+    	
+        Collection<SmsConfigurationData> configurationDataCollection = configurationReadPlatformService.retrieveAll();
     	
     	Iterator<SmsConfigurationData> iterator = configurationDataCollection.iterator();
     	
@@ -100,12 +95,14 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
     		
     		configuration.put(configurationData.getName(), configurationData.getValue());
     	}
+    	
+    	return configuration;
     }
 	
 	/** 
 	 * get a new HttpEntity with the provided body
 	 **/
-	private HttpEntity<String> getHttpEntity(String body) {
+	private HttpEntity<String> getHttpEntity(String body, String apiAuthUsername, String apiAuthPassword) {
 		HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
@@ -191,13 +188,12 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	@CronTarget(jobName = JobName.SEND_MESSAGES_TO_SMS_GATEWAY)
 	public void sendMessages() {
 		
-		// get and put all configuration in the "configuration" map
-		setConfiguration();
-		apiAuthUsername = configuration.get("API_AUTH_USERNAME");
-		apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
-		apiBaseUrl = configuration.get("API_BASE_URL");
-		sourceAddress = configuration.get("SMS_SOURCE_ADDRESS");
-		smsCredits = Integer.parseInt(configuration.get("SMS_CREDITS"));
+		Map<String, String> configuration = this.getConfiguration();
+		String apiAuthUsername = configuration.get("API_AUTH_USERNAME");
+		String apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
+		String apiBaseUrl = configuration.get("API_BASE_URL");
+		String sourceAddress = configuration.get("SMS_SOURCE_ADDRESS");
+		Integer smsCredits = Integer.parseInt(configuration.get("SMS_CREDITS"));
 		String countryCallingCode = configuration.get("COUNTRY_CALLING_CODE");
 		
 		MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
@@ -209,7 +205,6 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 				Collection<SmsData> pendingMessages = this.smsReadPlatformService.retrieveAllPending(smsSqlLimit);
 				
 				if(pendingMessages.size() > 0) {
-					
 					Iterator<SmsData> iterator1 = pendingMessages.iterator();
 					
 					// ====================== start point json string ======================================
@@ -238,7 +233,7 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 					
 					// make request
 					ResponseEntity<SmsMessageApiResponseData> entity = restTemplate.postForEntity(apiBaseUrl + "/queue",
-						    getHttpEntity(httpEntity.toString()), 
+						    getHttpEntity(httpEntity.toString(), apiAuthUsername, apiAuthPassword), 
 						    SmsMessageApiResponseData.class);
 					
 					List<SmsMessageDeliveryReportData> smsMessageDeliveryReportDataList = entity.getBody().getData();
@@ -286,6 +281,8 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 						}
 					}
 					
+					logger.info(pendingMessages.size() + " pending message(s) successfully sent to the intermediate gateway - mlite-sms");
+					
 					SmsConfiguration smsConfiguration = this.smsConfigurationRepository.findByName("SMS_CREDITS");
 					smsConfiguration.setValue(smsCredits.toString());
 				}
@@ -305,12 +302,10 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	@CronTarget(jobName = JobName.GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY)
 	public void getDeliveryReports() {
 		
-		setConfiguration();
-		apiAuthUsername = configuration.get("API_AUTH_USERNAME");
-		apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
-		apiBaseUrl = configuration.get("API_BASE_URL");
-		sourceAddress = configuration.get("SMS_SOURCE_ADDRESS");
-		smsCredits = Integer.parseInt(configuration.get("SMS_CREDITS"));
+		Map<String, String> configuration = this.getConfiguration();
+		String apiAuthUsername = configuration.get("API_AUTH_USERNAME");
+		String apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
+		String apiBaseUrl = configuration.get("API_BASE_URL");
 		
 		MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
 		
@@ -326,7 +321,7 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 				
 				// make request
 				ResponseEntity<SmsMessageApiResponseData> entity = restTemplate.postForEntity(apiBaseUrl + "/report",
-					    getHttpEntity(smsMessageApiReportResourceData.toJsonString()), 
+					    getHttpEntity(smsMessageApiReportResourceData.toJsonString(), apiAuthUsername, apiAuthPassword), 
 					    SmsMessageApiResponseData.class);
 				
 				List<SmsMessageDeliveryReportData> smsMessageDeliveryReportDataList = entity.getBody().getData();
@@ -360,6 +355,11 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 						// update the status Type enum
 						smsMessage.setStatusType(statusType);
 					}
+				}
+				
+				if(smsMessageDeliveryReportDataList.size() > 0) {
+					logger.info(smsMessageDeliveryReportDataList.size() + " "
+							+ "delivery report(s) successfully received from the intermediate gateway - mlite-sms");
 				}
 			}
 		}
