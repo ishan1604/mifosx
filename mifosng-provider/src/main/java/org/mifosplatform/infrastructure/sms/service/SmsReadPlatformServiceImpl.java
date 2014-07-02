@@ -46,6 +46,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
             sql.append("smo.group_id as groupId, ");
             sql.append("smo.client_id as clientId, ");
             sql.append("smo.staff_id as staffId, ");
+            sql.append("smo.campaign_name as campaignName, ");
             sql.append("smo.status_enum as statusId, ");
             sql.append("smo.source_address as sourceAddress, ");
             sql.append("smo.mobile_no as mobileNo, ");
@@ -75,11 +76,12 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
             final String sourceAddress = rs.getString("sourceAddress");
             final String mobileNo = rs.getString("mobileNo");
             final String message = rs.getString("message");
+            final String campaignName = rs.getString("campaignName");
 
             final Integer statusId = JdbcSupport.getInteger(rs, "statusId");
             final EnumOptionData status = SmsMessageEnumerations.status(statusId);
 
-            return SmsData.instance(id, externalId, groupId, clientId, staffId, status, sourceAddress, mobileNo, message);
+            return SmsData.instance(id, externalId, groupId, clientId, staffId, status, sourceAddress, mobileNo, message,campaignName);
         }
     }
 
@@ -127,5 +129,23 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
     			+ SmsMessageStatusType.SENT.getValue() + sqlPlusLimit;
 		
 		return this.jdbcTemplate.queryForList(sql, Long.class);
+	}
+
+    @Override
+    public Collection<SmsData> retrieveAllDelivered(Integer limit) {
+        final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
+        final String sql = "select " + this.smsRowMapper.schema() + " where smo.status_enum = "
+                + SmsMessageStatusType.DELIVERED.getValue() + sqlPlusLimit;
+
+        return this.jdbcTemplate.query(sql, this.smsRowMapper, new Object[] {});
+    }
+
+	@Override
+	public Collection<SmsData> retrieveAllFailed(Integer limit) {
+		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
+        final String sql = "select " + this.smsRowMapper.schema() + " where smo.status_enum = "
+                + SmsMessageStatusType.FAILED.getValue() + sqlPlusLimit;
+
+        return this.jdbcTemplate.query(sql, this.smsRowMapper, new Object[] {});
 	}
 }

@@ -11,6 +11,15 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.security.cert.X509Certificate;
+import java.security.SecureRandom;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.mifosplatform.infrastructure.core.domain.MifosPlatformTenant;
 import org.mifosplatform.infrastructure.core.service.ThreadLocalContextUtil;
@@ -53,14 +62,6 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	private final SmsConfigurationReadPlatformService configurationReadPlatformService;
 	private static final Logger logger = LoggerFactory.getLogger(SmsMessageScheduledJobServiceImpl.class);
 	RestTemplate restTemplate = new RestTemplate();
-    private String apiAuthUsername;
-    private String apiAuthPassword;
-    private String apiBaseUrl;
-    HttpEntity<String> requestEntity;
-    private final Map<String, String> configuration = new HashMap<String, String>();
-    private String sourceAddress;
-    private final MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
-    private Integer smsCredits;
     private Integer smsSqlLimit = 300;
     
     /** 
@@ -78,12 +79,14 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	}
 	
 	/** 
-     * get all configuration from the db and put them in the "configuration" map 
+     * get the sms configuration 
      * 
-     * @return void
+     * @return hash map containing name/value pairs
      **/
-    private void setConfiguration() {
-    	Collection<SmsConfigurationData> configurationDataCollection = configurationReadPlatformService.retrieveAll();
+    private Map<String, String> getConfiguration() {
+    	Map<String, String> configuration = new HashMap<String, String>();
+    	
+        Collection<SmsConfigurationData> configurationDataCollection = configurationReadPlatformService.retrieveAll();
     	
     	Iterator<SmsConfigurationData> iterator = configurationDataCollection.iterator();
     	
@@ -92,12 +95,14 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
     		
     		configuration.put(configurationData.getName(), configurationData.getValue());
     	}
+    	
+    	return configuration;
     }
 	
 	/** 
 	 * get a new HttpEntity with the provided body
 	 **/
-	private HttpEntity<String> getHttpEntity(String body) {
+	private HttpEntity<String> getHttpEntity(String body, String apiAuthUsername, String apiAuthPassword) {
 		HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
@@ -108,6 +113,72 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 		
 		return new HttpEntity<String>(body, headers);
 	}
+	
+	/** 
+	 * prevents the SSL security certificate check 
+	 **/
+	private void trustAllSSLCertificates() {
+		TrustManager[] trustAllCerts = new TrustManager[] {
+            new X509TrustManager() {
+                public X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+ 
+                public void checkClientTrusted(
+                    X509Certificate[] certs, String authType) {
+                }
+ 
+                public void checkServerTrusted(
+                    X509Certificate[] certs, String authType) {
+                }
+            }
+        };
+		
+		try {
+            SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, trustAllCerts, new SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+            
+            // Create all-trusting host name verifier
+    		HostnameVerifier hostnameVerifier = new HostnameVerifier() {
+    			@Override
+    			public boolean verify(String hostname, SSLSession session) {
+    				return true;
+    			}
+    		};
+
+    		// Install the all-trusting host verifier
+    		HttpsURLConnection.setDefaultHostnameVerifier(hostnameVerifier);
+        } 
+		
+		catch (Exception e) { 
+			// do nothing
+		}
+	}
+	
+	/** 
+     * Format destination phone number so it is in international format without the leading
+     * "0" or "+", example: 31612345678 
+     * 
+     * @param phoneNumber the phone number to be formated
+     * @param countryCallingCode the country calling code
+     * @return phone number in international format
+     **/
+    private String formatDestinationPhoneNumber(String phoneNumber, String countryCallingCode) {
+    	String formatedPhoneNumber = "";
+    	
+    	try {
+    		Long phoneNumberToLong = Long.parseLong(phoneNumber);
+    		Long countryCallingCodeToLong = Long.parseLong(countryCallingCode);
+    		formatedPhoneNumber = Long.toString(countryCallingCodeToLong) + Long.toString(phoneNumberToLong);
+    	}
+    	
+    	catch(Exception e) {
+    		logger.error("Invalid phone number or country calling code, must contain only numbers", e);
+    	}
+    	
+    	return formatedPhoneNumber;
+    }
 
 	/**
 	 * Send batches of SMS messages to the SMS gateway (or intermediate gateway)
@@ -117,13 +188,15 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	@CronTarget(jobName = JobName.SEND_MESSAGES_TO_SMS_GATEWAY)
 	public void sendMessages() {
 		
-		// get and put all configuration in the "configuration" map
-		setConfiguration();
-		apiAuthUsername = configuration.get("API_AUTH_USERNAME");
-		apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
-		apiBaseUrl = configuration.get("API_BASE_URL");
-		sourceAddress = configuration.get("SMS_SOURCE_ADDRESS");
-		smsCredits = Integer.parseInt(configuration.get("SMS_CREDITS"));
+		Map<String, String> configuration = this.getConfiguration();
+		String apiAuthUsername = configuration.get("API_AUTH_USERNAME");
+		String apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
+		String apiBaseUrl = configuration.get("API_BASE_URL");
+		String sourceAddress = configuration.get("SMS_SOURCE_ADDRESS");
+		Integer smsCredits = Integer.parseInt(configuration.get("SMS_CREDITS"));
+		String countryCallingCode = configuration.get("COUNTRY_CALLING_CODE");
+		
+		MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
 		
 		if(smsCredits > 0) {
 			
@@ -132,7 +205,6 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 				Collection<SmsData> pendingMessages = this.smsReadPlatformService.retrieveAllPending(smsSqlLimit);
 				
 				if(pendingMessages.size() > 0) {
-					
 					Iterator<SmsData> iterator1 = pendingMessages.iterator();
 					
 					// ====================== start point json string ======================================
@@ -142,7 +214,8 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 						SmsData smsData = iterator1.next();
 						SmsMessageApiQueueResourceData apiQueueResourceData = 
 								SmsMessageApiQueueResourceData.instance(smsData.getId(), tenant.getTenantIdentifier(), 
-										null, sourceAddress, smsData.getMobileNo(), smsData.getMessage());
+										null, sourceAddress, formatDestinationPhoneNumber(smsData.getMobileNo(), countryCallingCode), 
+										smsData.getMessage());
 						
 						httpEntity.append(apiQueueResourceData.toJsonString());
 						
@@ -155,8 +228,12 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 					httpEntity.append("]");
 					// ====================== end point json string ====================================
 					
+					// trust all SSL certificates
+					trustAllSSLCertificates();
+					
+					// make request
 					ResponseEntity<SmsMessageApiResponseData> entity = restTemplate.postForEntity(apiBaseUrl + "/queue",
-						    getHttpEntity(httpEntity.toString()), 
+						    getHttpEntity(httpEntity.toString(), apiAuthUsername, apiAuthPassword), 
 						    SmsMessageApiResponseData.class);
 					
 					List<SmsMessageDeliveryReportData> smsMessageDeliveryReportDataList = entity.getBody().getData();
@@ -204,6 +281,8 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 						}
 					}
 					
+					logger.info(pendingMessages.size() + " pending message(s) successfully sent to the intermediate gateway - mlite-sms");
+					
 					SmsConfiguration smsConfiguration = this.smsConfigurationRepository.findByName("SMS_CREDITS");
 					smsConfiguration.setValue(smsCredits.toString());
 				}
@@ -223,12 +302,12 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	@CronTarget(jobName = JobName.GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY)
 	public void getDeliveryReports() {
 		
-		setConfiguration();
-		apiAuthUsername = configuration.get("API_AUTH_USERNAME");
-		apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
-		apiBaseUrl = configuration.get("API_BASE_URL");
-		sourceAddress = configuration.get("SMS_SOURCE_ADDRESS");
-		smsCredits = Integer.parseInt(configuration.get("SMS_CREDITS"));
+		Map<String, String> configuration = this.getConfiguration();
+		String apiAuthUsername = configuration.get("API_AUTH_USERNAME");
+		String apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
+		String apiBaseUrl = configuration.get("API_BASE_URL");
+		
+		MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
 		
 		try{
 			List<Long> smsMessageExternalIds = this.smsReadPlatformService.retrieveExternalIdsOfAllSent(smsSqlLimit);
@@ -237,8 +316,12 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 			
 			// only proceed if there are sms message with status type enum 200
 			if(smsMessageExternalIds.size() > 0) {
+				// trust all SSL certificates
+				trustAllSSLCertificates();
+				
+				// make request
 				ResponseEntity<SmsMessageApiResponseData> entity = restTemplate.postForEntity(apiBaseUrl + "/report",
-					    getHttpEntity(smsMessageApiReportResourceData.toJsonString()), 
+					    getHttpEntity(smsMessageApiReportResourceData.toJsonString(), apiAuthUsername, apiAuthPassword), 
 					    SmsMessageApiResponseData.class);
 				
 				List<SmsMessageDeliveryReportData> smsMessageDeliveryReportDataList = entity.getBody().getData();
@@ -272,6 +355,11 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 						// update the status Type enum
 						smsMessage.setStatusType(statusType);
 					}
+				}
+				
+				if(smsMessageDeliveryReportDataList.size() > 0) {
+					logger.info(smsMessageDeliveryReportDataList.size() + " "
+							+ "delivery report(s) successfully received from the intermediate gateway - mlite-sms");
 				}
 			}
 		}

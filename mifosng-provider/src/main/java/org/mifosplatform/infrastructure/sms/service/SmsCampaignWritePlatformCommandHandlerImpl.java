@@ -15,6 +15,7 @@ import net.fortuna.ical4j.model.DateTime;
 import net.fortuna.ical4j.model.Recur;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
+import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalDateTime;
 import org.joda.time.LocalTime;
@@ -171,7 +172,7 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
 
                     Client client =  this.clientRepository.findOne(clientId.longValue());
                     if(mobileNo !=null) {
-                        SmsMessage smsMessage = SmsMessage.pendingSms(null,null,client,null,textMessage,null,mobileNo.toString());
+                        SmsMessage smsMessage = SmsMessage.pendingSms(null,null,client,null,textMessage,null,mobileNo.toString(),campaignName);
                         this.smsMessageRepository.save(smsMessage);
                     }
                 }
@@ -188,7 +189,7 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
         final Collection<SmsCampaignData>  smsCampaignDataCollection = this.smsCampaignReadPlatformService.retrieveAllScheduleActiveCampaign();
         if(smsCampaignDataCollection != null){
             for(SmsCampaignData  smsCampaignData : smsCampaignDataCollection){
-                org.joda.time.DateTime tenantDateNow = DateUtils.getLocalDateOfTenant().toDateTime(new LocalTime());
+                org.joda.time.DateTime tenantDateNow = DateUtils.getLocalDateOfTenant().toDateTime(new LocalTime(),DateTimeZone.UTC);
                 org.joda.time.DateTime nextTriggerDate = smsCampaignData.getNextTriggerDate();
                 logger.info("tenant time " + tenantDateNow.toString() + " trigger time "+nextTriggerDate.toString());
                 if(nextTriggerDate.isBefore(tenantDateNow)){
@@ -215,7 +216,6 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
         final LocalDateTime newTriggerDateWithTime = LocalDateTime.parse(dateString,simpleDateFormat);
         smsCampaign.setNextTriggerDate(newTriggerDateWithTime.toDate());
         this.smsCampaignRepository.saveAndFlush(smsCampaign);
-
     }
 
     @Transactional
@@ -246,10 +246,12 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
             if (smsCampaign.isSchedule()) {
                 final LocalDate nextTriggerDate = CalendarUtils.getNextRecurringDate(smsCampaign.getRecurrence(), smsCampaign.getRecurrenceStartDate(), new LocalDate());
                 final LocalDateTime getTime = smsCampaign.getRecurrenceStartDateTime();
+                /*
                 final String dateString = nextTriggerDate.toString() + " " + getTime.getHourOfDay()+":"+getTime.getMinuteOfHour()+":"+getTime.getSecondOfMinute();
                 final DateTimeFormatter simpleDateFormat = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
                 final LocalDateTime nextTriggerDateWithTime = LocalDateTime.parse(dateString,simpleDateFormat);
-                smsCampaign.setNextTriggerDate(nextTriggerDateWithTime.toDate());
+                */
+                smsCampaign.setNextTriggerDate(getTime.toDate());
                 this.smsCampaignRepository.saveAndFlush(smsCampaign);
             }
         }
