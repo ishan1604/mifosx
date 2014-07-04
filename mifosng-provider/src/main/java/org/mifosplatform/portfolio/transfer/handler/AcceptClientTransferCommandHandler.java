@@ -26,7 +26,6 @@ public class AcceptClientTransferCommandHandler implements NewCommandSourceHandl
     @Transactional
     @Override
     public CommandProcessingResult processCommand(final JsonCommand command) {
-
         return this.writePlatformService.acceptClientTransfer(command.entityId(), command);
     }
 }

@@ -1416,7 +1416,11 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
         final LoanTransaction newTransferAcceptanceTransaction = LoanTransaction.approveTransfer(acceptedInOffice, loan, transferDate);
         loan.getLoanTransactions().add(newTransferAcceptanceTransaction);
-        loan.setLoanStatus(LoanStatus.ACTIVE.getValue());
+        if(loan.getTotalOverpaid() !=null){
+            loan.setLoanStatus(LoanStatus.OVERPAID.getValue());
+        }else{
+            loan.setLoanStatus(LoanStatus.ACTIVE.getValue());
+        }
         if (loanOfficer != null) {
             loan.reassignLoanOfficer(loanOfficer, transferDate);
         }
@@ -2077,4 +2081,10 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         }
     }
 
+    @Override
+    public void postJournalEntry(Loan loan, List<Long> existingTransactionIds, List<Long> existingReversedTransactionIds) {
+        existingTransactionIds.addAll(loan.findExistingTransactionIds());
+        existingReversedTransactionIds.addAll(loan.findExistingReversedTransactionIds());
+        this.postJournalEntries(loan,existingTransactionIds,existingReversedTransactionIds);
+    }
 }

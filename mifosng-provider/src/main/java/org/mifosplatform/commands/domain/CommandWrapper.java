@@ -692,6 +692,14 @@ public class CommandWrapper {
         return this.actionName.equalsIgnoreCase("PROPOSEANDACCEPTTRANSFER") && this.entityName.equalsIgnoreCase("CLIENT");
     }
 
+    public boolean isUndoClientTransfer(){
+        return this.actionName.equalsIgnoreCase("UNDOTRANSFER") && this.entityName.equalsIgnoreCase("CLIENT");
+    }
+
+    public boolean isUndoGroupTransfer(){
+        return this.actionName.equalsIgnoreCase("UNDOTRANSFER") && this.entityName.equalsIgnoreCase("GROUP");
+    }
+
     public boolean isWithdrawClientTransfer() {
         return this.actionName.equalsIgnoreCase("WITHDRAWTRANSFER") && this.entityName.equalsIgnoreCase("CLIENT");
     }

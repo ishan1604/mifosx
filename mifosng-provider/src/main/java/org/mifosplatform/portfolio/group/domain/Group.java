@@ -121,6 +121,11 @@ public final class Group extends AbstractPersistable<Long> {
     @JoinColumn(name = "submittedon_userid", nullable = true)
     private AppUser submittedBy;
 
+    @ManyToOne
+    @JoinColumn(name = "transfer_from_office_id", nullable = true)
+    private Office transferFomOffice;
+
+
     public Group() {
         this.name = null;
         this.externalId = null;
@@ -527,4 +532,11 @@ public final class Group extends AbstractPersistable<Long> {
         this.office = office;
     }
 
+    public Office getTransferFomOffice() {
+        return this.transferFomOffice;
+    }
+
+    public void updateTransferFomOffice(Office transferFomOffice) {
+        this.transferFomOffice = transferFomOffice;
+    }
 }

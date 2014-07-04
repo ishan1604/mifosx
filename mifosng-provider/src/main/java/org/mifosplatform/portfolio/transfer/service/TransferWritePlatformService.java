@@ -26,7 +26,8 @@ public interface TransferWritePlatformService {
 
     CommandProcessingResult transferLoanOfficerToGroup(final Long sourceGroupId,final JsonCommand jsonCommand);
 
+    CommandProcessingResult undoClientTransfer(final Long clientId, final JsonCommand jsonCommand);
 
-
+    CommandProcessingResult undoGroupTransfer(final Long groupId, final JsonCommand jsonCommand);
 
 }
