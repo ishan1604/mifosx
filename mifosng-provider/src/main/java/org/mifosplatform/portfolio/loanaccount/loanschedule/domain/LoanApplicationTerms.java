@@ -27,17 +27,17 @@ import org.mifosplatform.portfolio.loanproduct.domain.LoanProductRelatedDetail;
 public final class LoanApplicationTerms {
 
     private final ApplicationCurrency currency;
-    private final Integer loanTermFrequency;
+    private Integer loanTermFrequency;
     private final PeriodFrequencyType loanTermPeriodFrequencyType;
-    private final Integer numberOfRepayments;
+    private Integer numberOfRepayments;
     private final Integer repaymentEvery;
     private final PeriodFrequencyType repaymentPeriodFrequencyType;
     private final AmortizationMethod amortizationMethod;
 
     private final InterestMethod interestMethod;
-    private final BigDecimal interestRatePerPeriod;
+    private BigDecimal interestRatePerPeriod;
     private final PeriodFrequencyType interestRatePeriodFrequencyType;
-    private final BigDecimal annualNominalInterestRate;
+    private BigDecimal annualNominalInterestRate;
     private final InterestCalculationPeriodMethod interestCalculationPeriodMethod;
 
     private Money principal;
@@ -49,7 +49,7 @@ public final class LoanApplicationTerms {
      * installments where 'grace' should apply to the principal component of a
      * loans repayment period (installment).
      */
-    private final Integer principalGrace;
+    private Integer principalGrace;
 
     /**
      * Integer representing the number of 'repayment frequencies' or
@@ -59,7 +59,7 @@ public final class LoanApplicationTerms {
      * <b>Note:</b> Interest is still calculated taking into account the full
      * loan term, the interest is simply offset to a later period.
      */
-    private final Integer interestPaymentGrace;
+    private Integer interestPaymentGrace;
 
     /**
      * Integer representing the number of 'repayment frequencies' or
@@ -84,7 +84,7 @@ public final class LoanApplicationTerms {
      * to indicate from whence interest should be charged.
      * </p>
      */
-    private final LocalDate interestChargedFromDate;
+    private LocalDate interestChargedFromDate;
     private final Money inArrearsTolerance;
 
     private final Integer graceOnArrearsAgeing;
@@ -101,6 +101,8 @@ public final class LoanApplicationTerms {
     private BigDecimal maxOutstandingBalance;
 
     private List<LoanTermVariationsData> emiAmountVariations;
+    
+    private Money totalInterestDue;
 
     public static LoanApplicationTerms assembleFrom(final ApplicationCurrency currency, final Integer loanTermFrequency,
             final PeriodFrequencyType loanTermPeriodFrequencyType, final Integer numberOfRepayments, final Integer repaymentEvery,
@@ -388,8 +390,8 @@ public final class LoanApplicationTerms {
 
         final int periodsElapsed = 0;
         final double paymentPerRepaymentPeriod = paymentPerPeriod(periodicInterestRate, this.principal, periodsElapsed);
-        final double totalRepayment = paymentPerRepaymentPeriod * this.numberOfRepayments;
-
+        double totalRepayment = paymentPerRepaymentPeriod * this.numberOfRepayments;
+        
         return Money.of(this.principal.getCurrency(), BigDecimal.valueOf(totalRepayment));
     }
 
@@ -404,13 +406,17 @@ public final class LoanApplicationTerms {
         switch (this.interestMethod) {
             case FLAT:
                 final BigDecimal interestRateForLoanTerm = calculateFlatInterestRateForLoanTerm(calculator, mc);
-
                 totalInterestDue = this.principal.multiplyRetainScale(interestRateForLoanTerm, mc.getRoundingMode());
+                
             break;
             case DECLINING_BALANCE:
             break;
             case INVALID:
             break;
+        }
+        
+        if(this.totalInterestDue != null) {
+        	totalInterestDue = this.totalInterestDue;
         }
 
         return totalInterestDue;
@@ -424,7 +430,7 @@ public final class LoanApplicationTerms {
         final BigDecimal loanTermPeriodsInYearBigDecimal = BigDecimal.valueOf(loanTermPeriodsInOneYear);
 
         final BigDecimal loanTermFrequencyBigDecimal = calculatePeriodsInLoanTerm();
-
+        
         return this.annualNominalInterestRate.divide(loanTermPeriodsInYearBigDecimal, mc).divide(divisor, mc)
                 .multiply(loanTermFrequencyBigDecimal);
     }
@@ -614,7 +620,7 @@ public final class LoanApplicationTerms {
         return periodNumber > 0 && periodNumber <= getInterestChargingGrace();
     }
 
-    private Integer getPrincipalGrace() {
+    public Integer getPrincipalGrace() {
         Integer graceOnPrincipalPayments = Integer.valueOf(0);
         if (this.principalGrace != null) {
             graceOnPrincipalPayments = this.principalGrace;
@@ -622,7 +628,7 @@ public final class LoanApplicationTerms {
         return graceOnPrincipalPayments;
     }
 
-    private Integer getInterestPaymentGrace() {
+    public Integer getInterestPaymentGrace() {
         Integer graceOnInterestPayments = Integer.valueOf(0);
         if (this.interestPaymentGrace != null) {
             graceOnInterestPayments = this.interestPaymentGrace;
@@ -630,7 +636,7 @@ public final class LoanApplicationTerms {
         return graceOnInterestPayments;
     }
 
-    private Integer getInterestChargingGrace() {
+    public Integer getInterestChargingGrace() {
         Integer graceOnInterestCharged = Integer.valueOf(0);
         if (this.interestChargingGrace != null) {
             graceOnInterestCharged = this.interestChargingGrace;
@@ -852,5 +858,56 @@ public final class LoanApplicationTerms {
                 startDate = loanVariationTermsData.getTermApplicableFrom();
             }
         }
+    }
+    
+    public void updateNumberOfRepayments(final Integer numberOfRepayments) {
+    	this.numberOfRepayments = numberOfRepayments;
+    }
+    
+    public void updatePrincipalGrace(final Integer principalGrace) {
+    	this.principalGrace = principalGrace;
+    }
+    
+    public void updateInterestPaymentGrace(final Integer interestPaymentGrace) {
+    	this.interestPaymentGrace = interestPaymentGrace;
+    }
+    
+    public void updateInterestRatePerPeriod(BigDecimal interestRatePerPeriod) {
+    	if(interestRatePerPeriod != null) {
+    		this.interestRatePerPeriod = interestRatePerPeriod;
+    	}
+    }
+    
+    public void updateAnnualNominalInterestRate(BigDecimal annualNominalInterestRate) {
+    	if(annualNominalInterestRate != null) {
+    		this.annualNominalInterestRate = annualNominalInterestRate;
+    	}
+    }
+    
+    public BigDecimal getInterestRatePerPeriod() {
+    	return this.interestRatePerPeriod;
+    }
+    
+    public BigDecimal getAnnualNominalInterestRate() {
+    	return this.annualNominalInterestRate;
+    }
+    
+    public void updateInterestChargedFromDate(LocalDate interestChargedFromDate) {
+    	if(interestChargedFromDate != null) {
+    		this.interestChargedFromDate = interestChargedFromDate;
+    	}
+    }
+    
+    public void updateLoanTermFrequency(Integer loanTermFrequency) {
+    	if(loanTermFrequency != null) {
+    		this.loanTermFrequency = loanTermFrequency;
+    	}
+    }
+    
+    public void updateTotalInterestDue(Money totalInterestDue) {
+    	
+    	if(totalInterestDue != null) {
+    		this.totalInterestDue = totalInterestDue;
+    	}
     }
 }

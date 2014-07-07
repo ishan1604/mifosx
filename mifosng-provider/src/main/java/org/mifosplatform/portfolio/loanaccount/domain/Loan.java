@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -60,6 +61,7 @@ import org.mifosplatform.organisation.staff.domain.Staff;
 import org.mifosplatform.organisation.workingdays.domain.WorkingDays;
 import org.mifosplatform.organisation.workingdays.service.WorkingDaysUtil;
 import org.mifosplatform.portfolio.accountdetails.domain.AccountType;
+import org.mifosplatform.portfolio.calendar.domain.Calendar;
 import org.mifosplatform.portfolio.calendar.service.CalendarUtils;
 import org.mifosplatform.portfolio.charge.domain.ChargeCalculationType;
 import org.mifosplatform.portfolio.charge.exception.LoanChargeCannotBeAddedException;
@@ -89,8 +91,11 @@ import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanScheduleG
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanScheduleGeneratorFactory;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanScheduleModel;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanScheduleModelPeriod;
+import org.mifosplatform.portfolio.loanproduct.domain.AmortizationMethod;
+import org.mifosplatform.portfolio.loanproduct.domain.InterestCalculationPeriodMethod;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProductMinimumRepaymentScheduleRelatedDetail;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductRelatedDetail;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanTransactionProcessingStrategy;
 import org.mifosplatform.portfolio.loanproduct.service.LoanEnumerations;
@@ -218,6 +223,10 @@ public class Loan extends AbstractPersistable<Long> {
     @Temporal(TemporalType.DATE)
     @Column(name = "rescheduledon_date")
     private Date rescheduledOnDate;
+    
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "rescheduledon_userid", nullable = true)
+    private AppUser rescheduledByUser;
 
     @Temporal(TemporalType.DATE)
     @Column(name = "expected_maturedon_date")
@@ -3117,7 +3126,7 @@ public class Loan extends AbstractPersistable<Long> {
         return matchesCurrentLoanOfficer;
     }
 
-    private LocalDate getInterestChargedFromDate() {
+    public LocalDate getInterestChargedFromDate() {
         LocalDate interestChargedFrom = null;
         if (this.interestChargedFromDate != null) {
             interestChargedFrom = new LocalDate(this.interestChargedFromDate);
@@ -3863,4 +3872,176 @@ public class Loan extends AbstractPersistable<Long> {
     public BigDecimal getTotalOverpaid() {
         return this.totalOverpaid;
     }
+
+    /**  
+     * @return List of loan repayments schedule objects
+     **/
+    public List<LoanRepaymentScheduleInstallment> getRepaymentScheduleInstallments() {
+    	return this.repaymentScheduleInstallments;
+    }
+    
+    /** 
+     * @return Loan product minimum repayments schedule related detail 
+     **/
+    public LoanProductMinimumRepaymentScheduleRelatedDetail getLoanRepaymentScheduleDetail() {
+    	return this.loanRepaymentScheduleDetail;
+    }
+    
+    /** 
+     * @return Loan Fixed Emi amount 
+     **/
+    public BigDecimal getFixedEmiAmount() {
+    	return this.fixedEmiAmount;
+    }
+    
+    /** 
+     * @return maximum outstanding loan balance 
+     **/
+    public BigDecimal getMaxOutstandingLoanBalance() {
+    	return this.maxOutstandingLoanBalance;
+    }
+    
+    /**
+     * @param dueDate the due date of the installment 
+     * @return a schedule installment with similar due date to the one provided 
+     **/
+    public LoanRepaymentScheduleInstallment getRepaymentScheduleInstallment(LocalDate dueDate) {
+    	LoanRepaymentScheduleInstallment installment = null;
+    	
+    	if(dueDate != null) {
+    		for(LoanRepaymentScheduleInstallment repaymentScheduleInstallment : this.repaymentScheduleInstallments) {
+    			
+    			if(repaymentScheduleInstallment.getDueDate().isEqual(dueDate)) {
+    				installment = repaymentScheduleInstallment;
+    				
+    				break;
+    			}
+    		}
+    	}
+    	
+    	return installment;
+    }
+    
+    /** 
+	 * @param loan the Loan object
+	 * @return loan disbursement data 
+	 **/
+	public List<DisbursementData> getDisbursmentData() {
+		Iterator<LoanDisbursementDetails> iterator = this.getDisbursementDetails().iterator();
+		List<DisbursementData> disbursementData = new ArrayList<DisbursementData>();
+		
+		while(iterator.hasNext()) {
+			LoanDisbursementDetails loanDisbursementDetails = iterator.next();
+			
+			LocalDate expectedDisbursementDate = null;
+			LocalDate actualDisbursementDate = null;
+			
+			if(loanDisbursementDetails.expectedDisbursementDate() != null) {
+				expectedDisbursementDate = new LocalDate(loanDisbursementDetails.expectedDisbursementDate());
+			}
+			
+			if(loanDisbursementDetails.actualDisbursementDate() != null) {
+				actualDisbursementDate = new LocalDate(loanDisbursementDetails.actualDisbursementDate());
+			}
+			
+			disbursementData.add(new DisbursementData(loanDisbursementDetails.getId(), expectedDisbursementDate, 
+					actualDisbursementDate, loanDisbursementDetails.principal(), loanDisbursementDetails.approvedPrincipal()));
+		}
+		
+		return disbursementData;
+	}
+	
+	/** 
+	 * @param loan the Loan object
+	 * @return application terms of the Loan object
+	 **/
+	@SuppressWarnings({ "unused" })
+	public LoanApplicationTerms getLoanApplicationTerms(final ApplicationCurrency applicationCurrency) {
+		LoanProduct loanProduct = loanProduct();
+		LoanProductMinimumRepaymentScheduleRelatedDetail loanProductRelatedDetail = getLoanRepaymentScheduleDetail();
+		final MonetaryCurrency currency = loanProductRelatedDetail.getCurrency();
+		
+		final Integer loanTermFrequency = getTermFrequency();
+		final PeriodFrequencyType loanTermPeriodFrequencyType = loanProductRelatedDetail.getInterestPeriodFrequencyType();
+		
+		final Integer numberOfRepayments = loanProductRelatedDetail.getNumberOfRepayments();
+		final Integer repaymentEvery = loanProductRelatedDetail.getRepayEvery();
+		final PeriodFrequencyType repaymentPeriodFrequencyType  = loanProductRelatedDetail.getRepaymentPeriodFrequencyType();
+		
+		final AmortizationMethod amortizationMethod = loanProductRelatedDetail.getAmortizationMethod();
+		
+		final InterestMethod interestMethod = loanProductRelatedDetail.getInterestMethod();
+		final InterestCalculationPeriodMethod interestCalculationPeriodMethod = loanProductRelatedDetail.getInterestCalculationPeriodMethod();
+		
+		final BigDecimal interestRatePerPeriod = loanProductRelatedDetail.getNominalInterestRatePerPeriod();
+		final PeriodFrequencyType interestRatePeriodFrequencyType = loanProductRelatedDetail.getInterestPeriodFrequencyType();
+		
+		final BigDecimal annualNominalInterestRate = loanProductRelatedDetail.getAnnualNominalInterestRate();
+		final Money principalMoney = loanProductRelatedDetail.getPrincipal();
+		
+		final LocalDate expectedDisbursementDate = getExpectedDisbursedOnLocalDate();
+		final LocalDate repaymentsStartingFromDate = getExpectedFirstRepaymentOnDate();
+		LocalDate calculatedRepaymentsStartingFromDate = repaymentsStartingFromDate;
+		
+		// TODO get calender linked to loan if any exist. As of 17-07-2014, could not find a link in the database.
+		// skip for now and set the Calender object to null
+		Calendar calendar = null;
+		
+		final Integer graceOnPrincipalPayment = loanProductRelatedDetail.graceOnPrincipalPayment();
+		final Integer graceOnInterestPayment = loanProductRelatedDetail.graceOnInterestPayment();
+		final Integer graceOnInterestCharged = loanProductRelatedDetail.graceOnInterestCharged();
+		final LocalDate interestChargedFromDate = getInterestChargedFromDate();
+		final Integer graceOnArrearsAgeing = loanProductRelatedDetail.getGraceOnDueDate();
+		
+		final Money inArrearsToleranceMoney = loanProductRelatedDetail.getInArrearsTolerance();
+		final BigDecimal emiAmount = getFixedEmiAmount();
+		final BigDecimal maxOutstandingBalance = getMaxOutstandingLoanBalance();
+		
+		final List<DisbursementData> disbursementData = getDisbursmentData();
+		
+		final List<LoanTermVariationsData> loanVariationTermsData = new ArrayList<LoanTermVariationsData>();
+        LoanTermVariationsData data = new LoanTermVariationsData(null,
+                LoanEnumerations.loanvariationType(LoanTermVariationType.EMI_AMOUNT), expectedDisbursementDate, emiAmount);
+        loanVariationTermsData.add(data);
+		
+        return LoanApplicationTerms.assembleFrom(applicationCurrency, loanTermFrequency, loanTermPeriodFrequencyType, numberOfRepayments,
+                repaymentEvery, repaymentPeriodFrequencyType, amortizationMethod, interestMethod, interestRatePerPeriod,
+                interestRatePeriodFrequencyType, annualNominalInterestRate, interestCalculationPeriodMethod, principalMoney,
+                expectedDisbursementDate, repaymentsStartingFromDate, calculatedRepaymentsStartingFromDate, graceOnPrincipalPayment,
+                graceOnInterestPayment, graceOnInterestCharged, interestChargedFromDate, inArrearsToleranceMoney,
+                loanProduct.isMultiDisburseLoan(), emiAmount, disbursementData, maxOutstandingBalance, loanVariationTermsData,graceOnArrearsAgeing);
+	}
+	
+	/** 
+	 * @return Loan summary embedded object 
+	 **/
+	public LoanSummary getLoanSummary() {
+		return this.summary;
+	}
+	
+	public void updateRescheduledByUser(AppUser rescheduledByUser) {
+		this.rescheduledByUser = rescheduledByUser;
+	}
+	
+	public LoanProductRelatedDetail getLoanProductRelatedDetail() {
+		return this.loanRepaymentScheduleDetail;
+	}
+	
+	public void updateNumberOfRepayments(Integer numberOfRepayments) {
+    	this.loanRepaymentScheduleDetail.updateNumberOfRepayments(numberOfRepayments);
+    }
+	
+	public void updateRescheduledOnDate(LocalDate rescheduledOnDate) {
+		
+		if(rescheduledOnDate != null) {
+			this.rescheduledOnDate = rescheduledOnDate.toDate();
+		}
+	}
+	
+	public void updateTermFrequency(Integer termFrequency) {
+		
+		if(termFrequency != null) {
+			this.termFrequency = termFrequency;
+		}
+	}
 }
