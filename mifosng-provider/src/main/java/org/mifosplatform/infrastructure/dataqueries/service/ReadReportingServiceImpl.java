@@ -360,8 +360,10 @@ public class ReadReportingServiceImpl implements ReadReportingService {
              * error
              */
             for (final ParameterDefinitionEntry paramDefEntry : paramsDefinition.getParameterDefinitions()) {
+
                 final String paramName = paramDefEntry.getName();
-                if (!((paramName.equals("tenantUrl")) || (paramName.equals("userhierarchy") || (paramName.equals("username")) || (paramName
+
+                if (!((paramName.equals("tenantdb")) || (paramName.equals("tenantUrl")) || (paramName.equals("userhierarchy") || (paramName.equals("username")) || (paramName
                         .equals("password") || (paramName.equals("userid")))))) {
                     logger.info("paramName:" + paramName);
                     final String pValue = queryParams.get(paramName);
@@ -389,13 +391,20 @@ public class ReadReportingServiceImpl implements ReadReportingService {
             // data scoping
             final Connection connection = this.dataSource.getConnection();
             String tenantUrl;
+            String tenantdb;
             try {
                 tenantUrl = connection.getMetaData().getURL();
+                tenantdb = connection.getCatalog();
             } finally {
                 connection.close();
             }
+
+
             final String userhierarchy = currentUser.getOffice().getHierarchy();
             logger.info("db URL:" + tenantUrl + "      userhierarchy:" + userhierarchy);
+            logger.info("db name:" + tenantdb + "      userhierarchy:" + userhierarchy);
+
+            rptParamValues.put("tenantdb", tenantdb);
             rptParamValues.put("userhierarchy", userhierarchy);
 
             final Long userid = currentUser.getId();
