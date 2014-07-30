@@ -2892,6 +2892,7 @@ public class Loan extends AbstractPersistable<Long> {
         }
 
         transactionForAdjustment.reverse();
+        transactionForAdjustment.manuallyAdjustedOrReversed();
 
         if (isClosedWrittenOff()) {
             // find write off transaction and reverse it
