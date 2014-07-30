@@ -100,6 +100,9 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "loanTransaction", orphanRemoval = true)
     private Set<LoanChargePaidBy> loanChargesPaid = new HashSet<LoanChargePaidBy>();
 
+    @Column(name= "manually_adjusted_or_reversed", nullable = false)
+    private boolean manuallyAdjustedOrReversed;
+
     protected LoanTransaction() {
         this.loan = null;
         this.dateOf = null;
@@ -470,7 +473,7 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
         }
         return new LoanTransactionData(getId(), this.office.getId(), this.office.getName(), transactionType, paymentDetailData,
                 currencyData, getTransactionDate(), this.amount, this.principalPortion, this.interestPortion, this.feeChargesPortion,
-                this.penaltyChargesPortion, this.overPaymentPortion, this.externalId, transfer, null);
+                this.penaltyChargesPortion, this.overPaymentPortion, this.externalId, transfer, null,this.reversed);
     }
 
     public Map<String, Object> toMapData(final CurrencyData currencyData) {
@@ -536,4 +539,15 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
         this.externalId = externalId;
     }
 
+    public boolean isManuallyAdjustedOrReversed() {
+        return this.manuallyAdjustedOrReversed;
+    }
+
+    public boolean isNotManuallyAdjustedOrReversed(){
+        return !this.manuallyAdjustedOrReversed;
+    }
+
+    public void manuallyAdjustedOrReversed(){
+        this.manuallyAdjustedOrReversed = true;
+    }
 }
