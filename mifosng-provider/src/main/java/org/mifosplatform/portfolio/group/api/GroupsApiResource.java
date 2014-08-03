@@ -397,7 +397,11 @@ public class GroupsApiResource {
             final CommandWrapper commandRequest = builder.transferStaffToGroup(groupId).build();
             result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
             return this.toApiJsonSerializer.serialize(result);
-        } else {
+        }else if (is(commandParam,"undoTransfer")){
+            final CommandWrapper commandRequest = builder.undoGroupTransfer(groupId).build();
+            result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+            return this.toApiJsonSerializer.serialize(result);
+        }else {
             throw new UnrecognizedQueryParamException("command", commandParam, new Object[] { "activate", "generateCollectionSheet",
                     "saveCollectionSheet", "unassignStaff", "assignRole", "unassignRole", "updateassignRole" });
         }

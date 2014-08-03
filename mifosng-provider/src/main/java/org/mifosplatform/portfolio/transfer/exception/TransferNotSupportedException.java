@@ -16,7 +16,7 @@ public class TransferNotSupportedException extends AbstractPlatformDomainRuleExc
     /*** enum of reasons for invalid Journal Entry **/
     public static enum TRANSFER_NOT_SUPPORTED_REASON {
         CLIENT_DESTINATION_GROUP_NOT_SPECIFIED, CLIENT_BELONGS_TO_MULTIPLE_GROUPS, SOURCE_AND_DESTINATION_GROUP_CANNOT_BE_SAME, ACTIVE_SAVINGS_ACCOUNT, BULK_CLIENT_TRANSFER_ACROSS_BRANCHES, DESTINATION_GROUP_MEETING_FREQUENCY_MISMATCH, DESTINATION_GROUP_HAS_NO_MEETING, 
-        SOURCE_AND_DESTINATION_OFFICE_CANNOT_BE_THE_SAME, SOURCE_AND_DESTINATION_STAFF_CANNOT_BE_THE_SAME;
+        SOURCE_AND_DESTINATION_OFFICE_CANNOT_BE_THE_SAME, SOURCE_AND_DESTINATION_STAFF_CANNOT_BE_THE_SAME, TRANSACTIONS_AFTER_TRANSFER, UNDO_TRANSFER_NOT_SUPPORTED,UNDO_GROUP_TRANSFER_NOT_SUPPORTED;
 
         public String errorMessage() {
             if (name().toString().equalsIgnoreCase("ACTIVE_SAVINGS_ACCOUNT")) {
@@ -37,6 +37,12 @@ public class TransferNotSupportedException extends AbstractPlatformDomainRuleExc
             	return "Source and destination office cannot be the same for group transfer across branches";
             }else if(name().toString().equalsIgnoreCase("SOURCE_AND_DESTINATION_STAFF_CANNOT_BE_THE_SAME")) {
                 return "Source and destination staff id cannot be the same for loan officer transfer";
+            }else if(name().toString().equalsIgnoreCase("TRANSACTIONS_AFTER_TRANSFER")) {
+                return "transactions made after client transfer in either loans or savings please undo them to proceed with undo client transfer";
+            }else if(name().toString().equalsIgnoreCase("UNDO_TRANSFER_NOT_SUPPORTED")){
+                return "undo client transfer not supported";
+            }else if(name().toString().equalsIgnoreCase("UNDO_GROUP_TRANSFER_NOT_SUPPORTED")){
+                return "undo group transfer not supported";
             }
             return name().toString();
         }
@@ -60,8 +66,14 @@ public class TransferNotSupportedException extends AbstractPlatformDomainRuleExc
             	return "error.msg.groups.transfers.to.different.office";
             }else if (name().toString().equalsIgnoreCase("SOURCE_AND_DESTINATION_STAFF_CANNOT_BE_THE_SAME")){
                 return "error.msg.loanofficer.transfer.loanofficer.to.group";
+            }else if(name().toString().equalsIgnoreCase("TRANSACTIONS_AFTER_TRANSFER")){
+                return "error.msg.transactions.made.after.client.transfer";
+            }else if(name().toString().equalsIgnoreCase("UNDO_TRANSFER_NOT_SUPPORTED")){
+                return "error.msg.undo.client.transfer.not.supported";
+            }else if(name().toString().equalsIgnoreCase("UNDO_GROUP_TRANSFER_NOT_SUPPORTED")) {
+                return "error.msg.undo.group.transfer.not.supported";
             }
-            return name().toString();
+                return name().toString();
         }
     }
 
