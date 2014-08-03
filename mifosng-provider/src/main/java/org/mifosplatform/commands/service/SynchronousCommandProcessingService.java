@@ -212,6 +212,8 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
                 handler = this.applicationContext.getBean("withdrawClientCommandHandler", NewCommandSourceHandler.class);
             } else if (wrapper.isReactivated()) {
                 handler = this.applicationContext.getBean("reActivateClientCommandHandler", NewCommandSourceHandler.class);
+            }else if(wrapper.isUndoClientTransfer()){
+                handler = this.applicationContext.getBean("undoClientTransferCommandHandler", NewCommandSourceHandler.class);
             } else {
                 throw new UnsupportedCommandException(wrapper.commandName());
             }
@@ -744,7 +746,9 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
             	handler = this.applicationContext.getBean("transferGroupBetweenBranchesCommandHandler", NewCommandSourceHandler.class);
             }else if(wrapper.isTransferStaffToGroup()){
                 handler = this.applicationContext.getBean("transferStaffToGroupCommandHandler", NewCommandSourceHandler.class);
-            }else {
+            } else if(wrapper.isUndoGroupTransfer()){
+                handler = this.applicationContext.getBean("undoGroupTransferCommandHandler",NewCommandSourceHandler.class);
+            } else {
                 throw new UnsupportedCommandException(wrapper.commandName());
             }
         } else if (wrapper.isCenterResource()) {

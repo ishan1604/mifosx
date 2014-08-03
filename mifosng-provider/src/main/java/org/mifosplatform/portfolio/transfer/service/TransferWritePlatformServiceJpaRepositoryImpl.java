@@ -7,14 +7,24 @@ package org.mifosplatform.portfolio.transfer.service;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 import java.util.Set;
 
 import org.joda.time.LocalDate;
+import org.mifosplatform.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.mifosplatform.infrastructure.core.service.DateUtils;
+import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
+import org.mifosplatform.organisation.monetary.domain.ApplicationCurrency;
+import org.mifosplatform.organisation.monetary.domain.ApplicationCurrencyRepository;
+import org.mifosplatform.organisation.monetary.domain.ApplicationCurrencyRepositoryWrapper;
+import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
 import org.mifosplatform.organisation.office.domain.Office;
 import org.mifosplatform.organisation.office.domain.OfficeRepositoryWrapper;
 import org.mifosplatform.organisation.staff.domain.Staff;
@@ -35,17 +45,28 @@ import org.mifosplatform.portfolio.group.exception.ClientNotInGroupException;
 import org.mifosplatform.portfolio.group.exception.GroupNotActiveException;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanRepository;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionRepository;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionType;
+import org.mifosplatform.portfolio.loanaccount.service.LoanAccrualWritePlatformServiceImpl;
 import org.mifosplatform.portfolio.loanaccount.service.LoanWritePlatformService;
 import org.mifosplatform.portfolio.note.service.NoteWritePlatformService;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountRepository;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransaction;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransactionRepository;
 import org.mifosplatform.portfolio.savings.service.SavingsAccountWritePlatformService;
 import org.mifosplatform.portfolio.transfer.api.TransferApiConstants;
 import org.mifosplatform.portfolio.transfer.data.TransfersDataValidator;
+import org.mifosplatform.portfolio.transfer.domain.UndoTransfer;
+import org.mifosplatform.portfolio.transfer.domain.UndoTransferRepository;
+import org.mifosplatform.portfolio.transfer.domain.UndoTransferRepositoryWrapper;
 import org.mifosplatform.portfolio.transfer.exception.ClientNotAwaitingTransferApprovalException;
 import org.mifosplatform.portfolio.transfer.exception.ClientNotAwaitingTransferApprovalOrOnHoldException;
 import org.mifosplatform.portfolio.transfer.exception.TransferNotSupportedException;
 import org.mifosplatform.portfolio.transfer.exception.TransferNotSupportedException.TRANSFER_NOT_SUPPORTED_REASON;
+import org.mifosplatform.portfolio.transfer.exception.UndoTransferNotFoundException;
+import org.mifosplatform.portfolio.transfer.exception.UndoTransferWrongType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,6 +89,13 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
     private final TransfersDataValidator transfersDataValidator;
     private final NoteWritePlatformService noteWritePlatformService;
     private final StaffRepositoryWrapper staffRepositoryWrapper;
+    private final LoanTransactionRepository loanTransactionRepository;
+    private final UndoTransferRepositoryWrapper undoTransferRepositoryWrapper;
+    private final PlatformSecurityContext context;
+    private final UndoTransferRepository undoTransferRepository;
+    private final JournalEntryWritePlatformService journalEntryWritePlatformService;
+    private final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper;
+    private final SavingsAccountTransactionRepository savingsAccountTransactionRepository ;
 
     @Autowired
     public TransferWritePlatformServiceJpaRepositoryImpl(final ClientRepositoryWrapper clientRepository,
@@ -76,7 +104,11 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
             final LoanRepository loanRepository, final TransfersDataValidator transfersDataValidator,
             final NoteWritePlatformService noteWritePlatformService, final StaffRepositoryWrapper staffRepositoryWrapper,
             final SavingsAccountRepository savingsAccountRepository,
-            final SavingsAccountWritePlatformService savingsAccountWritePlatformService) {
+            final SavingsAccountWritePlatformService savingsAccountWritePlatformService,final LoanTransactionRepository loanTransactionRepository,
+            final UndoTransferRepositoryWrapper undoTransferRepositoryWrapper,final PlatformSecurityContext context,
+            final UndoTransferRepository undoTransferRepository,final JournalEntryWritePlatformService journalEntryWritePlatformService,
+            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
+            final SavingsAccountTransactionRepository savingsAccountTransactionRepository) {
         this.clientRepository = clientRepository;
         this.officeRepository = officeRepository;
         this.calendarInstanceRepository = calendarInstanceRepository;
@@ -88,6 +120,14 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         this.staffRepositoryWrapper = staffRepositoryWrapper;
         this.savingsAccountRepository = savingsAccountRepository;
         this.savingsAccountWritePlatformService = savingsAccountWritePlatformService;
+        this.loanTransactionRepository = loanTransactionRepository;
+        this.undoTransferRepositoryWrapper = undoTransferRepositoryWrapper;
+        this.context = context;
+        this.undoTransferRepository = undoTransferRepository;
+        this.journalEntryWritePlatformService = journalEntryWritePlatformService;
+        this.applicationCurrencyRepositoryWrapper = applicationCurrencyRepositoryWrapper;
+        this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
+
     }
 
     @Override
@@ -422,6 +462,15 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         switch (transferEventType) {
             case ACCEPTANCE:
                 client.setStatus(ClientStatus.ACTIVE.getValue());
+
+                Long sourceGroupId = null;
+                if(client.getGroups().size() == 1){
+                    Group getSourceGroup = Iterables.get(client.getGroups(),0);
+                    sourceGroupId = getSourceGroup.getId();
+                }
+                final UndoTransfer undoTransfer = UndoTransfer.instance(client,null,null,client.getOffice().getId(),sourceGroupId,client.getStaff().getId(),todaysDate,this.context.authenticatedUser(),
+                        todaysDate,this.context.authenticatedUser(),client.getOfficeJoiningLocalDate().toDate());
+                this.undoTransferRepositoryWrapper.saveAndFlush(undoTransfer);
                 client.updateTransferToOffice(null);
                 client.updateOffice(destinationOffice);
                 client.updateOfficeJoiningDate(todaysDate);
@@ -446,7 +495,7 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
             case REJECTION:
                 client.setStatus(ClientStatus.TRANSFER_ON_HOLD.getValue());
                 client.updateTransferToOffice(null);
-            break;
+                break;
             case WITHDRAWAL:
                 client.setStatus(ClientStatus.ACTIVE.getValue());
                 client.updateTransferToOffice(null);
@@ -490,56 +539,69 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         if (!client.isTransferInProgressOrOnHold()) { throw new ClientNotAwaitingTransferApprovalOrOnHoldException(client.getId()); }
     }
 
-	@Override
-	public CommandProcessingResult transferGroupBetweenBranches(Long sourceGroupId, JsonCommand jsonCommand) {
-		// validation
-		this.transfersDataValidator.validateForProposeAndAcceptClientTransfer(jsonCommand.json());
-
-		final Long destinationOfficeId = jsonCommand.longValueOfParameterNamed(TransferApiConstants.destinationOfficeIdParamName);
-		final Office office = this.officeRepository.findOneWithNotFoundDetection(destinationOfficeId);
-		final Group sourceGroup = this.groupRepository.findOneWithNotFoundDetection(sourceGroupId);
-		final Long destinationGroupId = jsonCommand.longValueOfParameterNamed(TransferApiConstants.destinationGroupIdParamName);
-		final Long staffId = jsonCommand.longValueOfParameterNamed(TransferApiConstants.newStaffIdParamName);
-		Staff staff = null;
-		if (staffId != null) {
-			staff = this.staffRepositoryWrapper.findByOfficeHierarchyWithNotFoundDetection(staffId, office.getHierarchy());
-		}
-
-		//validate sourceOffice  and destinationOffice should not be the same
-		if(sourceGroup.getOffice().getId().equals(office.getId())){
-			 throw new TransferNotSupportedException(
-					TRANSFER_NOT_SUPPORTED_REASON.SOURCE_AND_DESTINATION_OFFICE_CANNOT_BE_THE_SAME, sourceGroup.getOffice().getId(), destinationOfficeId);
-		}
-		//this allows you to move the group to another branch while keeping the group name
-
-
-
-		if((sourceGroup.getId().longValue() == destinationGroupId) && (sourceGroup.getOffice().getId() != office.getId())){
-			//move source group to different office
-			sourceGroup.updateOffice(office);
-			//change loanOfficer of group
-			sourceGroup.updateStaff(staff);
-		}
-
-		Set<Client> clients = sourceGroup.getClientMembers();
-
-		for(Client client : clients){
-			handleClientTransferLifecycleEvent(client, office, TransferEventType.PROPOSAL, jsonCommand);
-			this.clientRepository.saveAndFlush(client);
-			handleClientTransferLifecycleEvent(client, client.getTransferToOffice(), TransferEventType.ACCEPTANCE, jsonCommand);
-			this.clientRepository.save(client);
-		}
-
-		return new CommandProcessingResultBuilder() //
-				.withEntityId(sourceGroupId) //
-				.build();
-	}
-
-    /**
+	/**
      * private void validateGroupAwaitingTransferAcceptanceOnHold(final Group
      * group) { if (!group.isTransferInProgressOrOnHold()) { throw new
      * ClientNotAwaitingTransferApprovalException(group.getId()); } }
      **/
+
+    @Override
+    @Transactional
+    public CommandProcessingResult transferGroupBetweenBranches(Long sourceGroupId, JsonCommand jsonCommand) {
+        // validation
+        this.transfersDataValidator.validateForProposeAndAcceptClientTransfer(jsonCommand.json());
+        final Date todaysDate = DateUtils.getDateOfTenant();
+
+        final Long destinationOfficeId = jsonCommand.longValueOfParameterNamed(TransferApiConstants.destinationOfficeIdParamName);
+        final Office office = this.officeRepository.findOneWithNotFoundDetection(destinationOfficeId);
+        final Group sourceGroup = this.groupRepository.findOneWithNotFoundDetection(sourceGroupId);
+        final Long destinationGroupId = jsonCommand.longValueOfParameterNamed(TransferApiConstants.destinationGroupIdParamName);
+        final Long staffId = jsonCommand.longValueOfParameterNamed(TransferApiConstants.newStaffIdParamName);
+        Staff staff = null;
+        if (staffId != null) {
+            staff = this.staffRepositoryWrapper.findByOfficeHierarchyWithNotFoundDetection(staffId, office.getHierarchy());
+        }
+
+        //validate sourceOffice  and destinationOffice should not be the same
+        if(sourceGroup.getOffice().getId().equals(office.getId())){
+             throw new TransferNotSupportedException(
+                    TRANSFER_NOT_SUPPORTED_REASON.SOURCE_AND_DESTINATION_OFFICE_CANNOT_BE_THE_SAME, sourceGroup.getOffice().getId(), destinationOfficeId);
+        }
+        //this allows you to move the group to another branch while keeping the group name
+
+
+
+        if((sourceGroup.getId().longValue() == destinationGroupId) && (sourceGroup.getOffice().getId() != office.getId())){
+
+            final Long transferFromOfficeId = sourceGroup.getOffice().getId();
+            final Long transferFromStaffId = sourceGroup.getStaff().getId();
+            //move source group to different office
+            sourceGroup.updateOffice(office);
+            //change loanOfficer of group
+            sourceGroup.updateStaff(staff);
+
+            final UndoTransfer undoTransfer = UndoTransfer.instance(null, sourceGroup, null,transferFromOfficeId, sourceGroupId, transferFromStaffId, todaysDate, this.context.authenticatedUser(),
+                    todaysDate, this.context.authenticatedUser(), sourceGroup.getActivationLocalDate().toDate());
+            this.undoTransferRepositoryWrapper.saveAndFlush(undoTransfer);
+        }
+        Set<Client> clients = sourceGroup.getClientMembers();
+
+        for(Client client : clients){
+            handleClientTransferLifecycleEvent(client, office, TransferEventType.PROPOSAL, jsonCommand);
+            this.clientRepository.saveAndFlush(client);
+            handleClientTransferLifecycleEvent(client, client.getTransferToOffice(), TransferEventType.ACCEPTANCE, jsonCommand);
+            this.clientRepository.save(client);
+            //update client in undoTransfer with boolean part Of group
+            UndoTransfer undoTransfer = this.undoTransferRepository.findClientUndoTransfer(client.getId());
+            undoTransfer.setGroupTransfer(true);
+            this.undoTransferRepository.save(undoTransfer);
+        }
+
+        return new CommandProcessingResultBuilder() //
+                .withGroupId(sourceGroupId)
+                .withEntityId(sourceGroupId) //
+                .build();
+    }
 
     @Override
     public CommandProcessingResult transferLoanOfficerToGroup(Long sourceGroupId, JsonCommand jsonCommand) {
@@ -590,11 +652,230 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                 }
             }
         }
-
         return new CommandProcessingResultBuilder() //
                 .withOfficeId(office.getId())
                 .withGroupId(sourceGroupId)
                 .withEntityId(sourceGroupId) //
+                .build();
+    }
+
+
+
+    public CommandProcessingResult undoClientTransfer(final Long clientId, final JsonCommand jsonCommand) {
+        final Client client = this.clientRepository.findOneWithNotFoundDetection(clientId);
+        if(client.isNotActive() && this.undoTransferRepositoryWrapper.doesClientExistInUndoTransfer(clientId)){
+            throw new TransferNotSupportedException(TRANSFER_NOT_SUPPORTED_REASON.UNDO_TRANSFER_NOT_SUPPORTED);
+        }
+
+        final UndoTransfer clientUndoTransfer = this.undoTransferRepository.findClientUndoTransfer(clientId);
+        if(clientUndoTransfer.isGroupTransfer()){
+           throw new UndoTransferWrongType();
+        }
+        if(this.paymentTransactionAfterTransfer(clientId)){
+            throw new TransferNotSupportedException(TRANSFER_NOT_SUPPORTED_REASON.TRANSACTIONS_AFTER_TRANSFER);
+        }
+        /*
+          reverse transaction made on initiate transfer and accept transfer
+         */
+        this.reverseTransferTransaction(clientId);
+
+
+        this.undoClientTransfer(client,clientId);
+
+        return new CommandProcessingResultBuilder() //
+                .withClientId(clientId) //
+                .withEntityId(clientId) //
+                .build();
+    }
+
+
+    private void undoClientTransfer(final Client client,final Long clientId){
+
+        final UndoTransfer undoTransfer = this.undoTransferRepository.findClientUndoTransfer(clientId);
+
+        if(undoTransfer == null ){
+            throw new TransferNotSupportedException(TRANSFER_NOT_SUPPORTED_REASON.UNDO_TRANSFER_NOT_SUPPORTED);
+        }
+
+        final Staff staff = this.staffRepositoryWrapper.findOneWithNotFoundDetection(undoTransfer.getTransferFromStaffId());
+        final Office office = this.officeRepository.findOneWithNotFoundDetection(undoTransfer.getTransferFromOfficeId());
+        Group group  = null;
+        if(undoTransfer.getTransferFromGroupId() != null){
+            group = this.groupRepository.findOneWithNotFoundDetection(undoTransfer.getTransferFromGroupId());
+        }
+
+        client.updateStaff(staff);
+        client.updateOffice(office);
+        client.updateOfficeJoiningDate(undoTransfer.getOfficeJoiningDate());
+        if(group !=null){
+            if(client.getGroups().size() == 1){
+                Group transferToGroup = Iterables.get(client.getGroups(),0);
+                client.getGroups().remove(transferToGroup);
+                client.getGroups().add(group);
+            }
+        }
+
+        if(this.loanRepository.doNonClosedLoanAccountsExistForClient(client.getId())){
+            for(final Loan loan :this.loanRepository.findLoanByClientId(client.getId())){
+                if (loan.isDisbursed() && !loan.isClosed()){
+                    loan.reassignLoanOfficer(staff,DateUtils.getLocalDateOfTenant());
+                }
+            }
+        }
+        if(this.savingsAccountRepository.doNonClosedSavingAccountsExistForClient(client.getId())){
+            for (final SavingsAccount savingsAccount : this.savingsAccountRepository.findSavingAccountByClientId(client.getId())){
+                if (!savingsAccount.isClosed()){
+                    savingsAccount.update(staff);
+                }
+            }
+        }
+        this.clientRepository.save(client);
+        undoTransfer.updateTransferUndone(true);
+        this.undoTransferRepository.save(undoTransfer);
+
+
+    }
+
+    private void reverseTransferTransaction(final Long clientId){
+        if(this.loanRepository.doNonClosedLoanAccountsExistForClient(clientId)){
+            for(final Loan loan : this.loanRepository.findLoanByClientId(clientId)){
+                if(loan.isDisbursed() && !loan.isClosed()){
+                    for(final LoanTransaction loanTransaction :this.loanTransactionRepository.currentTransferTransaction(loan.getId())){
+                        if(loanTransaction.getTypeOf().equals(LoanTransactionType.INITIATE_TRANSFER)){
+                            loanTransaction.reverse();
+                        }
+                        if(loanTransaction.getTypeOf().equals(LoanTransactionType.APPROVE_TRANSFER)){
+                            loanTransaction.reverse();
+                        }
+                    }
+                    List<Long> existingTransactionIds = new ArrayList<Long>();
+                    List<Long> existingReversedTransactionIds = new ArrayList<Long>();
+                    this.postJournalEntriesLoan(loan,existingTransactionIds,existingReversedTransactionIds);
+                }
+
+            }
+        }
+        if(this.savingsAccountRepository.doNonClosedSavingAccountsExistForClient(clientId)) {
+            for(final SavingsAccount savingsAccount: this.savingsAccountRepository.findSavingAccountByClientId(clientId)){
+                if(!savingsAccount.isClosed()){
+                    for(SavingsAccountTransaction savingsAccountTransaction: this.savingsAccountTransactionRepository.currentTransferTransaction(savingsAccount.getId())){
+                        if(savingsAccountTransaction.isTransferInitiation()){
+                            savingsAccountTransaction.reverse();
+                        }
+                        if(savingsAccountTransaction.isTransferApproval()){
+                            savingsAccountTransaction.reverse();
+                        }
+                    }
+                    Set<Long> existingTransactionIds = new HashSet<Long>();
+                    Set<Long> existingReversedTransactionIds = new HashSet<Long>();
+                    this.postJournalEntries(savingsAccount, existingTransactionIds, existingReversedTransactionIds);
+                }
+            }
+        }
+
+    }
+
+    private void postJournalEntries(final SavingsAccount savingsAccount, final Set<Long> existingTransactionIds,
+                                    final Set<Long> existingReversedTransactionIds) {
+
+        final MonetaryCurrency currency = savingsAccount.getCurrency();
+        final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepositoryWrapper.findOneWithNotFoundDetection(currency);
+        boolean isAccountTransfer = false;
+        final Map<String, Object> accountingBridgeData = savingsAccount.deriveAccountingBridgeData(applicationCurrency.toData(),
+                existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
+        this.journalEntryWritePlatformService.createJournalEntriesForSavings(accountingBridgeData);
+    }
+
+    private void postJournalEntriesLoan(final Loan loan, final List<Long> existingTransactionIds,
+                                    final List<Long> existingReversedTransactionIds) {
+
+        final MonetaryCurrency currency = loan.getCurrency();
+        final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepositoryWrapper.findOneWithNotFoundDetection(currency);
+        boolean isAccountTransfer = false;
+        final Map<String, Object> accountingBridgeData = loan.deriveAccountingBridgeData(applicationCurrency.toData(),
+                existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
+        this.journalEntryWritePlatformService.createJournalEntriesForLoan(accountingBridgeData);
+    }
+
+    private boolean paymentTransactionAfterTransfer(final Long clientId){
+        boolean hasPaymentTransactionHappenedAfterTransfer = false;
+        /*
+            find clients loan and check if a loan transaction has
+            been made after transfer
+         */
+        if(this.loanRepository.doNonClosedLoanAccountsExistForClient(clientId)){
+            for(final Loan loan : this.loanRepository.findLoanByClientId(clientId)){
+                if(loan.isDisbursed() && !loan.isClosed()){
+                    Integer transactionEnumType= 13;
+                    for(LoanTransaction loanTransaction: this.loanTransactionRepository.transactionsAfterClientTransfer(loan.getId(),transactionEnumType)){
+                        if(!loanTransaction.isReversed()) {   //means active transactions exist after transfer
+                            hasPaymentTransactionHappenedAfterTransfer = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if(this.savingsAccountRepository.doNonClosedSavingAccountsExistForClient(clientId)) {
+            for(final SavingsAccount savingsAccount: this.savingsAccountRepository.findSavingAccountByClientId(clientId)){
+                if(!savingsAccount.isClosed()){
+                    for(SavingsAccountTransaction savingsAccountTransaction: this.savingsAccountTransactionRepository.transactionsAfterClientTransfer(savingsAccount.getId(),13)){
+                        if(!savingsAccountTransaction.isReversed()){
+                            hasPaymentTransactionHappenedAfterTransfer = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return hasPaymentTransactionHappenedAfterTransfer;
+    }
+
+    @Override
+    public CommandProcessingResult undoGroupTransfer(Long groupId, JsonCommand jsonCommand) {
+
+        final Group group = this.groupRepository.findOneWithNotFoundDetection(groupId);
+
+        if(group.isNotActive() && this.undoTransferRepositoryWrapper.doesGroupExistInUndoTransfer(groupId)){
+            throw new TransferNotSupportedException(TRANSFER_NOT_SUPPORTED_REASON.UNDO_GROUP_TRANSFER_NOT_SUPPORTED);
+        }
+        final UndoTransfer groupUndoTransfer = this.undoTransferRepository.findGroupUndoTransfer(groupId);
+
+        if(groupUndoTransfer == null){
+            throw new TransferNotSupportedException(TRANSFER_NOT_SUPPORTED_REASON.UNDO_GROUP_TRANSFER_NOT_SUPPORTED);
+        }
+
+        Set<Client> clients = group.getClientMembers();
+        for(Client client : clients){
+            //if new client is added to the group before the transfer refuse transfer
+            if(!this.undoTransferRepositoryWrapper.doesClientExistInUndoTransfer(client.getId())){
+                throw new UndoTransferNotFoundException(client.getId());
+            }
+            if(this.paymentTransactionAfterTransfer(client.getId())){
+                throw new TransferNotSupportedException(TRANSFER_NOT_SUPPORTED_REASON.TRANSACTIONS_AFTER_TRANSFER);
+            }
+        }
+
+        final Staff oldStaffBeforeTransfer = this.staffRepositoryWrapper.findOneWithNotFoundDetection(groupUndoTransfer.getTransferFromStaffId());
+
+        final Office oldOfficeBeforeTransfer = this.officeRepository.findOneWithNotFoundDetection(groupUndoTransfer.getTransferFromOfficeId());
+
+        group.updateStaff(oldStaffBeforeTransfer);
+        group.updateOffice(oldOfficeBeforeTransfer);
+        /*
+          transfer client back to group and
+         */
+        for(Client client : clients){
+             this.reverseTransferTransaction(client.getId());
+             this.undoClientTransfer(client,client.getId());
+        }
+
+        groupUndoTransfer.updateTransferUndone(true);   // transfer undo to true
+        this.undoTransferRepository.save(groupUndoTransfer);
+
+        return new CommandProcessingResultBuilder() //
+                .withGroupId(groupId) //
+                .withEntityId(groupId) //
                 .build();
     }
 }

@@ -243,17 +243,19 @@ public class ClientsApiResource {
         } else if (is(commandParam, "updateSavingsAccount")) {
             commandRequest = builder.updateClientSavingsAccount(clientId).build();
             result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
-        }else if (is(commandParam,"reject")){
+        } else if (is(commandParam,"reject")){
         	commandRequest = builder.rejectClient(clientId).build();
             result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
-       }else if (is(commandParam,"withdraw")){
-       	commandRequest = builder.withdrawClient(clientId).build();
-        result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
-       }else if (is(commandParam,"reactivate")){
+        } else if (is(commandParam,"withdraw")){
+           	commandRequest = builder.withdrawClient(clientId).build();
+            result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+        } else if (is(commandParam,"reactivate")){
            commandRequest = builder.reActivateClient(clientId).build();
            result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
-          }
-        
+        } else if (is(commandParam,"undoTransfer")){
+            commandRequest = builder.undoClientTransfer(clientId).build();
+            result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+        }
 
         if (result == null) { throw new UnrecognizedQueryParamException("command", commandParam, new Object[] { "activate",
                 "unassignStaff", "assignStaff", "close", "proposeTransfer", "withdrawTransfer", "acceptTransfer", "rejectTransfer",
