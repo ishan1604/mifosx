@@ -9,6 +9,7 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
+import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.infrastructure.jobs.annotation.CronTarget;
@@ -70,7 +71,7 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
     public void addAccrualAccounting(LoanScheduleAccrualData scheduleAccrualData) throws Exception {
 
         String transactionSql = "INSERT INTO m_loan_transaction  (loan_id,office_id,is_reversed,transaction_type_enum,transaction_date,amount,interest_portion_derived,"
-                + "fee_charges_portion_derived,penalty_charges_portion_derived) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)";
+                + "fee_charges_portion_derived,penalty_charges_portion_derived,submitted_on_date) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?)";
         BigDecimal amount = BigDecimal.ZERO;
         BigDecimal interestportion = null;
         BigDecimal totalAccInterest = null;
@@ -117,7 +118,7 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
         try {
             this.jdbcTemplate.update(transactionSql, scheduleAccrualData.getLoanId(), scheduleAccrualData.getOfficeId(),
                     LoanTransactionType.ACCRUAL.getValue(), scheduleAccrualData.getDueDate(), amount, interestportion, feeportion,
-                    penaltyportion);
+                    penaltyportion, new LocalDate().toDate());
             final Long transactonId = this.jdbcTemplate.queryForLong("SELECT LAST_INSERT_ID()");
 
             Map<String, Object> transactionMap = toMapData(transactonId, amount, interestportion, feeportion, penaltyportion,
