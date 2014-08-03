@@ -14,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface SavingsAccountRepository extends JpaRepository<SavingsAccount, Long>, JpaSpecificationExecutor<SavingsAccount> {
 
+
     @Query("from SavingsAccount s_acc where s_acc.client.id = :clientId")
     List<SavingsAccount> findSavingAccountByClientId(@Param("clientId") Long clientId);
 
@@ -31,4 +32,6 @@ public interface SavingsAccountRepository extends JpaRepository<SavingsAccount, 
     
     @Query("from SavingsAccount sa where sa.id = :accountId and sa.depositType = :depositAccountTypeId")
     SavingsAccount findByIdAndDepositAccountType(@Param("accountId") Long accountId, @Param("depositAccountTypeId") Integer depositAccountTypeId);
+
+
 }

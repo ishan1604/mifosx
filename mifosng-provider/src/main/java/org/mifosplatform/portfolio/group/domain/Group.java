@@ -121,6 +121,7 @@ public final class Group extends AbstractPersistable<Long> {
     @JoinColumn(name = "submittedon_userid", nullable = true)
     private AppUser submittedBy;
 
+
     public Group() {
         this.name = null;
         this.externalId = null;

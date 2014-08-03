@@ -479,6 +479,15 @@ public class CommandWrapperBuilder {
         return this;
     }
 
+    public CommandWrapperBuilder undoClientTransfer(final Long clientId){
+        this.actionName = "UNDOTRANSFER";
+        this.entityName = "CLIENT";
+        this.entityId = clientId;
+        this.clientId = clientId;
+        this.href = "/clientId/" + clientId + "?command=undoTransfer";
+        return this;
+    }
+
     public CommandWrapperBuilder updateClient(final Long clientId) {
         this.actionName = "UPDATE";
         this.entityName = "CLIENT";
@@ -1403,6 +1412,14 @@ public class CommandWrapperBuilder {
         this.entityId = sourceGroupId;
         this.groupId =  sourceGroupId;
         this.href = "/groups/" + sourceGroupId + "?command=transferStaff";
+        return this;
+    }
+    public CommandWrapperBuilder undoGroupTransfer(final Long groupId) {
+        this.actionName = "UNDOTRANSFER";
+        this.entityName = "GROUP";
+        this.entityId = groupId;
+        this.groupId =  groupId;
+        this.href = "/groups/" + groupId + "?command=undoTransfer";
         return this;
     }
 
