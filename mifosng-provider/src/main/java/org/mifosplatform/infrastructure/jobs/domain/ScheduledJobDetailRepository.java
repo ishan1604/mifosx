@@ -21,7 +21,7 @@ public interface ScheduledJobDetailRepository extends JpaRepository<ScheduledJob
     @Query("from ScheduledJobDetail jobDetail where jobDetail.id=:jobId")
     ScheduledJobDetail findByJobId(@Param("jobId") Long jobId);
 
-    @Lock(value = LockModeType.PESSIMISTIC_WRITE)
+    @Lock(value = LockModeType.NONE)
     @Query("from ScheduledJobDetail jobDetail where jobDetail.jobKey = :jobKey")
     ScheduledJobDetail findByJobKeyWithLock(@Param("jobKey") String jobKey);
 
