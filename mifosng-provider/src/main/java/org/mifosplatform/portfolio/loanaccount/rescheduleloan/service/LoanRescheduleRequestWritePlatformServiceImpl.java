@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
@@ -20,6 +21,7 @@ import java.util.Set;
 import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import org.mifosplatform.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.mifosplatform.infrastructure.codes.domain.CodeValue;
 import org.mifosplatform.infrastructure.codes.domain.CodeValueRepositoryWrapper;
 import org.mifosplatform.infrastructure.configuration.domain.ConfigurationDomainService;
@@ -37,18 +39,28 @@ import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
 import org.mifosplatform.organisation.monetary.domain.Money;
 import org.mifosplatform.organisation.workingdays.domain.WorkingDays;
 import org.mifosplatform.organisation.workingdays.domain.WorkingDaysRepositoryWrapper;
+import org.mifosplatform.portfolio.account.service.AccountTransfersWritePlatformService;
 import org.mifosplatform.portfolio.calendar.domain.Calendar;
 import org.mifosplatform.portfolio.common.domain.PeriodFrequencyType;
 import org.mifosplatform.portfolio.loanaccount.data.DisbursementData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanTermVariationsData;
+import org.mifosplatform.portfolio.loanaccount.domain.ChangedTransactionDetail;
+import org.mifosplatform.portfolio.loanaccount.domain.DefaultLoanLifecycleStateMachine;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanChargeRepository;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanDisbursementDetails;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanInstallmentCharge;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanLifecycleStateMachine;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanRepository;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanRepositoryWrapper;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanStatus;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanSummary;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanSummaryWrapper;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTermVariationType;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionRepository;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanApplicationTerms;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.RescheduleLoansApiConstants;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.data.LoanRescheduleRequestDataValidator;
@@ -60,6 +72,7 @@ import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanResched
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleRequest;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleRequestRepository;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.exception.LoanRescheduleRequestNotFoundException;
+import org.mifosplatform.portfolio.loanaccount.service.LoanAssembler;
 import org.mifosplatform.portfolio.loanproduct.domain.AmortizationMethod;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestCalculationPeriodMethod;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
@@ -80,6 +93,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 	private final static Logger logger = LoggerFactory.getLogger(LoanRescheduleRequestWritePlatformServiceImpl.class);
 	
 	private final LoanRepositoryWrapper loanRepositoryWrapper;
+	private final LoanRepository loanRepository;
 	private final CodeValueRepositoryWrapper codeValueRepositoryWrapper;
 	private final PlatformSecurityContext platformSecurityContext;
 	private final LoanRescheduleRequestDataValidator loanRescheduleRequestDataValidator;
@@ -89,6 +103,11 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 	private final HolidayRepository holidayRepository;
 	private final WorkingDaysRepositoryWrapper workingDaysRepository;
 	private final LoanRepaymentScheduleHistoryRepository loanRepaymentScheduleHistoryRepository;
+	private final LoanChargeRepository loanChargeRepository;
+	private final LoanTransactionRepository loanTransactionRepository;
+	private final AccountTransfersWritePlatformService accountTransfersWritePlatformService;
+	private final JournalEntryWritePlatformService journalEntryWritePlatformService;
+	private final LoanAssembler loanAssembler;
 	
 	/** 
 	 * LoanRescheduleRequestWritePlatformServiceImpl constructor
@@ -105,7 +124,13 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 			ConfigurationDomainService configurationDomainService, 
 			HolidayRepository holidayRepository, 
 			WorkingDaysRepositoryWrapper workingDaysRepository, 
-			LoanRepaymentScheduleHistoryRepository loanRepaymentScheduleHistoryRepository) {
+			LoanRepaymentScheduleHistoryRepository loanRepaymentScheduleHistoryRepository, 
+			LoanChargeRepository loanChargeRepository, 
+			LoanRepository loanRepository, 
+			LoanTransactionRepository loanTransactionRepository, 
+			AccountTransfersWritePlatformService accountTransfersWritePlatformService, 
+			JournalEntryWritePlatformService journalEntryWritePlatformService, 
+			LoanAssembler loanAssembler) {
 		this.loanRepositoryWrapper = loanRepositoryWrapper;
 		this.codeValueRepositoryWrapper = codeValueRepositoryWrapper;
 		this.platformSecurityContext = platformSecurityContext;
@@ -116,6 +141,100 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 		this.holidayRepository = holidayRepository;
 		this.workingDaysRepository = workingDaysRepository;
 		this.loanRepaymentScheduleHistoryRepository = loanRepaymentScheduleHistoryRepository;
+		this.loanChargeRepository = loanChargeRepository;
+		this.loanRepository = loanRepository;
+		this.loanTransactionRepository = loanTransactionRepository;
+		this.accountTransfersWritePlatformService = accountTransfersWritePlatformService;
+		this.journalEntryWritePlatformService = journalEntryWritePlatformService;
+		this.loanAssembler = loanAssembler;
+	}
+	
+	private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
+        final List<LoanStatus> allowedLoanStatuses = Arrays.asList(LoanStatus.values());
+        return new DefaultLoanLifecycleStateMachine(allowedLoanStatuses);
+    }
+	
+	/**
+	 * Add transactions to accounting journals
+	 *  
+	 * @param loan a Loan object
+	 * @param existingTransactionIds IDs of existing loan transactions
+	 * @param existingReversedTransactionIds IDs of reversed loan transactions
+	 * @return void 
+	 **/
+	private void postJournalEntries(final Loan loan, final List<Long> existingTransactionIds,
+            final List<Long> existingReversedTransactionIds) {
+
+        final MonetaryCurrency currency = loan.getCurrency();
+        final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepository.findOneWithNotFoundDetection(currency);
+        boolean isAccountTransfer = false;
+        final Map<String, Object> accountingBridgeData = loan.deriveAccountingBridgeData(applicationCurrency.toData(),
+                existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
+        this.journalEntryWritePlatformService.createJournalEntriesForLoan(accountingBridgeData);
+    }
+	
+	/**
+	 * waive a charge with "due_for_collection_as_of_date" matching the dueDate passed
+	 *  
+	 * @param loanCharges Collection of LoanCharge objects
+	 * @param loan Loan object
+	 * @param dueDate due date similar to the "due_for_collection_as_of_date" of a charge
+	 * @return void 
+	 **/
+	private void waiveCharge(Collection<LoanCharge> loanCharges, Loan loan, LocalDate dueDate) {
+		this.loanAssembler.setHelpers(loan);
+		
+		for(LoanCharge loanCharge : loanCharges) {
+			
+			if(loanCharge.getDueLocalDate() != null) {
+				
+				if(loanCharge.getDueLocalDate().equals(dueDate)) {
+					Integer loanInstallmentNumber = null;
+					
+					if (loanCharge.isInstalmentFee()) {
+						LoanInstallmentCharge chargePerInstallment = null;
+						
+						if(dueDate != null) {
+							chargePerInstallment = loanCharge.getInstallmentLoanCharge(dueDate);
+						}
+						
+						else {
+							chargePerInstallment = loanCharge.getUnpaidInstallmentLoanCharge();
+						}
+						
+						if (chargePerInstallment.isWaived()) {
+							break;
+						}
+						
+						loanInstallmentNumber = chargePerInstallment.getRepaymentInstallment().getInstallmentNumber();
+					}
+					
+					final Map<String, Object> changes = new LinkedHashMap<String, Object>(3);
+
+			        final List<Long> existingTransactionIds = new ArrayList<Long>();
+			        final List<Long> existingReversedTransactionIds = new ArrayList<Long>();
+			        
+			        final ChangedTransactionDetail changedTransactionDetail = loan.waiveLoanCharge(loanCharge, defaultLoanLifecycleStateMachine(), changes,
+			                existingTransactionIds, existingReversedTransactionIds, loanInstallmentNumber);
+					
+			        this.loanChargeRepository.saveAndFlush(loanCharge);
+			        this.loanRepository.saveAndFlush(loan);
+			        
+			        if (changedTransactionDetail != null) {
+			            for (final Map.Entry<Long, LoanTransaction> mapEntry : changedTransactionDetail.getNewTransactionMappings().entrySet()) {
+			                this.loanTransactionRepository.save(mapEntry.getValue());
+			                // update loan with references to the newly created transactions
+			                loan.getLoanTransactions().add(mapEntry.getValue());
+			                this.accountTransfersWritePlatformService.updateLoanTransaction(mapEntry.getKey(), mapEntry.getValue());
+			            }
+			        }
+			        
+			        // add the waive charge transaction to the accounting journals
+			        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
+					break;
+				}
+			}
+		}
 	}
 
 	/** 
@@ -298,6 +417,9 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 		        final Collection<LoanRescheduleModelRepaymentPeriod> periods = loanRescheduleModel.getPeriods();
 		        List<LoanRepaymentScheduleInstallment> repaymentScheduleInstallments = loan.getRepaymentScheduleInstallments();
 		        
+		        // get a list of loan charges
+		        Collection<LoanCharge> loanCharges = this.loanChargeRepository.findByLoanId(loan.getId());
+		        
 		        for(LoanRescheduleModelRepaymentPeriod period : periods) {
 		        	
 		        	if(period.isNew()) {
@@ -312,6 +434,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 		        		for(LoanRepaymentScheduleInstallment repaymentScheduleInstallment : repaymentScheduleInstallments) {
 			        		
 			        		if(repaymentScheduleInstallment.getInstallmentNumber().equals(period.oldPeriodNumber())) {
+			        			LocalDate periodDueDate = repaymentScheduleInstallment.getDueDate();
 			        			
 			        			repaymentScheduleInstallment.updateInstallmentNumber(period.periodNumber());
 			        			repaymentScheduleInstallment.updateFromDate(period.periodFromDate());
@@ -319,12 +442,21 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 			        			repaymentScheduleInstallment.updatePrincipal(period.principalDue());
 			        			repaymentScheduleInstallment.updateInterestCharged(period.interestDue());
 			        			
+			        			Money zeroAmount = Money.of(currency, new BigDecimal(0));
+			        			
 			        			if(Money.of(currency, period.principalDue()).isZero() && 
 			        					Money.of(currency, period.interestDue()).isZero() && 
-			        					repaymentScheduleInstallment.getPenaltyChargesOutstanding(currency).isZero() && 
-			        					repaymentScheduleInstallment.getFeeChargesOutstanding(currency).isZero() && 
 			        					repaymentScheduleInstallment.isNotFullyPaidOff()) {
 			        				
+			        				// check if there is any outstanding charge (penalty/fee)
+			        				if(repaymentScheduleInstallment.getPenaltyChargesOutstanding(currency).isGreaterThan(zeroAmount) || 
+				        					repaymentScheduleInstallment.getFeeChargesOutstanding(currency).isGreaterThan(zeroAmount)) {
+				        				
+				        				// waive any outstanding charge
+				        				waiveCharge(loanCharges, loan, periodDueDate);
+				        			}
+			        				
+			        				// since there isn't any outstanding payments at this point, obligation has been met
 			        				repaymentScheduleInstallment.updateObligationMet(true);
 			        				repaymentScheduleInstallment.updateObligationMetOnDate(new LocalDate());
 			        			}

@@ -5,9 +5,17 @@
  */
 package org.mifosplatform.portfolio.loanaccount.domain;
 
+import java.util.Collection;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface LoanChargeRepository extends JpaRepository<LoanCharge, Long>, JpaSpecificationExecutor<LoanCharge> {
-    // no added behaviour
+    /** 
+     * Get a collection of LoanCharge objects by loan ID
+     * 
+     * @param loanId ID of a loan
+     * @return collection of LoanCharge objects with loan ID similar to the one passed 
+     **/
+	Collection<LoanCharge> findByLoanId(Long loanId);
 }

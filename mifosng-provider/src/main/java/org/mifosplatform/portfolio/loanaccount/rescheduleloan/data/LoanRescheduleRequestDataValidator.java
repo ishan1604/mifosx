@@ -171,23 +171,6 @@ public class LoanRescheduleRequestDataValidator {
     				.failWithCode("repayment.schedule.installment.partly.paid", 
     						"Repayment schedule installment is partly paid");
             }
-            
-            if(installment != null) {
-            	
-            	if(installment.getPenaltyChargesOutstanding(loan.getCurrency()).isGreaterThanZero()) {
-            		dataValidatorBuilder
-    					.reset()
-    					.failWithCodeNoParameterAddedToErrorCode("repayment.schedule.installment.has.an.outstanding.penalty.charge", 
-    							"Repayment schedule installment has an outsatnding penalty charge.");
-            	}
-            	
-            	if(installment.getFeeChargesOutstanding(loan.getCurrency()).isGreaterThanZero()) {
-            		dataValidatorBuilder
-    					.reset()
-    					.failWithCodeNoParameterAddedToErrorCode("repayment.schedule.installment.has.an.outstanding.fee.charge", 
-    							"Repayment schedule installment has an outsatnding fee charge.");
-            	}
-            }
         }
         
         if(loanId != null) {
@@ -283,23 +266,6 @@ public class LoanRescheduleRequestDataValidator {
             			.reset()
             			.failWithCodeNoParameterAddedToErrorCode("loan.repayment.schedule.installment."
             					+ "obligation.met", "Repayment schedule installment obligation met");
-                }
-                
-                if(installment != null) {
-                	
-                	if(installment.getPenaltyChargesOutstanding(loan.getCurrency()).isGreaterThanZero()) {
-                		dataValidatorBuilder
-        					.reset()
-        					.failWithCodeNoParameterAddedToErrorCode("repayment.schedule.installment.has.an.outstanding.penalty.charge", 
-        							"Repayment schedule installment has an outsatnding penalty charge.");
-                	}
-                	
-                	if(installment.getFeeChargesOutstanding(loan.getCurrency()).isGreaterThanZero()) {
-                		dataValidatorBuilder
-        					.reset()
-        					.failWithCodeNoParameterAddedToErrorCode("repayment.schedule.installment.has.an.outstanding.fee.charge", 
-        							"Repayment schedule installment has an outsatnding fee charge.");
-                	}
                 }
             }
         	
