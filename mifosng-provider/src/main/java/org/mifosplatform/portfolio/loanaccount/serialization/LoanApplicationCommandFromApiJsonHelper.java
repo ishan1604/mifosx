@@ -59,7 +59,8 @@ public final class LoanApplicationCommandFromApiJsonHelper {
             "calendarId", // optional
             "syncDisbursementWithMeeting",// optional
             "linkAccountId", LoanApiConstants.disbursementDataParameterName, LoanApiConstants.emiAmountParameterName,
-            LoanApiConstants.maxOutstandingBalanceParameterName, LoanProductConstants.graceOnArrearsAgeingParameterName));
+            LoanApiConstants.maxOutstandingBalanceParameterName, LoanProductConstants.graceOnArrearsAgeingParameterName, 
+            "createStandingInstructionAtDisbursement"));
 
     private final FromJsonHelper fromApiJsonHelper;
     private final CalculateLoanScheduleQueryFromApiJsonHelper apiJsonHelper;
@@ -255,6 +256,17 @@ public final class LoanApplicationCommandFromApiJsonHelper {
         if (this.fromApiJsonHelper.parameterExists(linkAccountIdParameterName, element)) {
             final Long linkAccountId = this.fromApiJsonHelper.extractLongNamed(linkAccountIdParameterName, element);
             baseDataValidator.reset().parameter(linkAccountIdParameterName).value(linkAccountId).ignoreIfNull().longGreaterThanZero();
+        }
+        
+        final String createSiAtDisbursementParameterName = "createStandingInstructionAtDisbursement";
+        if(this.fromApiJsonHelper.parameterExists(createSiAtDisbursementParameterName, element)) {
+        	final Boolean createStandingInstructionAtDisbursement = this.fromApiJsonHelper
+        			.extractBooleanNamed(createSiAtDisbursementParameterName, element);
+        	final Long linkAccountId = this.fromApiJsonHelper.extractLongNamed(linkAccountIdParameterName, element);
+        	
+        	if(createStandingInstructionAtDisbursement) {
+        		baseDataValidator.reset().parameter(linkAccountIdParameterName).value(linkAccountId).notNull().longGreaterThanZero();
+        	}
         }
 
         // charges

@@ -2123,4 +2123,8 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     public boolean isTransactionsAllowed() {
         return isActive();
     }
+    
+    public String getAccountNumber() {
+		return this.accountNumber;
+	}
 }
