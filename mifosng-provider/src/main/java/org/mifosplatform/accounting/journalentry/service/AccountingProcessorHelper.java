@@ -473,10 +473,10 @@ public class AccountingProcessorHelper {
 
         // TODO: Vishwas Temporary validation to be removed before moving to
         // release branch
-        if (totalAmount.compareTo(totalCreditedAmount) != 0) { throw new PlatformDataIntegrityException(
+        /*if (totalAmount.compareTo(totalCreditedAmount) != 0) { throw new PlatformDataIntegrityException(
                 "Meltdown in advanced accounting...sum of all charges is not equal to the fee charge for a transaction",
                 "Meltdown in advanced accounting...sum of all charges is not equal to the fee charge for a transaction",
-                totalCreditedAmount, totalAmount); }
+                totalCreditedAmount, totalAmount); }*/
     }
 
     /**
