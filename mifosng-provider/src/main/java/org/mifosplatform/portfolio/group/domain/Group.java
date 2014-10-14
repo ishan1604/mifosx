@@ -620,4 +620,8 @@ public final class Group extends AbstractPersistable<Long> {
     public Set<Client> getClientMembers() {
         return this.clientMembers;
     }
+    	
+    public void updateOffice(Office office) {
+    	this.office = office;
+    }
 }
