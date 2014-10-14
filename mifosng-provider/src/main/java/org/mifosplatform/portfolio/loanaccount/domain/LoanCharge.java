@@ -335,6 +335,14 @@ public class LoanCharge extends AbstractPersistable<Long> {
         }
         this.amountWaived = this.amountOutstanding;
         this.amountOutstanding = BigDecimal.ZERO;
+        
+        // Check if the charge we are waiving was already paid:
+        if(this.paid == true)
+        {
+        	this.amountWaived = this.amount;
+        	this.amountPaid =  BigDecimal.ZERO;
+        }
+        
         this.paid = false;
         this.waived = true;
         return getAmountWaived(currency);

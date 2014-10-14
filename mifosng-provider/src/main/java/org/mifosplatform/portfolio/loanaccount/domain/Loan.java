@@ -912,7 +912,7 @@ public class Loan extends AbstractPersistable<Long> {
         return amount;
     }
 
-    public LoanTransaction waiveLoanCharge(final LoanCharge loanCharge, final LoanLifecycleStateMachine loanLifecycleStateMachine,
+    public ChangedTransactionDetail waiveLoanCharge(final LoanCharge loanCharge, final LoanLifecycleStateMachine loanLifecycleStateMachine,
             final Map<String, Object> changes, final List<Long> existingTransactionIds, final List<Long> existingReversedTransactionIds,
             final Integer loanInstallmentNumber, final ScheduleGeneratorDTO scheduleGeneratorDTO, final Money accruedCharge,
             final AppUser currentUser) {
@@ -949,7 +949,7 @@ public class Loan extends AbstractPersistable<Long> {
         }
 
         LocalDate transactionDate = getDisbursementDate();
-        if (loanCharge.isSpecifiedDueDate()) {
+        if (loanCharge.isSpecifiedDueDate() || loanCharge.isPenaltyCharge()) {
             transactionDate = loanCharge.getDueLocalDate();
         }
         scheduleGeneratorDTO.setRecalculateFrom(transactionDate);
@@ -958,6 +958,8 @@ public class Loan extends AbstractPersistable<Long> {
 
         existingTransactionIds.addAll(findExistingTransactionIds());
         existingReversedTransactionIds.addAll(findExistingReversedTransactionIds());
+        
+        ChangedTransactionDetail changedTransactionDetail = null;
 
         final LoanTransaction waiveLoanChargeTransaction = LoanTransaction.waiveLoanCharge(this, getOffice(), amountWaived,
                 transactionDate, feeChargesWaived, penaltyChargesWaived, unrecognizedIncome, DateUtils.getLocalDateTimeOfTenant(),
@@ -984,20 +986,27 @@ public class Loan extends AbstractPersistable<Long> {
              * Consider removing this block of code or logically completing it
              * for the future by getting the list of affected Transactions
              ***/
+        	// reprocess loan schedule based on charge been waived.
+        	final LoanRepaymentScheduleProcessingWrapper wrapper = new LoanRepaymentScheduleProcessingWrapper();
+        	wrapper.reprocess(getCurrency(), getDisbursementDate(), this.repaymentScheduleInstallments, charges());
+        	
             final List<LoanTransaction> allNonContraTransactionsPostDisbursement = retreiveListOfTransactionsPostDisbursement();
-            loanRepaymentScheduleTransactionProcessor.handleTransaction(getDisbursementDate(), allNonContraTransactionsPostDisbursement,
-                    getCurrency(), this.repaymentScheduleInstallments, charges());
+            changedTransactionDetail = loanRepaymentScheduleTransactionProcessor.handleTransaction(getDisbursementDate(),
+            		allNonContraTransactionsPostDisbursement, getCurrency(), this.repaymentScheduleInstallments, charges());
+            		
+            LoanTransaction loanTransaction = findlatestTransaction();
+            doPostLoanTransactionChecks(loanTransaction.getTransactionDate(), loanLifecycleStateMachine);
         } else {
             // reprocess loan schedule based on charge been waived.
             final LoanRepaymentScheduleProcessingWrapper wrapper = new LoanRepaymentScheduleProcessingWrapper();
             wrapper.reprocess(getCurrency(), getDisbursementDate(), this.repaymentScheduleInstallments, charges());
+            
+            doPostLoanTransactionChecks(waiveLoanChargeTransaction.getTransactionDate(), loanLifecycleStateMachine);
         }
 
         updateLoanSummaryDerivedFields();
 
-        doPostLoanTransactionChecks(waiveLoanChargeTransaction.getTransactionDate(), loanLifecycleStateMachine);
-
-        return waiveLoanChargeTransaction;
+        return changedTransactionDetail;
     }
 
     public Client client() {

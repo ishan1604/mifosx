@@ -1436,8 +1436,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         // validate loan charge is not already paid or waived
         if (loanCharge.isWaived()) {
             throw new LoanChargeCannotBeWaivedException(LOAN_CHARGE_CANNOT_BE_WAIVED_REASON.ALREADY_WAIVED, loanCharge.getId());
-        } else if (loanCharge.isPaid()) { throw new LoanChargeCannotBeWaivedException(LOAN_CHARGE_CANNOT_BE_WAIVED_REASON.ALREADY_PAID,
-                loanCharge.getId()); }
+        } /*else if (loanCharge.isPaid()) { throw new LoanChargeCannotBeWaivedException(LOAN_CHARGE_CANNOT_BE_WAIVED_REASON.ALREADY_PAID,
+                loanCharge.getId()); }*/
         this.businessEventNotifierService.notifyBusinessEventToBeExecuted(BUSINESS_EVENTS.LOAN_WAIVE_CHARGE,
                 constructEntityMap(BUSINESS_ENTITY.LOAN_CHARGE, loanCharge));
         Integer loanInstallmentNumber = null;
@@ -1457,8 +1457,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             }
             if (chargePerInstallment.isWaived()) {
                 throw new LoanChargeCannotBePayedException(LOAN_CHARGE_CANNOT_BE_PAYED_REASON.ALREADY_WAIVED, loanCharge.getId());
-            } else if (chargePerInstallment.isPaid()) { throw new LoanChargeCannotBePayedException(
-                    LOAN_CHARGE_CANNOT_BE_PAYED_REASON.ALREADY_PAID, loanCharge.getId()); }
+            } /*else if (chargePerInstallment.isPaid()) { throw new LoanChargeCannotBePayedException(
+                    LOAN_CHARGE_CANNOT_BE_PAYED_REASON.ALREADY_PAID, loanCharge.getId()); }*/
             loanInstallmentNumber = chargePerInstallment.getRepaymentInstallment().getInstallmentNumber();
         }
 
@@ -1478,12 +1478,19 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             }
         }
 
-        final LoanTransaction waiveTransaction = loan.waiveLoanCharge(loanCharge, defaultLoanLifecycleStateMachine(), changes,
-                existingTransactionIds, existingReversedTransactionIds, loanInstallmentNumber, scheduleGeneratorDTO, accruedCharge,
-                currentUser);
+        final ChangedTransactionDetail changedTransactionDetail = loan.waiveLoanCharge(loanCharge, defaultLoanLifecycleStateMachine(), changes,
+                existingTransactionIds, existingReversedTransactionIds, loanInstallmentNumber, scheduleGeneratorDTO, accruedCharge, currentUser);
 
-        this.loanTransactionRepository.save(waiveTransaction);
         saveLoanWithDataIntegrityViolationChecks(loan);
+        
+        if (changedTransactionDetail != null) {
+        	for (final Map.Entry<Long, LoanTransaction> mapEntry : changedTransactionDetail.getNewTransactionMappings().entrySet()) {
+        		this.loanTransactionRepository.save(mapEntry.getValue());
+        		// update loan with references to the newly created transactions
+        		loan.getLoanTransactions().add(mapEntry.getValue());
+        		this.accountTransfersWritePlatformService.updateLoanTransaction(mapEntry.getKey(), mapEntry.getValue());
+        	}
+        }
 
         postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
 
