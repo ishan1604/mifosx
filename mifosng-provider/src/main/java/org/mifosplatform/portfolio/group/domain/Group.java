@@ -727,4 +727,8 @@ public final class Group extends AbstractPersistable<Long> {
         this.accountNumber = accountIdentifier;
         this.accountNumberRequiresAutoGeneration = false;
     }
+    	
+    public void updateOffice(Office office) {
+    	this.office = office;
+    }
 }

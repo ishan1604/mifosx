@@ -8,6 +8,7 @@ package org.mifosplatform.portfolio.transfer.service;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
@@ -489,6 +490,51 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
     private void validateClientAwaitingTransferAcceptanceOnHold(final Client client) {
         if (!client.isTransferInProgressOrOnHold()) { throw new ClientNotAwaitingTransferApprovalOrOnHoldException(client.getId()); }
     }
+
+	@Override
+	public CommandProcessingResult transferGroupBetweenBranches(Long sourceGroupId, JsonCommand jsonCommand) {
+		// validation
+		this.transfersDataValidator.validateForProposeAndAcceptClientTransfer(jsonCommand.json());
+
+		final Long destinationOfficeId = jsonCommand.longValueOfParameterNamed(TransferApiConstants.destinationOfficeIdParamName);
+		final Office office = this.officeRepository.findOneWithNotFoundDetection(destinationOfficeId);
+		final Group sourceGroup = this.groupRepository.findOneWithNotFoundDetection(sourceGroupId);
+		final Long destinationGroupId = jsonCommand.longValueOfParameterNamed(TransferApiConstants.destinationGroupIdParamName);
+		final Long staffId = jsonCommand.longValueOfParameterNamed(TransferApiConstants.newStaffIdParamName);
+		Staff staff = null;
+		if (staffId != null) {
+			staff = this.staffRepositoryWrapper.findByOfficeHierarchyWithNotFoundDetection(staffId, office.getHierarchy());
+		}
+
+		//validate sourceOffice  and destinationOffice should not be the same
+		if(sourceGroup.getOffice().getId().equals(office.getId())){
+			 throw new TransferNotSupportedException(
+					TRANSFER_NOT_SUPPORTED_REASON.SOURCE_AND_DESTINATION_OFFICE_CANNOT_BE_THE_SAME, sourceGroup.getOffice().getId(), destinationOfficeId);
+		}
+		//this allows you to move the group to another branch while keeping the group name
+
+
+
+		if((sourceGroup.getId().longValue() == destinationGroupId) && (sourceGroup.getOffice().getId() != office.getId())){
+			//move source group to different office
+			sourceGroup.updateOffice(office);
+			//change loanOfficer of group
+			sourceGroup.updateStaff(staff);
+		}
+
+		Set<Client> clients = sourceGroup.getClientMembers();
+
+		for(Client client : clients){
+			handleClientTransferLifecycleEvent(client, office, TransferEventType.PROPOSAL, jsonCommand);
+			this.clientRepository.saveAndFlush(client);
+			handleClientTransferLifecycleEvent(client, client.getTransferToOffice(), TransferEventType.ACCEPTANCE, jsonCommand);
+			this.clientRepository.save(client);
+		}
+
+		return new CommandProcessingResultBuilder() //
+				.withEntityId(sourceGroupId) //
+				.build();
+	}
 
     /**
      * private void validateGroupAwaitingTransferAcceptanceOnHold(final Group
