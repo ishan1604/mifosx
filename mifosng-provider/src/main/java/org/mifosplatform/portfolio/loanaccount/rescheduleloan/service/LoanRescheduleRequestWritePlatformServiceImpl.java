@@ -42,6 +42,7 @@ import org.mifosplatform.portfolio.calendar.domain.CalendarInstanceRepository;
 import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargePaidByData;
 import org.mifosplatform.portfolio.loanaccount.data.ScheduleGeneratorDTO;
+import org.mifosplatform.portfolio.loanaccount.domain.ChangedTransactionDetail;
 import org.mifosplatform.portfolio.loanaccount.domain.DefaultLoanLifecycleStateMachine;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanAccountDomainService;
@@ -485,11 +486,14 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                     }
                 }
 
-                final LoanTransaction loanTransaction = loan.waiveLoanCharge(loanCharge, defaultLoanLifecycleStateMachine(), changes,
-                        existingTransactionIds, existingReversedTransactionIds, loanInstallmentNumber, scheduleGeneratorDTO, accruedCharge,
-                        currentUser);
-
-                this.loanTransactionRepository.save(loanTransaction);
+                final ChangedTransactionDetail changedTransactionDetail = loan.waiveLoanCharge(loanCharge, defaultLoanLifecycleStateMachine(), changes,
+                        existingTransactionIds, existingReversedTransactionIds, loanInstallmentNumber, scheduleGeneratorDTO, accruedCharge, currentUser);
+                        
+                if (changedTransactionDetail != null) {
+                    for (final Map.Entry<Long, LoanTransaction> mapEntry : changedTransactionDetail.getNewTransactionMappings().entrySet()) {
+                        this.loanTransactionRepository.save(mapEntry.getValue());
+                    }
+                }
 
                 postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
             }
