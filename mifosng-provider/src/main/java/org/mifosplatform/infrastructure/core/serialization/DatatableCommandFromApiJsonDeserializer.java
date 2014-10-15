@@ -35,15 +35,15 @@ public class DatatableCommandFromApiJsonDeserializer {
      * The parameters supported for this command.
      */
     private final Set<String> supportedParametersForCreate = new HashSet<>(Arrays.asList("datatableName", "apptableName", "multiRow",
-            "columns"));
+            "columns", "category", "metaData"));
     private final Set<String> supportedParametersForCreateColumns = new HashSet<>(Arrays.asList("name", "type", "length",
-            "mandatory", "code"));
+            "mandatory", "code", "labelName", "order"));
     private final Set<String> supportedParametersForUpdate = new HashSet<>(Arrays.asList("apptableName", "changeColumns",
-            "addColumns", "dropColumns"));
+            "addColumns", "dropColumns", "category", "metaData"));
     private final Set<String> supportedParametersForAddColumns = new HashSet<>(Arrays.asList("name", "type", "length", "mandatory",
-            "after", "code"));
+            "after", "code", "labelName", "order"));
     private final Set<String> supportedParametersForChangeColumns = new HashSet<>(Arrays.asList("name", "newName", "length",
-            "mandatory", "after", "code", "newCode"));
+            "mandatory", "after", "code", "newCode", "labelName", "order"));
     private final Set<String> supportedParametersForDropColumns = new HashSet<>(Arrays.asList("name"));
     private final Object[] supportedColumnTypes = { "string", "number", "decimal", "date", "text", "dropdown" };
     private final Object[] supportedApptableNames = { "m_loan", "m_savings_account", "m_client", "m_group", "m_center", "m_office",
@@ -117,6 +117,15 @@ public class DatatableCommandFromApiJsonDeserializer {
         final JsonArray columns = this.fromApiJsonHelper.extractJsonArrayNamed("columns", element);
         baseDataValidator.reset().parameter("columns").value(columns).notNull().jsonArrayNotEmpty();
 
+        final String categoryIdParameterName = "category";
+        if (this.fromApiJsonHelper.parameterExists(categoryIdParameterName, element)) {
+            final Long categoryId = this.fromApiJsonHelper.extractLongNamed(categoryIdParameterName, element);
+            baseDataValidator.reset().parameter(categoryIdParameterName).value(categoryId).ignoreIfNull().integerGreaterThanZero();
+        }
+
+        final Boolean metaData = this.fromApiJsonHelper.extractBooleanNamed("metaData", element);
+        baseDataValidator.reset().parameter("metaData").value(metaData).ignoreIfNull().notBlank().isOneOfTheseValues(true, false);
+
         if (columns != null) {
             for (final JsonElement column : columns) {
                 this.fromApiJsonHelper.checkForUnsupportedParameters(column.getAsJsonObject(), this.supportedParametersForCreateColumns);
@@ -129,8 +138,20 @@ public class DatatableCommandFromApiJsonDeserializer {
 
                 final Boolean mandatory = this.fromApiJsonHelper.extractBooleanNamed("mandatory", column);
                 baseDataValidator.reset().parameter("mandatory").value(mandatory).ignoreIfNull().notBlank().isOneOfTheseValues(true, false);
+                if(metaData !=null && metaData){
+                    final String labelName = this.fromApiJsonHelper.extractStringNamed("labelName",column);
+                    baseDataValidator.reset().parameter("labelName").value(labelName).notBlank()
+                            .notExceedingLengthOf(50);
+                    final Integer order = this.fromApiJsonHelper.extractIntegerSansLocaleNamed("order",column);
+                    baseDataValidator.reset().parameter("order").value(order).notNull().integerGreaterThanZero();
+                }
+
+
+
             }
         }
+
+
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
     }
@@ -158,6 +179,9 @@ public class DatatableCommandFromApiJsonDeserializer {
 
         final JsonArray changeColumns = this.fromApiJsonHelper.extractJsonArrayNamed("changeColumns", element);
         baseDataValidator.reset().parameter("changeColumns").value(changeColumns).ignoreIfNull().jsonArrayNotEmpty();
+
+        final Boolean metaData = this.fromApiJsonHelper.extractBooleanNamed("metaData", element);
+        baseDataValidator.reset().parameter("metaData").value(metaData).ignoreIfNull().notBlank().isOneOfTheseValues(true, false);
 
         if (changeColumns != null) {
             for (final JsonElement column : changeColumns) {
@@ -219,6 +243,13 @@ public class DatatableCommandFromApiJsonDeserializer {
 
                 final Boolean after = this.fromApiJsonHelper.extractBooleanNamed("after", column);
                 baseDataValidator.reset().parameter("after").value(after).ignoreIfNull().notBlank().isOneOfTheseValues(true, false);
+                if(metaData !=null && metaData){
+                    final String labelName = this.fromApiJsonHelper.extractStringNamed("labelName",column);
+                    baseDataValidator.reset().parameter("labelName").value(labelName).notBlank()
+                            .notExceedingLengthOf(50);
+                    final Integer order = this.fromApiJsonHelper.extractIntegerSansLocaleNamed("order",column);
+                    baseDataValidator.reset().parameter("order").value(order).notNull().integerGreaterThanZero();
+                }
             }
         }
 
@@ -233,6 +264,12 @@ public class DatatableCommandFromApiJsonDeserializer {
                 baseDataValidator.reset().parameter("name").value(name).notBlank().isNotOneOfTheseValues("id", fkColumnName)
                         .matchesRegularExpression(DATATABLE_COLUMN_NAME_REGEX_PATTERN);
             }
+        }
+
+        final String categoryIdParameterName = "category";
+        if (this.fromApiJsonHelper.parameterExists(categoryIdParameterName, element)) {
+            final Long categoryId = this.fromApiJsonHelper.extractLongNamed(categoryIdParameterName, element);
+            baseDataValidator.reset().parameter(categoryIdParameterName).value(categoryId).ignoreIfNull().integerGreaterThanZero();
         }
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
