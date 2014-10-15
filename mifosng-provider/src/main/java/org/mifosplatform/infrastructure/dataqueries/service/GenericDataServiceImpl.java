@@ -5,22 +5,23 @@
  */
 package org.mifosplatform.infrastructure.dataqueries.service;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.sql.DataSource;
 
 import org.joda.time.LocalDate;
+import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
-import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
-import org.mifosplatform.infrastructure.dataqueries.data.ResultsetColumnHeaderData;
-import org.mifosplatform.infrastructure.dataqueries.data.ResultsetColumnValueData;
-import org.mifosplatform.infrastructure.dataqueries.data.ResultsetRowData;
+import org.mifosplatform.infrastructure.dataqueries.data.*;
 import org.mifosplatform.infrastructure.dataqueries.exception.DatatableNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.jdbc.support.rowset.SqlRowSetMetaData;
 import org.springframework.stereotype.Service;
@@ -32,10 +33,14 @@ public class GenericDataServiceImpl implements GenericDataService {
     private final DataSource dataSource;
     private final static Logger logger = LoggerFactory.getLogger(GenericDataServiceImpl.class);
 
+    private final MetaDataResultSetMapper metaDataResultSetMapper;
+
+
     @Autowired
     public GenericDataServiceImpl(final RoutingDataSource dataSource) {
         this.dataSource = dataSource;
         this.jdbcTemplate = new JdbcTemplate(this.dataSource);
+        this.metaDataResultSetMapper = new MetaDataResultSetMapper();
 
     }
 
@@ -293,5 +298,39 @@ public class GenericDataServiceImpl implements GenericDataService {
         final SqlRowSet rsValues = this.jdbcTemplate.queryForRowSet(sql);
 
         return rsValues;
+    }
+
+    @Override
+    public List<MetaDataResultSet> retrieveRegisteredTableMetaData(String xRegisteredTableName) {
+        final String tableToSearchFor = xRegisteredTableName;
+        final String sql = "select " + this.metaDataResultSetMapper.schema() + "where xr.table_name = ? order by xr.ordering";
+
+        return this.jdbcTemplate.query(sql, this.metaDataResultSetMapper, new Object[] {tableToSearchFor});
+    }
+
+
+    private static final class MetaDataResultSetMapper implements RowMapper<MetaDataResultSet> {
+        final String schema;
+
+        private MetaDataResultSetMapper() {
+            final StringBuilder sql = new StringBuilder(100);
+            sql.append("xr.field_name as columnName, ");
+            sql.append("xr.label_name as labelName, ");
+            sql.append("xr.ordering as ordering ");
+            sql.append("from x_registered_table_metadata xr ");
+
+            this.schema = sql.toString();
+        }
+        public String schema(){
+            return this.schema;
+        }
+
+        @Override
+        public MetaDataResultSet mapRow(ResultSet rs, int rowNum) throws SQLException {
+            final String columnName = rs.getString("columnName");
+            final Long order = JdbcSupport.getLong(rs, "ordering");
+            final String labelName = rs.getString("labelName");
+            return MetaDataResultSet.createMetaDataResultSet(columnName,labelName,order);
+        }
     }
 }
