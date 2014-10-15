@@ -8,6 +8,7 @@ package org.mifosplatform.infrastructure.dataqueries.service;
 import java.util.List;
 
 import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
+import org.mifosplatform.infrastructure.dataqueries.data.MetaDataResultSet;
 import org.mifosplatform.infrastructure.dataqueries.data.ResultsetColumnHeaderData;
 
 public interface GenericDataService {
@@ -21,4 +22,6 @@ public interface GenericDataService {
     String wrapSQL(String sql);
 
     List<ResultsetColumnHeaderData> fillResultsetColumnHeaders(String datatable);
+
+    List<MetaDataResultSet> retrieveRegisteredTableMetaData(String xRegisteredTableName);
 }
