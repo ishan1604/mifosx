@@ -64,6 +64,10 @@ public class ChargeEnumerations {
                 optionData = new EnumOptionData(ChargeTimeType.OVERDRAFT_FEE.getValue().longValue(),
                         ChargeTimeType.OVERDRAFT_FEE.getCode(), "Overdraft Fee");
             break;
+            case DISBURSEMENT_PAID_WITH_REPAYMENT:
+            	optionData = new EnumOptionData(ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT.getValue().longValue(),
+                        ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT.getCode(), "Disbursement Paid With Repayment");
+            	break;
             default:
                 optionData = new EnumOptionData(ChargeTimeType.INVALID.getValue().longValue(), ChargeTimeType.INVALID.getCode(), "Invalid");
             break;

@@ -160,6 +160,7 @@ public class Charge extends AbstractPersistable<Long> {
         } else if (isLoanCharge()) {
 
             if (penalty && chargeTime.isTimeOfDisbursement()) { throw new ChargeDueAtDisbursementCannotBePenaltyException(name); }
+            if (penalty && chargeTime.isDisbursementPaidWithRepayment()) { throw new ChargeDueAtDisbursementCannotBePenaltyException(name); }
             if (!penalty && chargeTime.isOverdueInstallment()) { throw new ChargeMustBePenaltyException(name); }
             if (!isAllowedLoanChargeTime()) {
                 baseDataValidator.reset().parameter("chargeTimeType").value(this.chargeTime)
@@ -498,5 +499,9 @@ public class Charge extends AbstractPersistable<Long> {
 
     public Integer feeFrequency() {
         return this.feeFrequency;
+    }
+    
+    public boolean isDisbursementPaidWithRepayment() {
+    	return ChargeTimeType.fromInt(this.chargeTime).isDisbursementPaidWithRepayment();
     }
 }

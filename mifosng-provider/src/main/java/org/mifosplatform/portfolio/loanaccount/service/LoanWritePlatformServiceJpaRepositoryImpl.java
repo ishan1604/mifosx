@@ -73,8 +73,10 @@ import org.mifosplatform.portfolio.calendar.domain.CalendarRepository;
 import org.mifosplatform.portfolio.calendar.domain.CalendarType;
 import org.mifosplatform.portfolio.calendar.exception.CalendarParameterUpdateNotSupportedException;
 import org.mifosplatform.portfolio.charge.domain.Charge;
+import org.mifosplatform.portfolio.charge.domain.ChargeCalculationType;
 import org.mifosplatform.portfolio.charge.domain.ChargePaymentMode;
 import org.mifosplatform.portfolio.charge.domain.ChargeRepositoryWrapper;
+import org.mifosplatform.portfolio.charge.domain.ChargeTimeType;
 import org.mifosplatform.portfolio.charge.exception.LoanChargeCannotBeAddedException;
 import org.mifosplatform.portfolio.charge.exception.LoanChargeCannotBeDeletedException;
 import org.mifosplatform.portfolio.charge.exception.LoanChargeCannotBeDeletedException.LOAN_CHARGE_CANNOT_BE_DELETED_REASON;
@@ -153,7 +155,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 @Service
 public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatformService {
@@ -255,12 +259,12 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         final List<LoanStatus> allowedLoanStatuses = Arrays.asList(LoanStatus.values());
         return new DefaultLoanLifecycleStateMachine(allowedLoanStatuses);
     }
-
+    
     @Transactional
     @Override
     public CommandProcessingResult disburseLoan(final Long loanId, final JsonCommand command, Boolean isAccountTransfer) {
 
-        final AppUser currentUser = this.context.authenticatedUser();
+    	final AppUser currentUser = this.context.authenticatedUser();
 
         this.loanEventApiJsonValidator.validateDisbursement(command.json(), isAccountTransfer);
 
@@ -304,6 +308,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         loan.validateAccountStatus(LoanEvent.LOAN_DISBURSED);
         boolean canDisburse = loan.canDisburse(actualDisbursementDate);
         ChangedTransactionDetail changedTransactionDetail = null;
+        
         if (canDisburse) {
             Money disburseAmount = loan.adjustDisburseAmount(command, actualDisbursementDate);
             boolean recalculateSchedule = amountBeforeAdjust.isNotEqualTo(loan.getPrincpal());
@@ -344,8 +349,32 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
             changedTransactionDetail = loan.disburse(currentUser, command, changes, scheduleGeneratorDTO);
         }
+        
+        final Set<LoanCharge> loanCharges = loan.charges();
+        
+        final List<LoanRepaymentScheduleInstallment> repaymentScheduleInstallments = loan.getRepaymentScheduleInstallments();
+        LoanRepaymentScheduleInstallment firstUnpaidInstallment = null;
+        
+        if (repaymentScheduleInstallments.size() > 0) {
+        	for (LoanRepaymentScheduleInstallment repaymentScheduleInstallment : repaymentScheduleInstallments) {
+        		if (!repaymentScheduleInstallment.isObligationsMet()) {
+        			firstUnpaidInstallment = repaymentScheduleInstallment;
+        			break;
+        		}
+        	}
+        }
+        
+        for (LoanCharge loanCharge : loanCharges) {
+        	if (loanCharge.isDisbursementPaidWithRepayment() && loanCharge.getDueLocalDate() == null) {
+        		loanCharge.update(firstUnpaidInstallment.getDueDate());
+        		loan.updateLoanCharge(loanCharge);
+        		
+        		this.loanChargeRepository.save(loanCharge);
+        	}
+        }
+        
         if (!changes.isEmpty()) {
-            saveAndFlushLoanWithDataIntegrityViolationChecks(loan);
+        	saveAndFlushLoanWithDataIntegrityViolationChecks(loan);
 
             final String noteText = command.stringValueOfParameterNamed("note");
             if (StringUtils.isNotBlank(noteText)) {
@@ -367,7 +396,6 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
         }
 
-        final Set<LoanCharge> loanCharges = loan.charges();
         final Map<Long, BigDecimal> disBuLoanCharges = new HashMap<>();
         for (final LoanCharge loanCharge : loanCharges) {
             if (loanCharge.isDueAtDisbursement() && loanCharge.getChargePaymentMode().isPaymentModeAccountTransfer()

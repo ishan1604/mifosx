@@ -891,4 +891,14 @@ public class LoanCharge extends AbstractPersistable<Long> {
     public LoanOverdueInstallmentCharge getOverdueInstallmentCharge() {
         return this.overdueInstallmentCharge;
     }
+    
+    public boolean isDisbursementPaidWithRepayment() {
+        return ChargeTimeType.fromInt(this.chargeTime).equals(ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT);
+    }
+    
+    public void update(final LocalDate dueDate) {
+    	if (dueDate != null) {
+            this.dueDate = dueDate.toDate();
+        }
+    }
 }
