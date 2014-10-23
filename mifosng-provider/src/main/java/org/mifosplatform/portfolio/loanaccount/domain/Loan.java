@@ -844,6 +844,7 @@ public class Loan extends AbstractPersistable<Long> {
         if (loanCharge.isOverdueInstallmentCharge()) { return loanCharge.getAmountPercentageAppliedTo(); }
         switch (loanCharge.getChargeCalculation()) {
             case PERCENT_OF_AMOUNT:
+            case PERCENT_OF_ORIGINAL_PRINCIPAL:
                 amount = getPrincpal().getAmount();
             break;
             case PERCENT_OF_AMOUNT_AND_INTEREST:
@@ -857,6 +858,15 @@ public class Loan extends AbstractPersistable<Long> {
                 if (loanCharge.getTrancheDisbursementCharge() != null) {
                     amount = loanCharge.getTrancheDisbursementCharge().getloanDisbursementDetails().principal();
                 } else {
+                    amount = getPrincpal().getAmount();
+                }
+            break;
+            case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
+                if (this.isOpen() && (this.summary != null)) {
+                    amount = this.summary.getTotalPrincipalOutstanding();
+                }
+                
+                else {
                     amount = getPrincpal().getAmount();
                 }
             break;
@@ -900,6 +910,9 @@ public class Loan extends AbstractPersistable<Long> {
         Money amount = Money.zero(getCurrency());
         Money percentOf = Money.zero(getCurrency());
         switch (calculationType) {
+            case PERCENT_OF_ORIGINAL_PRINCIPAL:
+                percentOf = this.getPrincpal();
+                break;
             case PERCENT_OF_AMOUNT:
                 percentOf = installment.getPrincipal(getCurrency());
             break;
@@ -909,6 +922,15 @@ public class Loan extends AbstractPersistable<Long> {
             case PERCENT_OF_INTEREST:
                 percentOf = installment.getInterestCharged(getCurrency());
             break;
+            case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
+                if (this.isOpen() && (this.summary != null)) {
+                    percentOf = Money.of(getCurrency(), this.summary.getTotalPrincipalOutstanding());
+                }
+                
+                else {
+                    percentOf = this.getPrincpal();
+                }
+                break;
             default:
             break;
         }
@@ -1638,6 +1660,9 @@ public class Loan extends AbstractPersistable<Long> {
             ChargeCalculationType calculationType) {
         Money amount = Money.zero(getCurrency());
         switch (calculationType) {
+            case PERCENT_OF_ORIGINAL_PRINCIPAL:
+                amount = this.getPrincpal();
+            break;
             case PERCENT_OF_AMOUNT:
                 amount = installment.getPrincipalOutstanding(getCurrency());
             break;
@@ -1646,6 +1671,15 @@ public class Loan extends AbstractPersistable<Long> {
             break;
             case PERCENT_OF_INTEREST:
                 amount = installment.getInterestOutstanding(getCurrency());
+            break;
+            case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
+                if (this.isOpen() && (this.summary != null)) {
+                    amount = Money.of(getCurrency(), this.summary.getTotalPrincipalOutstanding());
+                }
+                
+                else {
+                    amount = this.getPrincpal();
+                }
             break;
             default:
             break;

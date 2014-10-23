@@ -131,6 +131,14 @@ public class ChargeEnumerations {
             	optionData = new EnumOptionData(ChargeCalculationType.PERCENT_OF_DISBURSEMENT_AMOUNT.getValue().longValue(),
             	        ChargeCalculationType.PERCENT_OF_DISBURSEMENT_AMOUNT.getCode(), "% Disbursement Amount");
             break;
+            case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
+            	optionData = new EnumOptionData(ChargeCalculationType.PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL.getValue().longValue(),
+                        ChargeCalculationType.PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL.getCode(), "% Total Outstanding Loan Principal");
+            break;
+            case PERCENT_OF_ORIGINAL_PRINCIPAL:
+            	optionData = new EnumOptionData(ChargeCalculationType.PERCENT_OF_ORIGINAL_PRINCIPAL.getValue().longValue(),
+                        ChargeCalculationType.PERCENT_OF_ORIGINAL_PRINCIPAL.getCode(), "% Original Loan Principal");
+            break;
             default:
                 optionData = new EnumOptionData(ChargeCalculationType.INVALID.getValue().longValue(),
                         ChargeCalculationType.INVALID.getCode(), "Invalid");

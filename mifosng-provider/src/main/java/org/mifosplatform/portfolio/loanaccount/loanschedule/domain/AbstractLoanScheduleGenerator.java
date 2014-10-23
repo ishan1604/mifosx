@@ -1947,7 +1947,8 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
         for (final LoanCharge loanCharge : loanCharges) {
             if (!loanCharge.isDueAtDisbursement() && loanCharge.isFeeCharge()) {
                 if (loanCharge.isInstalmentFee() && isInstallmentChargeApplicable) {
-                    cumulative = calculateInstallmentCharge(principalInterestForThisPeriod, cumulative, loanCharge);
+                    cumulative = calculateInstallmentCharge(principalInterestForThisPeriod, 
+                            cumulative, loanCharge, principalDisbursed);
                 } else if (loanCharge.isOverdueInstallmentCharge()
                         && loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
                         && loanCharge.getChargeCalculation().isPercentageBased()) {
@@ -1984,7 +1985,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
     }
 
     private Money calculateInstallmentCharge(final PrincipalInterest principalInterestForThisPeriod, Money cumulative,
-            final LoanCharge loanCharge) {
+            final LoanCharge loanCharge, final Money principalDisbursed) {
         if (loanCharge.getChargeCalculation().isPercentageBased()) {
             BigDecimal amount = BigDecimal.ZERO;
             if (loanCharge.getChargeCalculation().isPercentageOfAmountAndInterest()) {
@@ -1992,6 +1993,9 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                         principalInterestForThisPeriod.interest().getAmount());
             } else if (loanCharge.getChargeCalculation().isPercentageOfInterest()) {
                 amount = amount.add(principalInterestForThisPeriod.interest().getAmount());
+            } else if (loanCharge.getChargeCalculation().isPercentageOfTotalOutstandingPrincipal() || 
+                    loanCharge.getChargeCalculation().isPercentageOfOriginalPrincipal()) {
+                amount = amount.add(principalDisbursed.getAmount());
             } else {
                 amount = amount.add(principalInterestForThisPeriod.principal().getAmount());
             }
@@ -2013,7 +2017,8 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
         for (final LoanCharge loanCharge : loanCharges) {
             if (loanCharge.isPenaltyCharge()) {
                 if (loanCharge.isInstalmentFee() && isInstallmentChargeApplicable) {
-                    cumulative = calculateInstallmentCharge(principalInterestForThisPeriod, cumulative, loanCharge);
+                    cumulative = calculateInstallmentCharge(principalInterestForThisPeriod, 
+                            cumulative, loanCharge, principalDisbursed);
                 } else if (loanCharge.isOverdueInstallmentCharge()
                         && loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
                         && loanCharge.getChargeCalculation().isPercentageBased()) {
