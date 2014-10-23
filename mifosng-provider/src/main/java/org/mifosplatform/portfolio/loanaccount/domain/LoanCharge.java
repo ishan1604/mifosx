@@ -156,6 +156,12 @@ public class LoanCharge extends AbstractPersistable<Long> {
                     amountPercentageAppliedTo = loan.getTotalInterest();
                 }
             break;
+            case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
+            	amountPercentageAppliedTo = loan.getLoanSummary().getTotalPrincipalOutstanding();
+            break;
+            case PERCENT_OF_ORIGINAL_PRINCIPAL:
+            	amountPercentageAppliedTo = loan.getPrincpal().getAmount();
+            break;
             default:
             break;
         }
@@ -266,6 +272,8 @@ public class LoanCharge extends AbstractPersistable<Long> {
             case PERCENT_OF_AMOUNT:
             case PERCENT_OF_AMOUNT_AND_INTEREST:
             case PERCENT_OF_INTEREST:
+            case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
+            case PERCENT_OF_ORIGINAL_PRINCIPAL:
                 this.percentage = chargeAmount;
                 this.amountPercentageAppliedTo = amountPercentageAppliedTo;
                 if (loanCharge.compareTo(BigDecimal.ZERO) == 0) {
@@ -373,6 +381,8 @@ public class LoanCharge extends AbstractPersistable<Long> {
                 case PERCENT_OF_AMOUNT:
                 case PERCENT_OF_AMOUNT_AND_INTEREST:
                 case PERCENT_OF_INTEREST:
+                case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
+                case PERCENT_OF_ORIGINAL_PRINCIPAL:
                     this.percentage = amount;
                     this.amountPercentageAppliedTo = loanPrincipal;
                     if (loanCharge.compareTo(BigDecimal.ZERO) == 0) {
@@ -394,6 +404,7 @@ public class LoanCharge extends AbstractPersistable<Long> {
         if (this.loan != null) {
             switch (ChargeCalculationType.fromInt(this.chargeCalculation)) {
                 case PERCENT_OF_AMOUNT:
+                case PERCENT_OF_ORIGINAL_PRINCIPAL:
                     amountPercentageAppliedTo = this.loan.getPrincpal().getAmount();
                 break;
                 case PERCENT_OF_AMOUNT_AND_INTEREST:
@@ -401,6 +412,9 @@ public class LoanCharge extends AbstractPersistable<Long> {
                 break;
                 case PERCENT_OF_INTEREST:
                     amountPercentageAppliedTo = this.loan.getTotalInterest();
+                break;
+                case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
+                	amountPercentageAppliedTo = this.loan.getLoanSummary().getTotalPrincipalOutstanding();
                 break;
                 default:
                 break;
@@ -446,6 +460,8 @@ public class LoanCharge extends AbstractPersistable<Long> {
                 case PERCENT_OF_AMOUNT:
                 case PERCENT_OF_AMOUNT_AND_INTEREST:
                 case PERCENT_OF_INTEREST:
+                case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
+                case PERCENT_OF_ORIGINAL_PRINCIPAL:
                     this.percentage = newValue;
                     this.amountPercentageAppliedTo = amount;
                     BigDecimal loanCharge = BigDecimal.ZERO;
