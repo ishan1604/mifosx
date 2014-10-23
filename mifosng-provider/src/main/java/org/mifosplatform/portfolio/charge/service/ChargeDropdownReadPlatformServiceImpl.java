@@ -27,7 +27,9 @@ public class ChargeDropdownReadPlatformServiceImpl implements ChargeDropdownRead
         return Arrays.asList(chargeCalculationType(ChargeCalculationType.FLAT),
                 chargeCalculationType(ChargeCalculationType.PERCENT_OF_AMOUNT),
                 chargeCalculationType(ChargeCalculationType.PERCENT_OF_AMOUNT_AND_INTEREST),
-                chargeCalculationType(ChargeCalculationType.PERCENT_OF_INTEREST));
+                chargeCalculationType(ChargeCalculationType.PERCENT_OF_INTEREST), 
+                chargeCalculationType(ChargeCalculationType.PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL), 
+                chargeCalculationType(ChargeCalculationType.PERCENT_OF_ORIGINAL_PRINCIPAL));
     }
 
     @Override
@@ -64,7 +66,9 @@ public class ChargeDropdownReadPlatformServiceImpl implements ChargeDropdownRead
         return Arrays.asList(chargeCalculationType(ChargeCalculationType.FLAT),
                 chargeCalculationType(ChargeCalculationType.PERCENT_OF_AMOUNT),
                 chargeCalculationType(ChargeCalculationType.PERCENT_OF_AMOUNT_AND_INTEREST),
-                chargeCalculationType(ChargeCalculationType.PERCENT_OF_INTEREST));
+                chargeCalculationType(ChargeCalculationType.PERCENT_OF_INTEREST), 
+                chargeCalculationType(ChargeCalculationType.PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL), 
+                chargeCalculationType(ChargeCalculationType.PERCENT_OF_ORIGINAL_PRINCIPAL));
     }
 
     @Override
