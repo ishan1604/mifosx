@@ -353,6 +353,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         sqlArray[1] = deletePermissionsSql;
         sqlArray[2] = deleteRegisteredDatatableSql;
         sqlArray[3] = deleteFromConfigurationSql;
+          /* Delete registeredMetaData  columns */
+        this.deleteRegisteredTableMetaData(datatable);
 
         this.jdbcTemplate.batchUpdate(sqlArray);
     }
@@ -565,6 +567,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final StringBuilder constrainBuilder = new StringBuilder();
             final Map<String, Long> codeMappings = new HashMap<>();
 			List<Map<String,Object>> fieldNameAndOrder = new ArrayList<Map<String, Object>>();
+
             sqlBuilder = sqlBuilder.append("CREATE TABLE `" + datatableName + "` (");
 
             if (multiRow) {
@@ -1013,7 +1016,6 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                             Integer order =(columnName.has("order")) ? columnName.get("order").getAsInt() : 0;
                             RegisteredTableMetaData registeredTableMetaData = this.registeredTableMetaDataRepository.findOneByTableNameAndFieldName(datatableName,name);
                             if(registeredTableMetaData != null){
-                                System.out.println("whats in registeredMetaDat " + registeredTableMetaData.getOrder() + " name "+ registeredTableMetaData.getLabelName());
                                 registeredTableMetaData.updateOrder(order);
                                 this.registeredTableMetaDataRepository.saveAndFlush(registeredTableMetaData);
                             }else{
@@ -1066,6 +1068,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             validateDatatableName(datatableName);
             deregisterDatatable(datatableName);
             String[] sqlArray = null;
+
+
             if (this.configurationDomainService.isConstraintApproachEnabledForDatatables()) {
                 final String deleteColumnCodeSql = "delete from x_table_column_code_mappings where column_alias_name like'"
                         + datatableName.toLowerCase().replaceAll("\\s", "_") + "_%'";
@@ -1076,6 +1080,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             }
             final String sql = "DROP TABLE `" + datatableName + "`";
             sqlArray[0] = sql;
+
             this.jdbcTemplate.batchUpdate(sqlArray);
         } catch (final SQLGrammarException e) {
             final Throwable realCause = e.getCause();
@@ -1789,4 +1794,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     }
 
 
+    private void deleteRegisteredTableMetaData(final String xRegisteredTableName){
+        final List<MetaDataResultSet> metaDataResultSets = this.genericDataService.retrieveRegisteredTableMetaData(xRegisteredTableName);
+        if(metaDataResultSets !=null){
+            for(final MetaDataResultSet metaDataResultSet : metaDataResultSets){
+                this.registeredTableMetaDataRepository.delete(metaDataResultSet.getId());
+            }
+            this.registeredTableMetaDataRepository.flush();
+        }
+    }
 }
