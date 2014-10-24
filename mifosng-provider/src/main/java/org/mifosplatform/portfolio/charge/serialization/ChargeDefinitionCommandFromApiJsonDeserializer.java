@@ -238,7 +238,15 @@ public final class ChargeDefinitionCommandFromApiJsonDeserializer {
         if (this.fromApiJsonHelper.parameterExists("chargeCalculationType", element)) {
             final Integer chargeCalculationType = this.fromApiJsonHelper.extractIntegerNamed("chargeCalculationType", element,
                     Locale.getDefault());
-            baseDataValidator.reset().parameter("chargeCalculationType").value(chargeCalculationType).notNull().inMinMaxRange(1, 4);
+            
+            final Collection<Object> validLoanValues = Arrays.asList(ChargeCalculationType.validValuesForLoan());
+            final Collection<Object> validSavingsValues = Arrays.asList(ChargeCalculationType.validValuesForSavings());
+            
+            final Collection<Object> allValidValues = new ArrayList<>(validLoanValues);
+            allValidValues.addAll(validSavingsValues);
+            
+            baseDataValidator.reset().parameter("chargeCalculationType").value(chargeCalculationType).notNull()
+            		.isOneOfTheseValues(allValidValues.toArray(new Object[allValidValues.size()]));
         }
 
         if (this.fromApiJsonHelper.parameterExists("chargePaymentMode", element)) {
