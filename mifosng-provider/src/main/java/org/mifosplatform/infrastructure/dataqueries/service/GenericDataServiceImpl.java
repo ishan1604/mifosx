@@ -314,6 +314,8 @@ public class GenericDataServiceImpl implements GenericDataService {
 
         private MetaDataResultSetMapper() {
             final StringBuilder sql = new StringBuilder(100);
+
+            sql.append("xr.id as id, ");
             sql.append("xr.field_name as columnName, ");
             sql.append("xr.label_name as labelName, ");
             sql.append("xr.ordering as ordering ");
@@ -327,10 +329,12 @@ public class GenericDataServiceImpl implements GenericDataService {
 
         @Override
         public MetaDataResultSet mapRow(ResultSet rs, int rowNum) throws SQLException {
+
+            final Long id = rs.getLong("id");
             final String columnName = rs.getString("columnName");
             final Long order = JdbcSupport.getLong(rs, "ordering");
             final String labelName = rs.getString("labelName");
-            return MetaDataResultSet.createMetaDataResultSet(columnName,labelName,order);
+            return MetaDataResultSet.createMetaDataResultSet(id,columnName,labelName,order);
         }
     }
 }
