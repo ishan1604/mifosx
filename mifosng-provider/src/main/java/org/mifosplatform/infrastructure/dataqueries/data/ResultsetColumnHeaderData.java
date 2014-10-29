@@ -26,6 +26,9 @@ public final class ResultsetColumnHeaderData {
     private final List<ResultsetColumnValueData> columnValues;
     private final String columnCode;
 
+    private final String labelName;
+    private final Integer order;
+
     public static ResultsetColumnHeaderData basic(final String columnName, final String columnType) {
 
         final Long columnLength = null;
@@ -33,20 +36,22 @@ public final class ResultsetColumnHeaderData {
         final boolean columnIsPrimaryKey = false;
         final List<ResultsetColumnValueData> columnValues = new ArrayList<ResultsetColumnValueData>();
         final String columnCode = null;
+        final String labelName = null;
+        final Integer order  = null;
         return new ResultsetColumnHeaderData(columnName, columnType, columnLength, columnNullable, columnIsPrimaryKey, columnValues,
-                columnCode);
+                columnCode,labelName,order);
     }
 
     public static ResultsetColumnHeaderData detailed(final String columnName, final String columnType, final Long columnLength,
             final boolean columnNullable, final boolean columnIsPrimaryKey, final List<ResultsetColumnValueData> columnValues,
             final String columnCode) {
         return new ResultsetColumnHeaderData(columnName, columnType, columnLength, columnNullable, columnIsPrimaryKey, columnValues,
-                columnCode);
+                columnCode,null,null);
     }
 
     private ResultsetColumnHeaderData(final String columnName, final String columnType, final Long columnLength,
             final boolean columnNullable, final boolean columnIsPrimaryKey, final List<ResultsetColumnValueData> columnValues,
-            final String columnCode) {
+            final String columnCode, final String labelName,final Integer order) {
         this.columnName = columnName;
         this.columnType = columnType;
         this.columnLength = columnLength;
@@ -54,6 +59,8 @@ public final class ResultsetColumnHeaderData {
         this.isColumnPrimaryKey = columnIsPrimaryKey;
         this.columnValues = columnValues;
         this.columnCode = columnCode;
+        this.labelName = labelName;
+        this.order   = order;
 
         String displayType = null;
         if (this.columnCode == null) {
@@ -242,5 +249,13 @@ public final class ResultsetColumnHeaderData {
 
     public String getColumnCode() {
         return this.columnCode;
+    }
+
+    public String getLabelName() {
+        return this.labelName;
+    }
+
+    public Integer getOrder() {
+        return this.order;
     }
 }
