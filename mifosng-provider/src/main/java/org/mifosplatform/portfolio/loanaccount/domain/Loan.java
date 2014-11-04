@@ -4753,8 +4753,8 @@ public class Loan extends AbstractPersistable<Long> {
         return isEnabled;
     }
     
-    public Boolean createStandingInstructionAtDisbursement() {
-        return this.createStandingInstructionAtDisbursement;
+    public boolean createStandingInstructionAtDisbursement() {
+        return (this.createStandingInstructionAtDisbursement != null) && this.createStandingInstructionAtDisbursement;
     }
     
     public String getAccountNumber() {
