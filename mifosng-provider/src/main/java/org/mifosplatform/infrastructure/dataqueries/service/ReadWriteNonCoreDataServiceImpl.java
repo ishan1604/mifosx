@@ -562,7 +562,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             StringBuilder sqlBuilder = new StringBuilder();
             final StringBuilder constrainBuilder = new StringBuilder();
             final Map<String, Long> codeMappings = new HashMap<>();
-			List<Map<String,Object>> fieldNameAndOrder = new ArrayList<Map<String, Object>>();
+			final List<Map<String,Object>> fieldNameAndOrder = new ArrayList<Map<String,Object>>();
 
             sqlBuilder = sqlBuilder.append("CREATE TABLE `" + datatableName + "` (");
 
@@ -577,7 +577,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 parseDatatableColumnObjectForCreate(column.getAsJsonObject(), sqlBuilder, constrainBuilder, dataTableNameAlias,
                         codeMappings, isConstraintApproach);
                 if(metaData){
-                     fieldNameAndOrder.add(this.returnFieldNameAndOrder(column.getAsJsonObject()));
+                     fieldNameAndOrder.add(this.returnFieldNameAndOrder(column.getAsJsonObject(),isConstraintApproach));
                 }
             }
 
@@ -606,8 +606,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
              */
 
             if(metaData){
-                RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
-                for(Map<String,Object> map : fieldNameAndOrder){
+                final RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
+                for(final Map<String,Object> map : fieldNameAndOrder){
                     this.registeredTableMetaDataRepository.save(RegisteredTableMetaData.createNewRegisterTableMetaData(registeredTable,datatableName,map));
                 }
             }
@@ -861,16 +861,14 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final Long categoryId = this.fromJsonHelper.extractLongNamed("category",element);
             Boolean metaData = this.fromJsonHelper.extractBooleanNamed("metaData",element);
 
-            List<Map<String,Object>> fieldNameAndOrder = new ArrayList<Map<String, Object>>();
-            List<Map<String,Object>> fieldNameAndOrderForChangeColumns = new ArrayList<Map<String, Object>>();
+            final List<Map<String,Object>> fieldNameAndOrder = new ArrayList<Map<String, Object>>();
+            final List<Map<String,Object>> fieldNameAndOrderForChangeColumns = new ArrayList<Map<String, Object>>();
 
 
 
             if(metaData == null){
                 metaData = false;
             }
-
-
 
             validateDatatableName(datatableName);
 
@@ -913,6 +911,10 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
                     deregisterDatatable(datatableName);
                     registerDatatable(datatableName, apptableName,categoryId);
+                }else{
+                    final RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
+                    if(registeredTable !=null && categoryId !=null){ registeredTable.updateCategory(categoryId.intValue());}
+
                 }
             }
 
@@ -957,7 +959,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     parseDatatableColumnForAdd(column.getAsJsonObject(), sqlBuilder, datatableName.toLowerCase().replaceAll("\\s", "_"),
                             constrainBuilder, codeMappings, isConstraintApproach);
                     if(metaData){
-                        fieldNameAndOrder.add(this.returnFieldNameAndOrder(column.getAsJsonObject()));
+                        fieldNameAndOrder.add(this.returnFieldNameAndOrder(column.getAsJsonObject(),isConstraintApproach));
                     }
                 }
 
@@ -971,7 +973,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 registerColumnCodeMapping(codeMappings);
                 //Meta data insertion for musoni specific
                 if(metaData){
-                    RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
+                    final RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
                     for(Map<String,Object> map : fieldNameAndOrder){
                         this.registeredTableMetaDataRepository.save(RegisteredTableMetaData.createNewRegisterTableMetaData(registeredTable,datatableName,map));
                     }
@@ -1005,17 +1007,19 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     //update metaData information with
                     if(metaData){
                         for (final JsonElement column : changeColumns) {
-                            JsonObject columnName = column.getAsJsonObject();
-                            String name = (columnName.has("name")) ? columnName.get("name").getAsString() : null;
-                            Integer order =(columnName.has("order")) ? columnName.get("order").getAsInt() : 0;
-                            RegisteredTableMetaData registeredTableMetaData = this.registeredTableMetaDataRepository.findOneByTableNameAndFieldName(datatableName,name);
+                            final JsonObject columnName = column.getAsJsonObject();
+                            final String name = (columnName.has("name")) ? columnName.get("name").getAsString() : null;
+                            final String labelName = (columnName.has("labelName")) ? columnName.get("labelName").getAsString() : null;
+                            final Integer order =(columnName.has("order")) ? columnName.get("order").getAsInt() : 0;
+                            final  RegisteredTableMetaData registeredTableMetaData = this.registeredTableMetaDataRepository.findOneByTableNameAndFieldName(datatableName,name);
                             if(registeredTableMetaData != null){
+                                registeredTableMetaData.updateLabelName(labelName);
                                 registeredTableMetaData.updateOrder(order);
                                 this.registeredTableMetaDataRepository.saveAndFlush(registeredTableMetaData);
                             }else{
                                 //if column does not exist save the column
-                                Map<String, Object> columnsNotSaveYet = this.returnFieldNameAndOrder(column.getAsJsonObject());
-                                RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
+                                final Map<String, Object> columnsNotSaveYet = this.returnFieldNameAndOrder(column.getAsJsonObject(),isConstraintApproach);
+                                final RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
                                 this.registeredTableMetaDataRepository.save(RegisteredTableMetaData.createNewRegisterTableMetaData(registeredTable,datatableName,columnsNotSaveYet));
                             }
                         }
@@ -1733,18 +1737,27 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         return true;
     }
 
-    private HashMap<String,Object> returnFieldNameAndOrder(JsonObject column){
-        HashMap<String,Object> fieldNameAndOrder = new HashMap<String, Object>();
+    private HashMap<String,Object> returnFieldNameAndOrder(JsonObject column,boolean isConstraintApproach){
+        final HashMap<String,Object> fieldNameAndOrder = new HashMap<String, Object>();
         String fieldName = (column.has("name")) ? column.get("name").getAsString() : null;
-        if(fieldName.isEmpty()){
+        if(fieldName == null){
             fieldName =(column.has("name")) ? column.get("name").getAsString() : null;
         }
         String labelName =  (column.has("labelName")) ? column.get("labelName").getAsString() : null;
-        if(labelName.isEmpty()){
+        if(labelName == null){
             labelName = fieldName;
         }
-        Integer order =(column.has("order")) ? column.get("order").getAsInt() : 0;
-        fieldNameAndOrder.put("fieldName",fieldName);
+        final String code = (column.has("code")) ? column.get("code").getAsString() : null;
+        final Integer order =(column.has("order")) ? column.get("order").getAsInt() : 0;
+
+        if (StringUtils.isNotBlank(code)) {
+            if (isConstraintApproach) {
+                fieldNameAndOrder.put("fieldName",fieldName);
+            } else {
+                fieldNameAndOrder.put("fieldName",datatableColumnNameToCodeValueName(fieldName,code));
+            }
+        }else{fieldNameAndOrder.put("fieldName",fieldName);}
+
         fieldNameAndOrder.put("labelName",labelName);
         fieldNameAndOrder.put("order",order);
 
