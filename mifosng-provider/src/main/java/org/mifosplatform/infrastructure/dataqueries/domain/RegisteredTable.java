@@ -29,6 +29,8 @@ public class RegisteredTable extends AbstractPersistable<Long> {
     @Column(name = "category")
     private Integer category;
 
+    public RegisteredTable() {
+    }
 
     public Integer getCategory() {
         return this.category;
@@ -40,5 +42,9 @@ public class RegisteredTable extends AbstractPersistable<Long> {
 
     public String getRegisteredTableName() {
         return this.registeredTableName;
+    }
+
+    public void updateCategory(final Integer category){
+        this.category = category;
     }
 }
