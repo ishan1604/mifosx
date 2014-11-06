@@ -172,22 +172,22 @@ public class LoanRescheduleRequestDataValidator {
     						"Repayment schedule installment is partly paid");
             }
             
-            if(installment != null) {
+            /*if(installment != null) {
             	
             	if(installment.getPenaltyChargesOutstanding(loan.getCurrency()).isGreaterThanZero()) {
             		dataValidatorBuilder
     					.reset()
     					.failWithCodeNoParameterAddedToErrorCode("repayment.schedule.installment.has.an.outstanding.penalty.charge", 
-    							"Repayment schedule installment has an outsatnding penalty charge.");
+    							"Repayment schedule installment has an outstanding penalty charge.");
             	}
             	
             	if(installment.getFeeChargesOutstanding(loan.getCurrency()).isGreaterThanZero()) {
             		dataValidatorBuilder
     					.reset()
     					.failWithCodeNoParameterAddedToErrorCode("repayment.schedule.installment.has.an.outstanding.fee.charge", 
-    							"Repayment schedule installment has an outsatnding fee charge.");
+    							"Repayment schedule installment has an outstanding fee charge.");
             	}
-            }
+            }*/
         }
         
         if(loanId != null) {
@@ -285,7 +285,7 @@ public class LoanRescheduleRequestDataValidator {
             					+ "obligation.met", "Repayment schedule installment obligation met");
                 }
                 
-                if(installment != null) {
+                /*if(installment != null) {
                 	
                 	if(installment.getPenaltyChargesOutstanding(loan.getCurrency()).isGreaterThanZero()) {
                 		dataValidatorBuilder
@@ -300,7 +300,7 @@ public class LoanRescheduleRequestDataValidator {
         					.failWithCodeNoParameterAddedToErrorCode("repayment.schedule.installment.has.an.outstanding.fee.charge", 
         							"Repayment schedule installment has an outsatnding fee charge.");
                 	}
-                }
+                }*/
             }
         	
         	if(loanId != null) {
