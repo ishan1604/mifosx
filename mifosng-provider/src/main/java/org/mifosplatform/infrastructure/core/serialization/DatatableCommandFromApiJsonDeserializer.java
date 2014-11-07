@@ -142,7 +142,7 @@ public class DatatableCommandFromApiJsonDeserializer {
                 if(metaData !=null && metaData){
                     final String labelName = this.fromApiJsonHelper.extractStringNamed("labelName",column);
                     baseDataValidator.reset().parameter("labelName").value(labelName).notBlank()
-                            .notExceedingLengthOf(50);
+                            .notExceedingLengthOf(300);
                     final Integer order = this.fromApiJsonHelper.extractIntegerSansLocaleNamed("order",column);
                     baseDataValidator.reset().parameter("order").value(order).notNull().integerGreaterThanZero();
                 }
