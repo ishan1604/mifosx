@@ -190,9 +190,11 @@ public class CashBasedAccountingProcessorForSavings implements AccountingProcess
                             CASH_ACCOUNTS_FOR_SAVINGS.SAVINGS_CONTROL, CASH_ACCOUNTS_FOR_SAVINGS.INCOME_FROM_PENALTIES, savingsProductId,
                             paymentTypeId, savingsId, transactionId, transactionDate, amount, isReversal, penaltyPayments);
                 } else {
-                    this.helper.createCashBasedJournalEntriesAndReversalsForSavingsCharges(office, currencyCode,
-                            CASH_ACCOUNTS_FOR_SAVINGS.SAVINGS_CONTROL, CASH_ACCOUNTS_FOR_SAVINGS.INCOME_FROM_FEES, savingsProductId,
-                            paymentTypeId, savingsId, transactionId, transactionDate, amount, isReversal, feePayments);
+                    if(!feePayments.isEmpty()) {
+                        this.helper.createCashBasedJournalEntriesAndReversalsForSavingsCharges(office, currencyCode,
+                                CASH_ACCOUNTS_FOR_SAVINGS.SAVINGS_CONTROL, CASH_ACCOUNTS_FOR_SAVINGS.INCOME_FROM_FEES, savingsProductId,
+                                paymentTypeId, savingsId, transactionId, transactionDate, amount, isReversal, feePayments);
+                    }
                 }
             }
 
