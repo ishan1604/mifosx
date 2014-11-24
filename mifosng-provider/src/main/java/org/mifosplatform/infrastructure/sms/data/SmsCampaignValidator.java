@@ -42,6 +42,7 @@ public class SmsCampaignValidator {
     public static final String submittedOnDateParamName = "submittedOnDate";
     public static final String closureDateParamName = "closureDate";
     public static final String recurrenceParamName = "recurrence";
+    public static final String statusParamName = "status";
 
     public static final String localeParamName = "locale";
     public static final String dateFormatParamName = "dateFormat";
@@ -52,6 +53,9 @@ public class SmsCampaignValidator {
 
     public static final Set<String> supportedParams = new HashSet<String>(Arrays.asList(campaignName, campaignType,localeParamName,dateFormatParamName,
             runReportId,paramValue,message,recurrenceStartDate,activationDateParamName,submittedOnDateParamName,closureDateParamName,recurrenceParamName));
+
+    public static final Set<String> supportedParamsForUpdate = new HashSet<>(Arrays.asList(campaignName, campaignType,localeParamName,dateFormatParamName,
+            runReportId,paramValue,message,recurrenceStartDate,activationDateParamName,recurrenceParamName));
 
     public static final Set<String> ACTIVATION_REQUEST_DATA_PARAMETERS = new HashSet<String>(Arrays.asList(localeParamName,
             dateFormatParamName, activationDateParamName));
@@ -71,7 +75,7 @@ public class SmsCampaignValidator {
         if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
 
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
-        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.supportedParams);
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, SmsCampaignValidator.supportedParams);
         
         final JsonElement element = this.fromApiJsonHelper.parse(json);
 
@@ -115,6 +119,46 @@ public class SmsCampaignValidator {
 
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
+
+    }
+
+    public void validateForUpdate(String json){
+        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, SmsCampaignValidator.supportedParamsForUpdate);
+        final JsonElement element = this.fromApiJsonHelper.parse(json);
+
+        final List<ApiParameterError> dataValidationErrors = new ArrayList<ApiParameterError>();
+
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
+                .resource(SmsCampaignValidator.RESOURCE_NAME);
+
+        final String campaignName =  this.fromApiJsonHelper.extractStringNamed(SmsCampaignValidator.campaignName,element);
+        baseDataValidator.reset().parameter(SmsCampaignValidator.campaignName).value(campaignName).notBlank().notExceedingLengthOf(100);
+
+
+        final Long campaignType = this.fromApiJsonHelper.extractLongNamed(SmsCampaignValidator.campaignType,element);
+        baseDataValidator.reset().parameter(SmsCampaignValidator.campaignType).value(campaignType).notNull().integerGreaterThanZero();
+
+        if(campaignType.intValue() == SmsCampaignType.SCHEDULE.getValue()){
+            final String recurrenceParamName =  this.fromApiJsonHelper.extractStringNamed(SmsCampaignValidator.recurrenceParamName, element);
+            baseDataValidator.reset().parameter(SmsCampaignValidator.recurrenceParamName).value(recurrenceParamName).notBlank();
+
+            final String recurrenceStartDate =  this.fromApiJsonHelper.extractStringNamed(SmsCampaignValidator.recurrenceStartDate, element);
+            baseDataValidator.reset().parameter(SmsCampaignValidator.recurrenceStartDate).value(recurrenceStartDate).notBlank();
+        }
+
+        final Long runReportId = this.fromApiJsonHelper.extractLongNamed(SmsCampaignValidator.runReportId,element);
+        baseDataValidator.reset().parameter(SmsCampaignValidator.runReportId).value(runReportId).notNull().integerGreaterThanZero();
+
+        final String message = this.fromApiJsonHelper.extractStringNamed(SmsCampaignValidator.message, element);
+        baseDataValidator.reset().parameter(SmsCampaignValidator.message).value(message).notBlank().notExceedingLengthOf(160);
+
+        final String paramValue = this.fromApiJsonHelper.extractStringNamed(SmsCampaignValidator.paramValue, element);
+        baseDataValidator.reset().parameter(SmsCampaignValidator.paramValue).value(paramValue).notBlank();
+
+        throwExceptionIfValidationWarningsExist(dataValidationErrors);
+
 
     }
 

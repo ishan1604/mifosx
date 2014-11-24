@@ -11,18 +11,19 @@ import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.sms.service.SmsCampaignWritePlatformService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class CloseSmsCampaignCommandHandler implements NewCommandSourceHandler {
-    private final SmsCampaignWritePlatformService smsCampaignWritePlatformService;
+public class UpdateSmsCampaignCommandHandler implements NewCommandSourceHandler {
 
-   @Autowired
-    public CloseSmsCampaignCommandHandler(final SmsCampaignWritePlatformService smsCampaignWritePlatformService) {
+    private final SmsCampaignWritePlatformService smsCampaignWritePlatformService;
+    @Autowired
+    public UpdateSmsCampaignCommandHandler(SmsCampaignWritePlatformService smsCampaignWritePlatformService) {
         this.smsCampaignWritePlatformService = smsCampaignWritePlatformService;
     }
-
+    @Transactional
     @Override
     public CommandProcessingResult processCommand(JsonCommand command) {
-       return this.smsCampaignWritePlatformService.closeSmsCampaign(command.entityId(), command);
+        return this.smsCampaignWritePlatformService.update(command.entityId(),command);
     }
 }

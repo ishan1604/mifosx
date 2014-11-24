@@ -23,6 +23,8 @@ public interface SmsCampaignWritePlatformService {
 
     CommandProcessingResult closeSmsCampaign(Long campaignId, JsonCommand command);
 
+    CommandProcessingResult reactivateSmsCampaign(Long campaignId,JsonCommand command);
+
     void storeTemplateMessageIntoSmsOutBoundTable() throws JobExecutionException;
 
     PreviewCampaignMessage previewMessage(JsonQuery query);

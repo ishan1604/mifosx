@@ -113,6 +113,18 @@ public class SmsApiResource {
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings, smsMessages);
     }
+
+    @GET
+    @Path("messageByStatus")
+    public String retrieveAllSmsByStatus(@Context final UriInfo uriInfo, @QueryParam("limit") final Long limit,@QueryParam("status") final Long status) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+
+        final Collection<SmsData> smsMessages = this.readPlatformService.retrieveSmsByStatus(limit.intValue(),status.intValue());
+
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.toApiJsonSerializer.serialize(settings, smsMessages);
+    }
     
     @GET
     @Path("failedsms")

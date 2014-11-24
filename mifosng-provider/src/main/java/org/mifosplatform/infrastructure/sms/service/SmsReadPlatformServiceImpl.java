@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 
+import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
@@ -50,6 +51,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
             sql.append("smo.status_enum as statusId, ");
             sql.append("smo.source_address as sourceAddress, ");
             sql.append("smo.mobile_no as mobileNo, ");
+            sql.append("smo.submittedon_date as sentDate, ");
             sql.append("smo.message as message ");
             sql.append("from " + tableName() + " smo");
 
@@ -79,9 +81,11 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
             final String campaignName = rs.getString("campaignName");
 
             final Integer statusId = JdbcSupport.getInteger(rs, "statusId");
+            final LocalDate sentDate = JdbcSupport.getLocalDate(rs, "sentDate");
+
             final EnumOptionData status = SmsMessageEnumerations.status(statusId);
 
-            return SmsData.instance(id, externalId, groupId, clientId, staffId, status, sourceAddress, mobileNo, message,campaignName);
+            return SmsData.instance(id, externalId, groupId, clientId, staffId, status, sourceAddress, mobileNo, message,campaignName,sentDate);
         }
     }
 
@@ -105,7 +109,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
     }
     
     @Override
-	public Collection<SmsData> retrieveAllPending(Integer limit) {
+	public Collection<SmsData> retrieveAllPending(final Integer limit) {
     	final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
     	final String sql = "select " + this.smsRowMapper.schema() + " where smo.status_enum = " 
     			+ SmsMessageStatusType.PENDING.getValue() + sqlPlusLimit;
@@ -114,7 +118,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
     }
 
 	@Override
-	public Collection<SmsData> retrieveAllSent(Integer limit) {
+	public Collection<SmsData> retrieveAllSent(final Integer limit) {
 		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
     	final String sql = "select " + this.smsRowMapper.schema() + " where smo.status_enum = " 
     			+ SmsMessageStatusType.SENT.getValue() + sqlPlusLimit;
@@ -123,7 +127,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
 	}
 
 	@Override
-	public List<Long> retrieveExternalIdsOfAllSent(Integer limit) {
+	public List<Long> retrieveExternalIdsOfAllSent(final Integer limit) {
 		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
 		final String sql = "select external_id from " + this.smsRowMapper.tableName() + " where status_enum = " 
     			+ SmsMessageStatusType.SENT.getValue() + sqlPlusLimit;
@@ -132,7 +136,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
 	}
 
     @Override
-    public Collection<SmsData> retrieveAllDelivered(Integer limit) {
+    public Collection<SmsData> retrieveAllDelivered(final Integer limit) {
         final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
         final String sql = "select " + this.smsRowMapper.schema() + " where smo.status_enum = "
                 + SmsMessageStatusType.DELIVERED.getValue() + sqlPlusLimit;
@@ -141,11 +145,19 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
     }
 
 	@Override
-	public Collection<SmsData> retrieveAllFailed(Integer limit) {
+	public Collection<SmsData> retrieveAllFailed(final Integer limit) {
 		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
         final String sql = "select " + this.smsRowMapper.schema() + " where smo.status_enum = "
                 + SmsMessageStatusType.FAILED.getValue() + sqlPlusLimit;
 
         return this.jdbcTemplate.query(sql, this.smsRowMapper, new Object[] {});
 	}
+
+    @Override
+    public Collection<SmsData> retrieveSmsByStatus(final Integer limit, final Integer status) {
+        final String sqlPlusLimit = (limit > 0) ? " limit 0," + limit : null;
+        final String sql ="select "+ this.smsRowMapper.schema() + " where smo.status_enum = "
+                + SmsMessageStatusType.fromInt(status).getValue() + sqlPlusLimit;
+        return this.jdbcTemplate.query(sql,this.smsRowMapper,new Object[] {});
+    }
 }

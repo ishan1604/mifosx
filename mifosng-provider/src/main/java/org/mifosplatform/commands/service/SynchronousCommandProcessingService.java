@@ -314,7 +314,10 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
                 handler= this.applicationContext.getBean("activateSmsCampaignCommandHandler",NewCommandSourceHandler.class);
             } else if (wrapper.isSmsCampaignClosure()){
                 handler= this.applicationContext.getBean("closeSmsCampaignCommandHandler",NewCommandSourceHandler.class);
-            } else {
+            } else if(wrapper.isSmsCampaignReactivation()){
+                handler= this.applicationContext.getBean("reactivateSmsCampaignCommandHandler",NewCommandSourceHandler.class);
+            }
+            else {
                 throw new UnsupportedCommandException(wrapper.commandName());
             }
         } else if (wrapper.isCurrencyResource()) {

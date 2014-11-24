@@ -23,6 +23,8 @@ public interface SmsReadPlatformService {
     Collection<SmsData> retrieveAllDelivered(Integer limit);
     
     Collection<SmsData> retrieveAllFailed(Integer limit);
+
+    Collection<SmsData> retrieveSmsByStatus(Integer limit,Integer status);
     
     List<Long> retrieveExternalIdsOfAllSent(Integer limit);
 }

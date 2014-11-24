@@ -309,11 +309,19 @@ public class CommandWrapperBuilder {
         this.href = "/sms/campaign/"+resourceId + "?command=activate";
         return this;
     }
+
     public CommandWrapperBuilder closeSmsCampaign(final Long resourceId) {
         this.actionName = "CLOSE";
         this.entityName = "SMS_CAMPAIGN";
         this.entityId = resourceId;
         this.href = "/sms/campaign/"+resourceId + "?command=close";
+        return this;
+    }
+    public CommandWrapperBuilder reactivateSmsCampaign(final Long resourceId) {
+        this.actionName = "REACTIVATE";
+        this.entityName = "SMS_CAMPAIGN";
+        this.entityId = resourceId;
+        this.href = "/sms/campaign/"+resourceId + "?command=reactivate";
         return this;
     }
 
