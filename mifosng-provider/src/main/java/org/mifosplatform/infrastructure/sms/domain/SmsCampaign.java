@@ -6,6 +6,7 @@
 package org.mifosplatform.infrastructure.sms.domain;
 
 import org.apache.commons.lang.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalDateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -27,10 +28,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 @Entity
 @Table(name = "sms_campaign")
@@ -94,6 +92,9 @@ public class SmsCampaign extends AbstractPersistable<Long> {
     @Temporal(TemporalType.TIMESTAMP)
     private Date recurrenceStartDate;
 
+    @Column(name="is_visible",nullable = true)
+    private boolean isVisible;
+
     public SmsCampaign() {
     }
 
@@ -111,6 +112,7 @@ public class SmsCampaign extends AbstractPersistable<Long> {
         this.submittedBy = submittedBy;
         this.recurrence = recurrence;
         LocalDateTime recurrenceStartDate = new LocalDateTime();
+        this.isVisible = true;
         if(localDateTime != null){
             this.recurrenceStartDate = localDateTime.toDate();
         }else{
@@ -141,13 +143,62 @@ public class SmsCampaign extends AbstractPersistable<Long> {
             if(command.hasParameter(SmsCampaignValidator.recurrenceStartDate)){
                 recurrenceStartDate = LocalDateTime.parse(command.stringValueOfParameterNamed(SmsCampaignValidator.recurrenceStartDate),fmt);
             }
-        } else{
-            recurrenceStartDate = null;
-        }
+        } else{recurrenceStartDate = null;}
 
 
         return new SmsCampaign(campaignName,campaignType.intValue(),report,paramValue,message,submittedOnDate,submittedBy,recurrence,recurrenceStartDate);
+    }
 
+    public Map<String,Object> update(JsonCommand command){
+
+        final Map<String, Object> actualChanges = new LinkedHashMap<>(5);
+
+        if (command.isChangeInStringParameterNamed(SmsCampaignValidator.campaignName, this.campaignName)) {
+            final String newValue = command.stringValueOfParameterNamed(SmsCampaignValidator.campaignName);
+            actualChanges.put(SmsCampaignValidator.campaignName, newValue);
+            this.campaignName = StringUtils.defaultIfEmpty(newValue, null);
+        }
+        if (command.isChangeInStringParameterNamed(SmsCampaignValidator.message, this.message)) {
+            final String newValue = command.stringValueOfParameterNamed(SmsCampaignValidator.message);
+            actualChanges.put(SmsCampaignValidator.message, newValue);
+            this.message = StringUtils.defaultIfEmpty(newValue, null);
+        }
+        if (command.isChangeInStringParameterNamed(SmsCampaignValidator.paramValue, this.paramValue)) {
+            final String newValue = command.stringValueOfParameterNamed(SmsCampaignValidator.paramValue);
+            actualChanges.put(SmsCampaignValidator.paramValue, newValue);
+            this.paramValue = StringUtils.defaultIfEmpty(newValue, null);
+        }
+        if (command.isChangeInIntegerParameterNamed(SmsCampaignValidator.campaignType, this.campaignType)) {
+            final Integer newValue = command.integerValueOfParameterNamed(SmsCampaignValidator.campaignType);
+            actualChanges.put(SmsCampaignValidator.campaignType, SmsCampaignType.fromInt(newValue));
+            this.campaignType = SmsCampaignType.fromInt(newValue).getValue();
+        }
+        if (command.isChangeInLongParameterNamed(SmsCampaignValidator.runReportId, (this.businessRuleId != null) ? this.businessRuleId.getId() : null)) {
+            final String newValue = command.stringValueOfParameterNamed(SmsCampaignValidator.runReportId);
+            actualChanges.put(SmsCampaignValidator.runReportId, newValue);
+        }
+        if (command.isChangeInStringParameterNamed(SmsCampaignValidator.recurrenceParamName, this.recurrence)) {
+            final String newValue = command.stringValueOfParameterNamed(SmsCampaignValidator.recurrenceParamName);
+            actualChanges.put(SmsCampaignValidator.recurrenceParamName, newValue);
+            this.recurrence = StringUtils.defaultIfEmpty(newValue, null);
+        }
+        final String dateFormatAsInput = command.dateFormat();
+        final String localeAsInput = command.locale();
+        final Locale locale = command.extractLocale();
+        final  DateTimeFormatter fmt = DateTimeFormat.forPattern(command.dateFormat()).withLocale(locale);
+
+        if (command.isChangeInLocalDateParameterNamed(SmsCampaignValidator.recurrenceStartDate, getRecurrenceStartDate())) {
+            final String valueAsInput = command.stringValueOfParameterNamed(SmsCampaignValidator.recurrenceStartDate);
+            actualChanges.put(SmsCampaignValidator.recurrenceStartDate, valueAsInput);
+            actualChanges.put(ClientApiConstants.dateFormatParamName, dateFormatAsInput);
+            actualChanges.put(ClientApiConstants.localeParamName, localeAsInput);
+
+            final LocalDateTime newValue =  LocalDateTime.parse(valueAsInput, fmt);
+
+            this.recurrenceStartDate = newValue.toDate();
+        }
+
+        return actualChanges;
     }
 
 
@@ -172,10 +223,60 @@ public class SmsCampaign extends AbstractPersistable<Long> {
     }
 
     public void close(final AppUser currentUser,final DateTimeFormatter dateTimeFormatter, final LocalDate closureLocalDate){
+        if(isClosed()){
+            //handle errors if already activated
+            final String defaultUserMessage = "Cannot close campaign. Campaign already in closed state.";
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.campaign.already.closed", defaultUserMessage,
+                    SmsCampaignValidator.statusParamName, SmsCampaignStatus.fromInt(this.status).getCode());
+
+            final List<ApiParameterError> dataValidationErrors = new ArrayList<ApiParameterError>();
+            dataValidationErrors.add(error);
+
+            throw new PlatformApiDataValidationException(dataValidationErrors);
+        }
         this.closedBy = currentUser;
         this.closureDate = closureLocalDate.toDate();
         this.status     = SmsCampaignStatus.CLOSED.getValue();
     }
+
+    public void reactivate(final AppUser currentUser, final DateTimeFormatter dateTimeFormat,final LocalDate reactivateLocalDate){
+
+        if(!isClosed()){
+            //handle errors if already activated
+            final String defaultUserMessage = "Cannot reactivate campaign. Campaign must be in closed state.";
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.campaign.must.be.closed", defaultUserMessage,
+                    SmsCampaignValidator.statusParamName, SmsCampaignStatus.fromInt(this.status).getCode());
+
+            final List<ApiParameterError> dataValidationErrors = new ArrayList<ApiParameterError>();
+            dataValidationErrors.add(error);
+
+            throw new PlatformApiDataValidationException(dataValidationErrors);
+        }
+
+        this.approvedOnDate = reactivateLocalDate.toDate();
+        this.status  = SmsCampaignStatus.ACTIVE.getValue();
+        this.approvedBy =currentUser;
+        this.closureDate = null;
+        this.isVisible = true;
+        this.closedBy = null;
+    }
+
+    public void delete(){
+        if(!isClosed()){
+            //handle errors if already activated
+            final String defaultUserMessage = "Cannot delete campaign. Campaign must be in closed state.";
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.campaign.must.be.closed", defaultUserMessage,
+                    SmsCampaignValidator.statusParamName, SmsCampaignStatus.fromInt(this.status).getCode());
+
+            final List<ApiParameterError> dataValidationErrors = new ArrayList<ApiParameterError>();
+            dataValidationErrors.add(error);
+
+            throw new PlatformApiDataValidationException(dataValidationErrors);
+        }
+        this.isVisible = false;
+    }
+
+
 
 
     public boolean isActive(){
@@ -209,7 +310,7 @@ public class SmsCampaign extends AbstractPersistable<Long> {
         if (getSubmittedOnDate() != null && isDateInTheFuture(getSubmittedOnDate())) {
 
             final String defaultUserMessage = "submitted date cannot be in the future.";
-            final ApiParameterError error = ApiParameterError.parameterError("error.msg.clients.submittedOnDate.in.the.future",
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.campaign.submittedOnDate.in.the.future",
                     defaultUserMessage, SmsCampaignValidator.submittedOnDateParamName, this.submittedOnDate);
 
             dataValidationErrors.add(error);
@@ -218,7 +319,7 @@ public class SmsCampaign extends AbstractPersistable<Long> {
         if (getActivationLocalDate() != null && getSubmittedOnDate() != null && getSubmittedOnDate().isAfter(getActivationLocalDate())) {
 
             final String defaultUserMessage = "submitted date cannot be after the activation date";
-            final ApiParameterError error = ApiParameterError.parameterError("error.msg.clients.submittedOnDate.after.activation.date",
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.campaign.submittedOnDate.after.activation.date",
                     defaultUserMessage, SmsCampaignValidator.submittedOnDateParamName, this.submittedOnDate);
 
             dataValidationErrors.add(error);
@@ -227,13 +328,17 @@ public class SmsCampaign extends AbstractPersistable<Long> {
         if (getActivationLocalDate() != null && isDateInTheFuture(getActivationLocalDate())) {
 
             final String defaultUserMessage = "Activation date cannot be in the future.";
-            final ApiParameterError error = ApiParameterError.parameterError("error.msg.clients.activationDate.in.the.future",
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.campaign.activationDate.in.the.future",
                     defaultUserMessage, SmsCampaignValidator.activationDateParamName, getActivationLocalDate());
 
             dataValidationErrors.add(error);
         }
 
     }
+
+
+
+
 
     public LocalDate getSubmittedOnDate() {
         return (LocalDate) ObjectUtils.defaultIfNull(new LocalDate(this.submittedOnDate), null);
@@ -300,5 +405,13 @@ public class SmsCampaign extends AbstractPersistable<Long> {
 
     public LocalDate getLastTriggerDate() {
         return (LocalDate) ObjectUtils.defaultIfNull(new LocalDate(this.lastTriggerDate), null);
+    }
+
+    public void updateIsVisible(boolean isVisible) {
+        this.isVisible = isVisible;
+    }
+
+    public void updateBusinessRuleId(final Report report){
+        this.businessRuleId = report;
     }
 }

@@ -74,6 +74,8 @@ public class SmsCampaignReadPlatformServiceImpl implements SmsCampaignReadPlatfo
             sql.append("sc.message as message, ");
             sql.append("sc.param_value as paramValue, ");
             sql.append("sc.status_enum as status, ");
+            sql.append("sc.recurrence as recurrence, ");
+            sql.append("sc.recurrence_start_date as recurrenceStartDate, ");
             sql.append("sc.next_trigger_date as nextTriggerDate, ");
             sql.append("sc.last_trigger_date as lastTriggerDate, ");
             sql.append("sc.submittedon_date as submittedOnDate, ");
@@ -117,12 +119,15 @@ public class SmsCampaignReadPlatformServiceImpl implements SmsCampaignReadPlatfo
 
             final LocalDate activatedOnDate = JdbcSupport.getLocalDate(rs, "activatedOnDate");
             final String activatedByUsername = rs.getString("activatedByUsername");
+            final String recurrence  =rs.getString("recurrence");
+            final DateTime recurrenceStartDate = JdbcSupport.getDateTime(rs, "recurrenceStartDate");
             final SmsCampaignTimeLine smsCampaignTimeLine = new SmsCampaignTimeLine(submittedOnDate,submittedByUsername,
                     activatedOnDate,activatedByUsername,closedOnDate,closedByUsername);
 
 
 
-            return SmsCampaignData.instance(id,campaignName,campaignType,runReportId,paramValue,status,message,nextTriggerDate,lastTriggerDate,smsCampaignTimeLine);
+            return SmsCampaignData.instance(id,campaignName,campaignType,runReportId,paramValue,status,message,nextTriggerDate,lastTriggerDate,smsCampaignTimeLine,
+                    recurrenceStartDate,recurrence);
         }
     }
 
@@ -218,9 +223,10 @@ public class SmsCampaignReadPlatformServiceImpl implements SmsCampaignReadPlatfo
 
     @Override
     public SmsCampaignData retrieveOne(Long resourceId) {
+        final Integer isVisible =1;
         try{
-            final String sql = "select " + this.smsCampaignMapper.schema + " where sc.id = ?";
-            return this.jdbcTemplate.queryForObject(sql, this.smsCampaignMapper, new Object[] { resourceId });
+            final String sql = "select " + this.smsCampaignMapper.schema + " where sc.id = ? and sc.is_visible = ?";
+            return this.jdbcTemplate.queryForObject(sql, this.smsCampaignMapper, new Object[] { resourceId,isVisible});
         } catch (final EmptyResultDataAccessException e) {
             throw new SmsCampaignNotFound(resourceId);
         }
@@ -228,16 +234,20 @@ public class SmsCampaignReadPlatformServiceImpl implements SmsCampaignReadPlatfo
 
     @Override
     public Collection<SmsCampaignData> retrieveAllCampaign() {
-        final String sql = "select " + this.smsCampaignMapper.schema();
-        return this.jdbcTemplate.query(sql, this.smsCampaignMapper, new Object[] {});
+        final Integer visible = 1;
+        final String sql = "select " + this.smsCampaignMapper.schema() + " where sc.is_visible = ?";
+        return this.jdbcTemplate.query(sql, this.smsCampaignMapper, new Object[] {visible});
     }
 
     @Override
     public Collection<SmsCampaignData> retrieveAllScheduleActiveCampaign() {
         final Integer scheduleCampaignType = SmsCampaignType.SCHEDULE.getValue();
         final Integer statusEnum  = SmsCampaignStatus.ACTIVE.getValue();
-        final String sql = "select " + this.smsCampaignMapper.schema() + " where sc.status_enum = ? and sc.campaign_type = ?";
-        return this.jdbcTemplate.query(sql,this.smsCampaignMapper, new Object [] {statusEnum,scheduleCampaignType});
+        final Integer visible     = 1;
+        final String sql = "select " + this.smsCampaignMapper.schema() + " where sc.status_enum = ? and sc.campaign_type = ? and sc.is_visible = ?";
+        return this.jdbcTemplate.query(sql,this.smsCampaignMapper, new Object [] {statusEnum,scheduleCampaignType,visible});
     }
+
+
 
 }

@@ -31,14 +31,20 @@ public class SmsCampaignData {
     private final String message;
     @SuppressWarnings("unused")
     private final DateTime nextTriggerDate;
-
+    @SuppressWarnings("unused")
     private final LocalDate lastTriggerDate;
-
+    @SuppressWarnings("unused")
     private final SmsCampaignTimeLine smsCampaignTimeLine;
+
+    @SuppressWarnings("unused")
+    private final DateTime recurrenceStartDate;
+
+    private final String recurrence;
 
     private SmsCampaignData(final Long id,final String campaignName, final Integer campaignType, final Long runReportId,
                            final String paramValue,final EnumOptionData campaignStatus,
-                           final String message,final DateTime nextTriggerDate,final LocalDate lastTriggerDate,final SmsCampaignTimeLine smsCampaignTimeLine) {
+                           final String message,final DateTime nextTriggerDate,final LocalDate lastTriggerDate,final SmsCampaignTimeLine smsCampaignTimeLine,
+                           final DateTime recurrenceStartDate, final String recurrence) {
         this.id = id;
         this.campaignName = campaignName;
         this.campaignType = campaignType;
@@ -57,13 +63,16 @@ public class SmsCampaignData {
             this.lastTriggerDate = null;
         }
         this.smsCampaignTimeLine =smsCampaignTimeLine;
+        this.recurrenceStartDate = recurrenceStartDate;
+        this.recurrence  = recurrence;
     }
 
     public static SmsCampaignData instance(final Long id,final String campaignName, final Integer campaignType, final Long runReportId,
                                            final String paramValue,final EnumOptionData campaignStatus,final String message,
-                                           final DateTime nextTriggerDate, final LocalDate lastTriggerDate,final SmsCampaignTimeLine smsCampaignTimeLine){
+                                           final DateTime nextTriggerDate, final LocalDate lastTriggerDate,final SmsCampaignTimeLine smsCampaignTimeLine,
+                                           final DateTime recurrenceStartDate, final String recurrence){
         return new SmsCampaignData(id,campaignName,campaignType,runReportId,paramValue,
-                campaignStatus,message,nextTriggerDate,lastTriggerDate,smsCampaignTimeLine);
+                campaignStatus,message,nextTriggerDate,lastTriggerDate,smsCampaignTimeLine,recurrenceStartDate,recurrence);
     }
 
 
@@ -72,36 +81,39 @@ public class SmsCampaignData {
     }
 
     public String getCampaignName() {
-        return campaignName;
+        return this.campaignName;
     }
 
     public Integer getCampaignType() {
-        return campaignType;
+        return this.campaignType;
     }
 
     public Long getRunReportId() {
-        return runReportId;
+        return this.runReportId;
     }
 
     public String getParamValue() {
-        return paramValue;
+        return this.paramValue;
     }
 
     public EnumOptionData getCampaignStatus() {
-        return campaignStatus;
+        return this.campaignStatus;
     }
 
     public String getMessage() {
-        return message;
+        return this.message;
     }
 
 
     public DateTime getNextTriggerDate() {
-        return nextTriggerDate;
+        return this.nextTriggerDate;
     }
 
     public LocalDate getLastTriggerDate() {
-        return lastTriggerDate;
+        return this.lastTriggerDate;
     }
 
+    public String getRecurrence() {return this.recurrence;}
+
+    public DateTime getRecurrenceStartDate() {return this.recurrenceStartDate;}
 }

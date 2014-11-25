@@ -32,6 +32,7 @@ import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.api.JsonQuery;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
+import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
@@ -53,6 +54,8 @@ import org.mifosplatform.infrastructure.sms.domain.SmsCampaign;
 import org.mifosplatform.infrastructure.sms.domain.SmsCampaignRepository;
 import org.mifosplatform.infrastructure.sms.domain.SmsMessage;
 import org.mifosplatform.infrastructure.sms.domain.SmsMessageRepository;
+import org.mifosplatform.infrastructure.sms.exception.SmsCampaignMustBeClosedToBeDeletedException;
+import org.mifosplatform.infrastructure.sms.exception.SmsCampaignMustBeClosedToEditException;
 import org.mifosplatform.infrastructure.sms.exception.SmsCampaignNotFound;
 import org.mifosplatform.portfolio.calendar.service.CalendarUtils;
 import org.mifosplatform.portfolio.client.domain.Client;
@@ -64,6 +67,7 @@ import org.mifosplatform.useradministration.domain.AppUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.filter.RequestContextFilter;
@@ -147,15 +151,60 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
                 .withEntityId(smsCampaign.getId()) //
                 .build();
     }
-
+    @Transactional
     @Override
     public CommandProcessingResult update(final Long resourceId, final JsonCommand command) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
-    }
+        try{
+            final AppUser currentUser = this.context.authenticatedUser();
 
+            this.smsCampaignValidator.validateForUpdate(command.json());
+            final SmsCampaign smsCampaign = this.smsCampaignRepository.findOne(resourceId);
+
+            if(smsCampaign == null){ throw new SmsCampaignNotFound(resourceId);}
+            if(smsCampaign.isActive()){ throw new SmsCampaignMustBeClosedToEditException(smsCampaign.getId());}
+            final Map<String, Object> changes = smsCampaign.update(command);
+
+            if(changes.containsKey(SmsCampaignValidator.runReportId)){
+                final Long newValue = command.longValueOfParameterNamed(SmsCampaignValidator.runReportId);
+                final Report reportId = this.reportRepository.findOne(newValue);
+                if(reportId == null){ throw new ReportNotFoundException(newValue);};
+                smsCampaign.updateBusinessRuleId(reportId);
+            }
+
+            if(!changes.isEmpty()){
+                this.smsCampaignRepository.saveAndFlush(smsCampaign);
+            }
+            return new CommandProcessingResultBuilder() //
+                    .withCommandId(command.commandId()) //
+                    .withEntityId(resourceId) //
+                    .with(changes) //
+                    .build();
+        }catch(final DataIntegrityViolationException dve){
+            handleDataIntegrityIssues(command, dve);
+            return CommandProcessingResult.empty();
+        }
+
+    }
+    @Transactional
     @Override
-    public CommandProcessingResult delete(Long resourceId) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    public CommandProcessingResult delete(final Long resourceId) {
+        final AppUser currentUser = this.context.authenticatedUser();
+
+        final SmsCampaign smsCampaign = this.smsCampaignRepository.findOne(resourceId);
+
+        if(smsCampaign == null){ throw new SmsCampaignNotFound(resourceId);}
+        if(smsCampaign.isActive()){ throw new SmsCampaignMustBeClosedToBeDeletedException(smsCampaign.getId());}
+
+        /*
+          Do not delete but set a boolean is_visible to zero
+         */
+        smsCampaign.delete();
+        this.smsCampaignRepository.saveAndFlush(smsCampaign);
+
+        return new CommandProcessingResultBuilder() //
+                .withEntityId(smsCampaign.getId()) //
+                .build();
+
     }
 
 
@@ -356,5 +405,40 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
 
         return campaignMessage;
 
+    }
+    @Transactional
+    @Override
+    public CommandProcessingResult reactivateSmsCampaign(final Long campaignId, JsonCommand command) {
+
+        this.smsCampaignValidator.validateActivation(command.json());
+
+        final AppUser currentUser = this.context.authenticatedUser();
+
+        final SmsCampaign smsCampaign = this.smsCampaignRepository.findOne(campaignId);
+
+        if(smsCampaign == null){ throw new SmsCampaignNotFound(campaignId);}
+        if(smsCampaign.isActive()){ throw new SmsCampaignMustBeClosedToBeDeletedException(smsCampaign.getId());}
+
+        /*
+          Do not delete but set a boolean is_visible to zero
+         */
+
+        final Locale locale = command.extractLocale();
+        final DateTimeFormatter fmt = DateTimeFormat.forPattern(command.dateFormat()).withLocale(locale);
+        final LocalDate reactivationDate = command.localDateValueOfParameterNamed("activationDate");
+        smsCampaign.reactivate(currentUser,fmt,reactivationDate);
+        this.smsCampaignRepository.saveAndFlush(smsCampaign);
+
+        return new CommandProcessingResultBuilder() //
+                .withEntityId(smsCampaign.getId()) //
+                .build();
+
+    }
+
+    private void handleDataIntegrityIssues(@SuppressWarnings("unused") final JsonCommand command, final DataIntegrityViolationException dve) {
+        final Throwable realCause = dve.getMostSpecificCause();
+
+        throw new PlatformDataIntegrityException("error.msg.sms.campaign.unknown.data.integrity.issue",
+                "Unknown data integrity issue with resource: " + realCause.getMessage());
     }
 }

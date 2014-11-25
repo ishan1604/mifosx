@@ -26,13 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
@@ -129,6 +123,19 @@ public class SmsCampaignApiResource {
         return this.toApiJsonSerializer.serialize(result);
     }
 
+    @PUT
+    @Path("{resourceId}")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String updateCampaign(@PathParam("resourceId") final Long campaignId,final String apiRequestBodyAsJson,@Context final UriInfo uriInfo){
+
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().updateSmsCampaign(campaignId).withJson(apiRequestBodyAsJson).build();
+
+        final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+
+        return this.toApiJsonSerializer.serialize(result);
+    }
+
     @POST
     @Path("{resourceId}")
     @Consumes({ MediaType.APPLICATION_JSON })
@@ -144,6 +151,9 @@ public class SmsCampaignApiResource {
             result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
         }else if (is(commandParam, "close")){
             commandRequest = builder.closeSmsCampaign(campaignId).build();
+            result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+        }else if (is(commandParam,"reactivate")){
+            commandRequest = builder.reactivateSmsCampaign(campaignId).build();
             result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
         }
         return this.toApiJsonSerializer.serialize(result);
@@ -186,6 +196,17 @@ public class SmsCampaignApiResource {
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings,smsBusinessRulesData);
 
+    }
+
+    @DELETE
+    @Path("{resourceId}")
+    public String delete(@PathParam("resourceId") final Long resourceId) {
+
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().deleteSmsCampaign(resourceId).build();
+
+        final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+
+        return this.toApiJsonSerializer.serialize(result);
     }
 
     private boolean is(final String commandParam, final String commandValue) {
