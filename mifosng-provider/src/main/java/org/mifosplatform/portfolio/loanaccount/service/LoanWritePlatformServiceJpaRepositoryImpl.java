@@ -465,8 +465,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                         linkedSavingsAccount, toOffice, toClient, loan, transferType);
 
                 AccountTransferStandingInstruction accountTransferStandingInstruction = AccountTransferStandingInstruction.create(
-                        accountTransferDetails, name, priority, instructionType, status, null, validFrom, null, recurrenceType, null, null,
-                        null);
+                        accountTransferDetails, name, priority, instructionType, status, null, validFrom, null, 
+                        recurrenceType, null, null, null, null);
+                
                 accountTransferDetails.updateAccountTransferStandingInstruction(accountTransferStandingInstruction);
 
                 this.accountTransferDetailRepository.save(accountTransferDetails);

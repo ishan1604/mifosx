@@ -27,21 +27,27 @@ import org.mifosplatform.commands.service.CommandWrapperBuilder;
 import org.mifosplatform.commands.service.PortfolioCommandSourceWritePlatformService;
 import org.mifosplatform.infrastructure.core.api.ApiParameterHelper;
 import org.mifosplatform.infrastructure.core.api.ApiRequestParameterHelper;
+import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.exception.UnrecognizedQueryParamException;
 import org.mifosplatform.infrastructure.core.serialization.ApiRequestJsonSerializationSettings;
 import org.mifosplatform.infrastructure.core.serialization.DefaultToApiJsonSerializer;
+import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.mifosplatform.infrastructure.core.service.Page;
+import org.mifosplatform.infrastructure.security.exception.NoAuthorizationException;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.portfolio.account.data.AccountTransferData;
 import org.mifosplatform.portfolio.account.data.StandingInstructionDTO;
 import org.mifosplatform.portfolio.account.data.StandingInstructionData;
 import org.mifosplatform.portfolio.account.service.AccountTransfersReadPlatformService;
 import org.mifosplatform.portfolio.account.service.StandingInstructionReadPlatformService;
+import org.mifosplatform.portfolio.account.service.StandingInstructionWritePlatformService;
 import org.mifosplatform.infrastructure.core.service.SearchParameters;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+
+import com.google.gson.JsonElement;
 
 @Path("/standinginstructions")
 @Component
@@ -54,6 +60,8 @@ public class StandingInstructionApiResource {
     private final ApiRequestParameterHelper apiRequestParameterHelper;
     private final StandingInstructionReadPlatformService standingInstructionReadPlatformService;
     private final AccountTransfersReadPlatformService accountTransfersReadPlatformService;
+    private final StandingInstructionWritePlatformService standingInstructionWritePlatformService;
+    private final FromJsonHelper fromApiJsonHelper;
 
     @Autowired
     public StandingInstructionApiResource(final PlatformSecurityContext context,
@@ -61,13 +69,17 @@ public class StandingInstructionApiResource {
             final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
             final ApiRequestParameterHelper apiRequestParameterHelper,
             final StandingInstructionReadPlatformService standingInstructionReadPlatformService,
-            final AccountTransfersReadPlatformService accountTransfersReadPlatformService) {
+            final AccountTransfersReadPlatformService accountTransfersReadPlatformService, 
+            final StandingInstructionWritePlatformService standingInstructionWritePlatformService, 
+            final FromJsonHelper fromApiJsonHelper) {
         this.context = context;
         this.toApiJsonSerializer = toApiJsonSerializer;
         this.commandsSourceWritePlatformService = commandsSourceWritePlatformService;
         this.apiRequestParameterHelper = apiRequestParameterHelper;
         this.standingInstructionReadPlatformService = standingInstructionReadPlatformService;
         this.accountTransfersReadPlatformService = accountTransfersReadPlatformService;
+        this.standingInstructionWritePlatformService = standingInstructionWritePlatformService;
+        this.fromApiJsonHelper = fromApiJsonHelper;
     }
 
     @GET
@@ -93,12 +105,31 @@ public class StandingInstructionApiResource {
     @POST
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public String create(final String apiRequestBodyAsJson) {
-
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().createStandingInstruction().withJson(apiRequestBodyAsJson)
-                .build();
-
-        final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+    public String create(final String apiRequestBodyAsJson, @QueryParam("command") final String commandParam) {
+        CommandProcessingResult result = null;
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().createStandingInstruction().withJson(apiRequestBodyAsJson).build();
+        
+        if (is(commandParam, "execute")) {
+            final boolean hasNotPermission = this.context.authenticatedUser().hasNotPermissionForAnyOf("ALL_FUNCTIONS", "EXECUTE_STANDINGINSTRUCTION");
+            
+            if (hasNotPermission) {
+                final String exceptionMessage = "User is not authorized to execute the standing instruction job";
+                
+                throw new NoAuthorizationException(exceptionMessage);
+            }
+            
+            final String json = commandRequest.getJson();
+            final JsonElement parsedCommand = this.fromApiJsonHelper.parse(json);
+            final JsonCommand jsonCommand = JsonCommand.from(json, parsedCommand, this.fromApiJsonHelper, commandRequest.getEntityName(), commandRequest.getEntityId(),
+                    commandRequest.getSubentityId(), commandRequest.getGroupId(), commandRequest.getClientId(), commandRequest.getLoanId(), commandRequest.getSavingsId(),
+                    commandRequest.getTransactionId(), commandRequest.getHref(), commandRequest.getProductId());
+            
+            result = this.standingInstructionWritePlatformService.executeStandingInstructions(jsonCommand);
+        }
+        
+        else {
+            result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+        }
 
         return this.toApiJsonSerializer.serialize(result);
     }
@@ -148,7 +179,7 @@ public class StandingInstructionApiResource {
         final Date startDateRange = null;
         final Date endDateRange = null;
         StandingInstructionDTO standingInstructionDTO = new StandingInstructionDTO(searchParameters, transferType, clientName, clientId,
-                fromAccount, fromAccountType, startDateRange, endDateRange);
+                fromAccount, fromAccountType, startDateRange, endDateRange, null);
 
         final Page<StandingInstructionData> transfers = this.standingInstructionReadPlatformService.retrieveAll(standingInstructionDTO);
 

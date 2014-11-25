@@ -16,6 +16,7 @@ import static org.mifosplatform.portfolio.account.api.StandingInstructionApiCons
 import static org.mifosplatform.portfolio.account.api.StandingInstructionApiConstants.statusParamName;
 import static org.mifosplatform.portfolio.account.api.StandingInstructionApiConstants.validFromParamName;
 import static org.mifosplatform.portfolio.account.api.StandingInstructionApiConstants.validTillParamName;
+import static org.mifosplatform.portfolio.account.api.StandingInstructionApiConstants.maximumIterationsParamName;
 
 import java.math.BigDecimal;
 
@@ -60,9 +61,10 @@ public class StandingInstructionAssembler {
         final MonthDay recurrenceOnMonthDay = command.extractMonthDayNamed(recurrenceOnMonthDayParamName);
         final Integer recurrenceInterval = command.integerValueOfParameterNamed(recurrenceIntervalParamName);
         final String name = command.stringValueOfParameterNamed(nameParamName);
+        final Integer maximumIterations = command.integerValueOfParameterNamed(maximumIterationsParamName);
         AccountTransferStandingInstruction accountTransferStandingInstruction = AccountTransferStandingInstruction.create(
                 accountTransferDetails, name, priority, standingInstructionType, status, amount, validFrom, validTill, recurrenceType,
-                recurrenceFrequency, recurrenceInterval, recurrenceOnMonthDay);
+                recurrenceFrequency, recurrenceInterval, recurrenceOnMonthDay, maximumIterations);
         accountTransferDetails.updateAccountTransferStandingInstruction(accountTransferStandingInstruction);
     }
 
