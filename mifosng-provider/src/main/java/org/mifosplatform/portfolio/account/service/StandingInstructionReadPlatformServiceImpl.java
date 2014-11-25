@@ -358,7 +358,7 @@ public class StandingInstructionReadPlatformServiceImpl implements StandingInstr
             sqlBuilder.append("atsi.valid_from as validFrom, atsi.valid_till as validTill,");
             sqlBuilder.append("atsi.recurrence_type as recurrenceType, atsi.recurrence_frequency as recurrenceFrequency,");
             sqlBuilder.append("atsi.recurrence_interval as recurrenceInterval, atsi.recurrence_on_day as recurrenceOnDay,");
-            sqlBuilder.append("atsi.recurrence_on_month as recurrenceOnMonth,");
+            sqlBuilder.append("atsi.recurrence_on_month as recurrenceOnMonth, atsi. maximum_iterations as maximumIteration,");
             sqlBuilder.append("atd.id as accountDetailId,atd.transfer_type as transferType,");
             sqlBuilder.append("fromoff.id as fromOfficeId, fromoff.name as fromOfficeName,");
             sqlBuilder.append("tooff.id as toOfficeId, tooff.name as toOfficeName,");
@@ -498,10 +498,12 @@ public class StandingInstructionReadPlatformServiceImpl implements StandingInstr
                         toLoanProductName, null, null, null);
                 toAccountType = accountType(PortfolioAccountType.LOAN);
             }
+            
+            final Integer maximumIteration = JdbcSupport.getInteger(rs, "maximumIteration");
 
             return StandingInstructionData.instance(id, accountDetailId, name, fromOffice, toOffice, fromClient, toClient, fromAccountType,
                     fromAccount, toAccountType, toAccount, transferTypeEnum, priorityEnum, instructionTypeEnum, statusEnum, transferAmount,
-                    validFrom, validTill, recurrenceTypeEnum, recurrenceFrequencyEnum, recurrenceInterval, recurrenceOnMonthDay);
+                    validFrom, validTill, recurrenceTypeEnum, recurrenceFrequencyEnum, recurrenceInterval, recurrenceOnMonthDay, maximumIteration);
         }
     }
 
