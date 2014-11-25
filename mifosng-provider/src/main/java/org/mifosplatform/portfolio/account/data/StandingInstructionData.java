@@ -66,6 +66,7 @@ public class StandingInstructionData {
     private final Collection<EnumOptionData> priorityOptions;
     private final Collection<EnumOptionData> recurrenceTypeOptions;
     private final Collection<EnumOptionData> recurrenceFrequencyOptions;
+    private final Integer maximumIterations;
 
     public static StandingInstructionData template(final Collection<OfficeData> fromOfficeOptions,
             final Collection<ClientData> fromClientOptions, final Collection<EnumOptionData> fromAccountTypeOptions,
@@ -99,13 +100,14 @@ public class StandingInstructionData {
         final Integer recurrenceInterval = null;
         final MonthDay recurrenceOnMonthDay = null;
         final Page<AccountTransferData> transactions = null;
+        final Integer maximumIterations = null;
 
         return new StandingInstructionData(id, accountDetailId, name, fromOffice, fromClient, fromAccountType, fromAccount, toOffice,
                 toClient, toAccountType, toAccount, transferType, priority, instructionType, status, amount, validFrom, validTill,
                 recurrenceType, recurrenceFrequency, recurrenceInterval, recurrenceOnMonthDay, transactions, fromOfficeOptions,
                 fromClientOptions, fromAccountTypeOptions, fromAccountOptions, toOfficeOptions, toClientOptions, toAccountTypeOptions,
                 toAccountOptions, transferTypeOptions, statusOptions, instructionTypeOptions, priorityOptions, recurrenceTypeOptions,
-                recurrenceFrequencyOptions);
+                recurrenceFrequencyOptions, maximumIterations);
     }
 
     public static StandingInstructionData instance(final Long id, final Long accountDetailId, final String name,
@@ -114,7 +116,7 @@ public class StandingInstructionData {
             final PortfolioAccountData toAccount, final EnumOptionData transferType, final EnumOptionData priority,
             final EnumOptionData instructionType, final EnumOptionData status, final BigDecimal amount, final LocalDate validFrom,
             final LocalDate validTill, final EnumOptionData recurrenceType, final EnumOptionData recurrenceFrequency,
-            final Integer recurrenceInterval, final MonthDay recurrenceOnMonthDay) {
+            final Integer recurrenceInterval, final MonthDay recurrenceOnMonthDay, final Integer maximumIterations) {
         final Page<AccountTransferData> transactions = null;
         final Collection<OfficeData> fromOfficeOptions = null;
         final Collection<ClientData> fromClientOptions = null;
@@ -136,7 +138,7 @@ public class StandingInstructionData {
                 recurrenceType, recurrenceFrequency, recurrenceInterval, recurrenceOnMonthDay, transactions, fromOfficeOptions,
                 fromClientOptions, fromAccountTypeOptions, fromAccountOptions, toOfficeOptions, toClientOptions, toAccountTypeOptions,
                 toAccountOptions, transferTypeOptions, statusOptions, instructionTypeOptions, priorityOptions, recurrenceTypeOptions,
-                recurrenceFrequencyOptions);
+                recurrenceFrequencyOptions, maximumIterations);
     }
 
     public static StandingInstructionData withTemplateData(StandingInstructionData instructionData, StandingInstructionData templateData) {
@@ -150,7 +152,8 @@ public class StandingInstructionData {
                 templateData.fromAccountTypeOptions, templateData.fromAccountOptions, templateData.toOfficeOptions,
                 templateData.toClientOptions, templateData.toAccountTypeOptions, templateData.toAccountOptions,
                 templateData.transferTypeOptions, templateData.statusOptions, templateData.instructionTypeOptions,
-                templateData.priorityOptions, templateData.recurrenceTypeOptions, templateData.recurrenceFrequencyOptions);
+                templateData.priorityOptions, templateData.recurrenceTypeOptions, templateData.recurrenceFrequencyOptions, 
+                templateData.maximumIterations);
     }
 
     private StandingInstructionData(final Long id, final Long accountDetailId, final String name, final OfficeData fromOffice,
@@ -166,7 +169,8 @@ public class StandingInstructionData {
             final Collection<EnumOptionData> toAccountTypeOptions, final Collection<PortfolioAccountData> toAccountOptions,
             final Collection<EnumOptionData> transferTypeOptions, final Collection<EnumOptionData> statusOptions,
             final Collection<EnumOptionData> instructionTypeOptions, final Collection<EnumOptionData> priorityOptions,
-            final Collection<EnumOptionData> recurrenceTypeOptions, final Collection<EnumOptionData> recurrenceFrequencyOptions) {
+            final Collection<EnumOptionData> recurrenceTypeOptions, final Collection<EnumOptionData> recurrenceFrequencyOptions, 
+            final Integer maximumIterations) {
         this.id = id;
         this.accountDetailId = accountDetailId;
         this.name = name;
@@ -206,6 +210,7 @@ public class StandingInstructionData {
         this.recurrenceTypeOptions = recurrenceTypeOptions;
         this.recurrenceFrequencyOptions = recurrenceFrequencyOptions;
         this.transactions = transactions;
+        this.maximumIterations = maximumIterations;
     }
 
     public static StandingInstructionData template(OfficeData fromOffice, ClientData fromClient, EnumOptionData fromAccountType,
@@ -233,13 +238,14 @@ public class StandingInstructionData {
         final Integer recurrenceInterval = null;
         final MonthDay recurrenceOnMonthDay = null;
         final Page<AccountTransferData> transactions = null;
+        final Integer maximumIterations = null;
 
         return new StandingInstructionData(id, accountDetailId, name, fromOffice, fromClient, fromAccountType, fromAccount, toOffice,
                 toClient, toAccountType, toAccount, transferType, priority, instructionType, status, amount, validFrom, validTill,
                 recurrenceType, recurrenceFrequency, recurrenceInterval, recurrenceOnMonthDay, transactions, fromOfficeOptions,
                 fromClientOptions, fromAccountTypeOptions, fromAccountOptions, toOfficeOptions, toClientOptions, toAccountTypeOptions,
                 toAccountOptions, transferTypeOptions, statusOptions, instructionTypeOptions, priorityOptions, recurrenceTypeOptions,
-                recurrenceFrequencyOptions);
+                recurrenceFrequencyOptions, maximumIterations);
     }
 
     public static StandingInstructionData withTransferData(StandingInstructionData instructionData,
@@ -254,7 +260,7 @@ public class StandingInstructionData {
                 instructionData.fromAccountOptions, instructionData.toOfficeOptions, instructionData.toClientOptions,
                 instructionData.toAccountTypeOptions, instructionData.toAccountOptions, instructionData.transferTypeOptions,
                 instructionData.statusOptions, instructionData.instructionTypeOptions, instructionData.priorityOptions,
-                instructionData.recurrenceTypeOptions, instructionData.recurrenceFrequencyOptions);
+                instructionData.recurrenceTypeOptions, instructionData.recurrenceFrequencyOptions, instructionData.maximumIterations);
     }
 
     public StandingInstructionType instructionType() {
@@ -373,4 +379,7 @@ public class StandingInstructionData {
         return this.id;
     }
 
+    public Integer maximumIterations() {
+        return this.maximumIterations;
+    }
 }

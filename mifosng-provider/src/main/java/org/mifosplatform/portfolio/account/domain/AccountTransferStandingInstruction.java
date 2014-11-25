@@ -16,6 +16,7 @@ import static org.mifosplatform.portfolio.account.api.StandingInstructionApiCons
 import static org.mifosplatform.portfolio.account.api.StandingInstructionApiConstants.statusParamName;
 import static org.mifosplatform.portfolio.account.api.StandingInstructionApiConstants.validFromParamName;
 import static org.mifosplatform.portfolio.account.api.StandingInstructionApiConstants.validTillParamName;
+import static org.mifosplatform.portfolio.account.api.StandingInstructionApiConstants.maximumIterationsParamName;
 import static org.mifosplatform.portfolio.account.AccountDetailConstants.transferTypeParamName;
 
 import java.math.BigDecimal;
@@ -92,6 +93,12 @@ public class AccountTransferStandingInstruction extends AbstractPersistable<Long
     @Temporal(TemporalType.DATE)
     @Column(name = "last_run_date")
     private Date latsRunDate;
+    
+    @Column(name = "maximum_iterations")
+    private Integer maximumIterations;
+    
+    @Column(name = "completed_iterations")
+    private Integer completedIterations;
 
     protected AccountTransferStandingInstruction() {
 
@@ -100,7 +107,7 @@ public class AccountTransferStandingInstruction extends AbstractPersistable<Long
     public static AccountTransferStandingInstruction create(final AccountTransferDetails accountTransferDetails, final String name,
             final Integer priority, final Integer instructionType, final Integer status, final BigDecimal amount,
             final LocalDate validFrom, final LocalDate validTill, final Integer recurrenceType, final Integer recurrenceFrequency,
-            final Integer recurrenceInterval, final MonthDay recurrenceOnMonthDay) {
+            final Integer recurrenceInterval, final MonthDay recurrenceOnMonthDay, final Integer maximumIterations) {
         Integer recurrenceOnDay = null;
         Integer recurrenceOnMonth = null;
         if (recurrenceOnMonthDay != null) {
@@ -108,13 +115,14 @@ public class AccountTransferStandingInstruction extends AbstractPersistable<Long
             recurrenceOnMonth = recurrenceOnMonthDay.getMonthOfYear();
         }
         return new AccountTransferStandingInstruction(accountTransferDetails, name, priority, instructionType, status, amount, validFrom,
-                validTill, recurrenceType, recurrenceFrequency, recurrenceInterval, recurrenceOnDay, recurrenceOnMonth);
+                validTill, recurrenceType, recurrenceFrequency, recurrenceInterval, recurrenceOnDay, recurrenceOnMonth, maximumIterations);
     }
 
     private AccountTransferStandingInstruction(final AccountTransferDetails accountTransferDetails, final String name,
             final Integer priority, final Integer instructionType, final Integer status, final BigDecimal amount,
             final LocalDate validFrom, final LocalDate validTill, final Integer recurrenceType, final Integer recurrenceFrequency,
-            final Integer recurrenceInterval, final Integer recurrenceOnDay, final Integer recurrenceOnMonth) {
+            final Integer recurrenceInterval, final Integer recurrenceOnDay, final Integer recurrenceOnMonth, 
+            final Integer maximumIterations) {
         this.accountTransferDetails = accountTransferDetails;
         this.name = name;
         this.priority = priority;
@@ -134,6 +142,7 @@ public class AccountTransferStandingInstruction extends AbstractPersistable<Long
         this.recurrenceInterval = recurrenceInterval;
         this.recurrenceOnDay = recurrenceOnDay;
         this.recurrenceOnMonth = recurrenceOnMonth;
+        this.maximumIterations = maximumIterations;
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
         final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
                 .resource(STANDING_INSTRUCTION_RESOURCE_NAME);
@@ -222,6 +231,13 @@ public class AccountTransferStandingInstruction extends AbstractPersistable<Long
             actualChanges.put(recurrenceIntervalParamName, newValue);
             this.recurrenceInterval = newValue;
         }
+        
+        if (command.isChangeInIntegerParameterNamed(maximumIterationsParamName, this.maximumIterations)) {
+            final Integer newValue = command.integerValueOfParameterNamed(maximumIterationsParamName);
+            actualChanges.put(maximumIterationsParamName, newValue);
+            this.maximumIterations = newValue;
+        }
+        
         validateDependencies(baseDataValidator);
         if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
         return actualChanges;
@@ -277,5 +293,39 @@ public class AccountTransferStandingInstruction extends AbstractPersistable<Long
     
     public void updateStatus(Integer status){
         this.status = status;
+    }
+    
+    public Integer getOutstandingIterations() {
+        Integer outstandingIterations = 0;
+        
+        if (this.getMaximumIterations() > this.getCompletedIterations()) {
+            outstandingIterations = this.getMaximumIterations() - this.getCompletedIterations();
+        }
+        
+        return outstandingIterations;
+    }
+    
+    public Integer getCompletedIterations() {
+        Integer completedIterations = 0;
+        
+        if (this.completedIterations != null) {
+            completedIterations = this.completedIterations;
+        }
+        
+        return completedIterations;
+    }
+    
+    public Integer getMaximumIterations() {
+        Integer maximumIterations = 0;
+        
+        if (this.maximumIterations != null) {
+            maximumIterations = this.maximumIterations;
+        }
+        
+        return maximumIterations;
+    }
+    
+    public void updateCompletedIterations(Integer completedIterations) {
+        this.completedIterations = completedIterations;
     }
 }

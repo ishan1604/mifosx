@@ -463,7 +463,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 
                 AccountTransferStandingInstruction accountTransferStandingInstruction = AccountTransferStandingInstruction.create(
                         accountTransferDetails, name, priority, instructionType, status, null, validFrom, null, 
-                        recurrenceType, null, null, null);
+                        recurrenceType, null, null, null, null);
                 accountTransferDetails.updateAccountTransferStandingInstruction(accountTransferStandingInstruction);
                 
                 this.accountTransferDetailRepository.save(accountTransferDetails);

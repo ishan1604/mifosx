@@ -45,6 +45,7 @@ import org.mifosplatform.portfolio.common.domain.PeriodFrequencyType;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.DefaultScheduledDateGenerator;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.ScheduledDateGenerator;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountRepositoryWrapper;
 import org.mifosplatform.portfolio.savings.exception.InsufficientAccountBalanceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +67,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
     private final StandingInstructionReadPlatformService standingInstructionReadPlatformService;
     private final AccountTransfersWritePlatformService accountTransfersWritePlatformService;
     private final JdbcTemplate jdbcTemplate;
+    private final SavingsAccountRepositoryWrapper savingsAccountRepository;
 
     @Autowired
     public StandingInstructionWritePlatformServiceImpl(final StandingInstructionDataValidator standingInstructionDataValidator,
@@ -73,7 +75,8 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
             final AccountTransferDetailRepository accountTransferDetailRepository,
             final StandingInstructionRepository standingInstructionRepository,
             final StandingInstructionReadPlatformService standingInstructionReadPlatformService,
-            final AccountTransfersWritePlatformService accountTransfersWritePlatformService, final RoutingDataSource dataSource) {
+            final AccountTransfersWritePlatformService accountTransfersWritePlatformService, final RoutingDataSource dataSource, 
+            final SavingsAccountRepositoryWrapper savingsAccountRepository) {
         this.standingInstructionDataValidator = standingInstructionDataValidator;
         this.standingInstructionAssembler = standingInstructionAssembler;
         this.accountTransferDetailRepository = accountTransferDetailRepository;
@@ -81,6 +84,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
         this.standingInstructionReadPlatformService = standingInstructionReadPlatformService;
         this.accountTransfersWritePlatformService = accountTransfersWritePlatformService;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.savingsAccountRepository = savingsAccountRepository;
     }
 
     @Transactional
@@ -215,6 +219,34 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
                 if (recurrenceType.isDuesRecurrence()) {
                     isDueForTransfer = new LocalDate().equals(standingInstructionDuesData.dueDate());
                 }
+                
+                if (isSavingsToLoanAccountTransfer(data.fromAccountType(), data.toAccountType())) {
+                    SavingsAccount savingsAccount = this.savingsAccountRepository.findOneWithNotFoundDetection(data.fromAccount().accountId());
+                    BigDecimal savingsAccountBalance = savingsAccount.getSummary().getAccountBalance();
+                    
+                    if(savingsAccountBalance != null && savingsAccountBalance.compareTo(BigDecimal.ZERO) > 0 
+                            && (savingsAccountBalance.compareTo(transactionAmount) == -1)) {
+                        transactionAmount = savingsAccountBalance;
+                    }
+                }
+            }
+            
+            if (instructionType.isFixedAmoutTransfer() && isDueForTransfer && data.maximumIterations() != null && data.maximumIterations() > 0) {
+                AccountTransferStandingInstruction standingInstructionsForUpdate = this.standingInstructionRepository.findOne(data.getId());
+                isDueForTransfer = false;
+                
+                if (standingInstructionsForUpdate.getOutstandingIterations() > 0) {
+                    isDueForTransfer = true;
+                    Integer completedIterations = standingInstructionsForUpdate.getCompletedIterations() + 1;
+                    
+                    standingInstructionsForUpdate.updateCompletedIterations(completedIterations);
+                }
+                
+                if (standingInstructionsForUpdate.getOutstandingIterations() == 0) { 
+                    standingInstructionsForUpdate.updateStatus(StandingInstructionStatus.DISABLED.getValue());
+                }
+                
+                this.standingInstructionRepository.save(standingInstructionsForUpdate);
             }
 
             if (isDueForTransfer && transactionAmount != null && transactionAmount.compareTo(BigDecimal.ZERO) > 0) {
@@ -224,7 +256,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
                 accountTransferDetails.accountTransferStandingInstruction().updateLatsRunDate(transactionDate.toDate());
                 AccountTransferDTO accountTransferDTO = new AccountTransferDTO(transactionDate, transactionAmount, data.fromAccountType(),
                         data.toAccountType(), data.fromAccount().accountId(), data.toAccount().accountId(), data.name()
-                                + " Standing instruction trasfer ", null, null, null, null, data.toTransferType(), null, null, data
+                                + " Standing instruction transfer ", null, null, null, null, data.toTransferType(), null, null, data
                                 .transferType().getValue(), accountTransferDetails, null, null, null, null, fromSavingsAccount,
                         isRegularTransaction);
                 transferAmount(sb, accountTransferDTO, data.getId());

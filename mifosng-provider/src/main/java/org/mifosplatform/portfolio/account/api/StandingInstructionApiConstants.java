@@ -27,6 +27,7 @@ public class StandingInstructionApiConstants {
     public static final String recurrenceIntervalParamName = "recurrenceInterval";
     public static final String recurrenceOnMonthDayParamName = "recurrenceOnMonthDay";
     public static final String monthDayFormatParamName = "monthDayFormat";
+    public static final String maximumIterationsParamName = "maximumIterations";
 
     public static final Set<String> CREATE_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(
             AccountDetailConstants.localeParamName, AccountDetailConstants.dateFormatParamName,
@@ -36,12 +37,13 @@ public class StandingInstructionApiConstants {
             AccountDetailConstants.toAccountTypeParamName, AccountDetailConstants.toAccountIdParamName,
             AccountDetailConstants.transferTypeParamName, priorityParamName, instructionTypeParamName, statusParamName, amountParamName,
             validFromParamName, validTillParamName, recurrenceTypeParamName, recurrenceFrequencyParamName, recurrenceIntervalParamName,
-            recurrenceOnMonthDayParamName, nameParamName, monthDayFormatParamName));
+            recurrenceOnMonthDayParamName, nameParamName, monthDayFormatParamName, maximumIterationsParamName));
 
     public static final Set<String> UPDATE_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(
             AccountDetailConstants.localeParamName, AccountDetailConstants.dateFormatParamName, priorityParamName,
             instructionTypeParamName, statusParamName, amountParamName, validFromParamName, validTillParamName, recurrenceTypeParamName,
-            recurrenceFrequencyParamName, recurrenceIntervalParamName, recurrenceOnMonthDayParamName, monthDayFormatParamName));
+            recurrenceFrequencyParamName, recurrenceIntervalParamName, recurrenceOnMonthDayParamName, monthDayFormatParamName, 
+            maximumIterationsParamName));
 
     public static final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList(AccountDetailConstants.idParamName,
             nameParamName, priorityParamName, instructionTypeParamName, statusParamName, AccountDetailConstants.transferTypeParamName,
