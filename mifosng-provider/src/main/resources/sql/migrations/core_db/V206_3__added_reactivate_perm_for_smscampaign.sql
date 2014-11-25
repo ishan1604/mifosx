@@ -1,7 +1,3 @@
-Alter table sms_messages_outbound
-Add column campaign_name varchar(200);
-
-
 INSERT INTO  `m_permission` (
 `id` ,
 `grouping` ,

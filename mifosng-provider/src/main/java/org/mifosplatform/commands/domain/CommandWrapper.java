@@ -267,6 +267,9 @@ public class CommandWrapper {
     public boolean isSmsCampaignClosure() {
         return this.actionName.equalsIgnoreCase("CLOSE") && this.entityName.equalsIgnoreCase("SMS_CAMPAIGN");
     }
+    public boolean isSmsCampaignReactivation(){
+        return this.actionName.equals("REACTIVATE") && this.entityName.equalsIgnoreCase("SMS_CAMPAIGN");
+    }
 
     public boolean isCodeResource() {
         return this.entityName.equalsIgnoreCase("CODE");
