@@ -29,6 +29,9 @@ public class RegisteredTable extends AbstractPersistable<Long> {
     @Column(name = "category")
     private Integer category;
 
+    @Column(name="system_defined")
+    private boolean systemDefined;
+
     public RegisteredTable() {
     }
 
@@ -47,4 +50,6 @@ public class RegisteredTable extends AbstractPersistable<Long> {
     public void updateCategory(final Integer category){
         this.category = category;
     }
+
+    public boolean isSystemDefined() {return this.systemDefined;}
 }

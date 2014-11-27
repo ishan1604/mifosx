@@ -318,7 +318,8 @@ public class GenericDataServiceImpl implements GenericDataService {
             sql.append("xr.id as id, ");
             sql.append("xr.field_name as columnName, ");
             sql.append("xr.label_name as labelName, ");
-            sql.append("xr.ordering as ordering ");
+            sql.append("xr.ordering as ordering, ");
+            sql.append("xr.system_defined as systemDefined ");
             sql.append("from x_registered_table_metadata xr ");
 
             this.schema = sql.toString();
@@ -334,7 +335,8 @@ public class GenericDataServiceImpl implements GenericDataService {
             final String columnName = rs.getString("columnName");
             final Long order = JdbcSupport.getLong(rs, "ordering");
             final String labelName = rs.getString("labelName");
-            return MetaDataResultSet.createMetaDataResultSet(id,columnName,labelName,order);
+            final boolean systemDefined = rs.getBoolean("systemDefined");
+            return MetaDataResultSet.createMetaDataResultSet(id,columnName,labelName,order,systemDefined);
         }
     }
 }
