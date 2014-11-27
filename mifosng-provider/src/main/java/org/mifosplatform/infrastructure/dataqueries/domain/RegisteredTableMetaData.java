@@ -36,6 +36,9 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
     @Column(name = "ordering")
     private Integer order;
 
+    @Column(name="system_defined")
+    private boolean systemDefined;
+
 
     public RegisteredTableMetaData() {
     }
@@ -108,4 +111,8 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
     public void updateLabelName(final String labelName){
           this.labelName = labelName;
     }
+
+    public boolean isSystemDefined() { return this.systemDefined;}
+
+    public void updateIsSystemDefined(final boolean systemDefined) { this.systemDefined = systemDefined;}
 }

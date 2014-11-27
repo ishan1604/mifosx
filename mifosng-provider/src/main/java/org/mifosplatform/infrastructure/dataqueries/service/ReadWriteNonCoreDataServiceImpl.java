@@ -47,6 +47,7 @@ import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTable;
 import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableMetaData;
 import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableMetaDataRepository;
 import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableRepository;
+import org.mifosplatform.infrastructure.dataqueries.exception.DataTableIsSystemDefined;
 import org.mifosplatform.infrastructure.dataqueries.exception.DatatableNotFoundException;
 import org.mifosplatform.infrastructure.dataqueries.exception.DatatableSystemErrorException;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
@@ -145,7 +146,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
 
         // PERMITTED datatables
-        final String sql = "select application_table_name, registered_table_name,category" + " from x_registered_table " + " where exists"
+        final String sql = "select application_table_name, registered_table_name,category,system_defined" + " from x_registered_table " + " where exists"
                 + " (select 'f'" + " from m_appuser_role ur " + " join m_role r on r.id = ur.role_id"
                 + " left join m_role_permission rp on rp.role_id = r.id" + " left join m_permission p on p.id = rp.permission_id"
                 + " where ur.appuser_id = " + this.context.authenticatedUser().getId()
@@ -159,13 +160,15 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String appTableName = rs.getString("application_table_name");
             final String registeredDatatableName = rs.getString("registered_table_name");
             final Long category                   = rs.getLong("category");
+            final boolean systemDefined = rs.getBoolean("system_defined");
+
 
             final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService
                     .fillResultsetColumnHeaders(registeredDatatableName);
 
             final List<MetaDataResultSet> metaDataResultSets = this.genericDataService.retrieveRegisteredTableMetaData(registeredDatatableName);
 
-            datatables.add(DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets));
+            datatables.add(DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined));
         }
 
         return datatables;
@@ -175,7 +178,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     public DatatableData retrieveDatatable(final String datatable) {
 
         // PERMITTED datatables
-        final String sql = "select application_table_name, registered_table_name,category" + " from x_registered_table " + " where exists"
+        final String sql = "select application_table_name, registered_table_name,category,system_defined" + " from x_registered_table " + " where exists"
                 + " (select 'f'" + " from m_appuser_role ur " + " join m_role r on r.id = ur.role_id"
                 + " left join m_role_permission rp on rp.role_id = r.id" + " left join m_permission p on p.id = rp.permission_id"
                 + " where ur.appuser_id = " + this.context.authenticatedUser().getId() + " and registered_table_name='" + datatable + "'"
@@ -189,11 +192,12 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String appTableName = rs.getString("application_table_name");
             final String registeredDatatableName = rs.getString("registered_table_name");
             final Long category                 =  rs.getLong("category");
+            final boolean systemDefined = rs.getBoolean("system_defined");
             final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService
                     .fillResultsetColumnHeaders(registeredDatatableName);
 
             final List<MetaDataResultSet> metaDataResultSets = this.genericDataService.retrieveRegisteredTableMetaData(registeredDatatableName);
-            datatableData = DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets);
+            datatableData = DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined);
         }
 
         return datatableData;
@@ -457,6 +461,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         final boolean dataTableExists = new Boolean(dataTableExistsString);
         if (!dataTableExists) { throw new PlatformDataIntegrityException("error.msg.invalid.datatable", "Invalid Data Table: "
                 + datatableName, "name", datatableName); }
+    }
+
+    private boolean isDataTableSystemDefined(final String name){
+        final String sql = "select if((exists (select 1 from x_registered_table where registered_table_name = ? and system_defined = ?)) = 1, 'true', 'false')";
+        final Integer system_defined = 1;
+        final String isRegisteredDataTable = this.jdbcTemplate.queryForObject(sql, String.class, new Object[] { name,system_defined });
+        return new Boolean(isRegisteredDataTable);
     }
 
     private void validateDatatableName(final String name) {
@@ -1069,6 +1080,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         try {
             this.context.authenticatedUser();
             if (!isRegisteredDataTable(datatableName)) { throw new DatatableNotFoundException(datatableName); }
+            if (isDataTableSystemDefined(datatableName)) { throw new DataTableIsSystemDefined(datatableName); }
+
+
             validateDatatableName(datatableName);
             deregisterDatatable(datatableName);
             String[] sqlArray = null;

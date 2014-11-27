@@ -62,10 +62,12 @@ public class ReadSurveyServiceImpl implements ReadSurveyService {
             final String registeredDatatableName = rs.getString("registered_table_name");
             final boolean enabled = rs.getBoolean("enabled");
             final Long category = rs.getLong("category");
+            final boolean systemDefined = rs.getBoolean("system_defined");
+
             final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService
                     .fillResultsetColumnHeaders(registeredDatatableName);
 
-            surveyDataTables.add(SurveyDataTableData.create(DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,null),
+            surveyDataTables.add(SurveyDataTableData.create(DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,null,systemDefined),
                     enabled));
         }
 
@@ -74,7 +76,7 @@ public class ReadSurveyServiceImpl implements ReadSurveyService {
 
     private String retrieveAllSurveySQL(String andClause) {
         // PERMITTED datatables
-        return "select application_table_name, cf.enabled, registered_table_name" + " from x_registered_table "
+        return "select application_table_name, cf.enabled, registered_table_name,system_defined" + " from x_registered_table "
                 + " left join c_configuration cf on x_registered_table.registered_table_name = cf.name " + " where exists" + " (select 'f'"
                 + " from m_appuser_role ur " + " join m_role r on r.id = ur.role_id"
                 + " left join m_role_permission rp on rp.role_id = r.id" + " left join m_permission p on p.id = rp.permission_id"
@@ -86,7 +88,7 @@ public class ReadSurveyServiceImpl implements ReadSurveyService {
 
     @Override
     public SurveyDataTableData retrieveSurvey(String surveyName) {
-        final String sql = "select cf.enabled,category, application_table_name, registered_table_name" + " from x_registered_table "
+        final String sql = "select cf.enabled,category, application_table_name, registered_table_name,system_defined" + " from x_registered_table "
                 + " left join c_configuration cf on x_registered_table.registered_table_name = cf.name " + " where exists" + " (select 'f'"
                 + " from m_appuser_role ur " + " join m_role r on r.id = ur.role_id"
                 + " left join m_role_permission rp on rp.role_id = r.id" + " left join m_permission p on p.id = rp.permission_id"
@@ -102,10 +104,11 @@ public class ReadSurveyServiceImpl implements ReadSurveyService {
             final String registeredDatatableName = rs.getString("registered_table_name");
             final boolean enabled = rs.getBoolean("enabled");
             final Long category = rs.getLong("category");
+            final boolean systemDefined = rs.getBoolean("system_defined");
             final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService
                     .fillResultsetColumnHeaders(registeredDatatableName);
 
-            datatableData = SurveyDataTableData.create(DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,null),
+            datatableData = SurveyDataTableData.create(DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,null,systemDefined),
                     enabled);
 
         }
