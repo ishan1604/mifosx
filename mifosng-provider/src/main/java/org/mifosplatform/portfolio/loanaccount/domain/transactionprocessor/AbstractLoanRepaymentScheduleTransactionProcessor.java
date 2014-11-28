@@ -52,7 +52,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
 
         if (charges != null) {
             for (final LoanCharge loanCharge : charges) {
-                if (!loanCharge.isDueAtDisbursement()) {
+                if (!loanCharge.isDueAtDisbursement() ) {
                     loanCharge.resetPaidAmount(currency);
                 }
             }
@@ -76,10 +76,13 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                 final Set<LoanChargePaidBy> chargePaidBies = loanTransaction.getLoanChargesPaid();
                 final Set<LoanCharge> transferCharges = new HashSet<>();
                 for (final LoanChargePaidBy chargePaidBy : chargePaidBies) {
-                    LoanCharge loanCharge = chargePaidBy.getLoanCharge();
-                    transferCharges.add(loanCharge);
-                    if (loanCharge.isInstalmentFee()) {
-                        chargePaidDetails.addAll(loanCharge.fetchRepaymentInstallment(currency));
+                     LoanCharge loanCharge = chargePaidBy.getLoanCharge();
+                    if(!loanCharge.isWaived())
+                    {  
+                        transferCharges.add(loanCharge);
+                        if (loanCharge.isInstalmentFee()) {
+                            chargePaidDetails.addAll(loanCharge.fetchRepaymentInstallment(currency));
+                        }
                     }
                 }
                 LocalDate startDate = disbursementDate;
@@ -327,7 +330,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
         LoanCharge installemntCharge = null;
         LoanInstallmentCharge chargePerInstallment = null;
         for (final LoanCharge loanCharge : charges) {
-            if (loanCharge.isNotFullyPaid() && !loanCharge.isDueAtDisbursement()) {
+            if (loanCharge.isNotFullyPaid() && !loanCharge.isDueAtDisbursement() && !loanCharge.isWaived()) {
                 if (loanCharge.isInstalmentFee()) {
                     LoanInstallmentCharge unpaidLoanChargePerInstallment = loanCharge.getUnpaidInstallmentLoanCharge();
                     if (chargePerInstallment == null
