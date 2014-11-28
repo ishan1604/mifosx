@@ -234,9 +234,14 @@ public class SmsCampaign extends AbstractPersistable<Long> {
 
             throw new PlatformApiDataValidationException(dataValidationErrors);
         }
+        if(this.campaignType.intValue() == SmsCampaignType.SCHEDULE.getValue()){
+            this.nextTriggerDate = null;
+            this.lastTriggerDate = null;
+        }
         this.closedBy = currentUser;
         this.closureDate = closureLocalDate.toDate();
         this.status     = SmsCampaignStatus.CLOSED.getValue();
+        validateClosureDate();
     }
 
     public void reactivate(final AppUser currentUser, final DateTimeFormatter dateTimeFormat,final LocalDate reactivateLocalDate){
@@ -259,6 +264,8 @@ public class SmsCampaign extends AbstractPersistable<Long> {
         this.closureDate = null;
         this.isVisible = true;
         this.closedBy = null;
+
+        validateReactivate();
     }
 
     public void delete(){
@@ -305,6 +312,18 @@ public class SmsCampaign extends AbstractPersistable<Long> {
         if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
     }
 
+    private void validateReactivate(){
+        final List<ApiParameterError> dataValidationErrors = new ArrayList<ApiParameterError>();
+        validateReactivationDate(dataValidationErrors);
+        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
+    }
+
+    private void validateClosureDate(){
+        final List<ApiParameterError> dataValidationErrors = new ArrayList<ApiParameterError>();
+        validateClosureDate(dataValidationErrors);
+        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
+    }
+
     private void validateActivationDate(final List<ApiParameterError> dataValidationErrors) {
 
         if (getSubmittedOnDate() != null && isDateInTheFuture(getSubmittedOnDate())) {
@@ -336,6 +355,44 @@ public class SmsCampaign extends AbstractPersistable<Long> {
 
     }
 
+    private void validateReactivationDate(final List<ApiParameterError> dataValidationErrors){
+        if (getActivationLocalDate() != null && isDateInTheFuture(getActivationLocalDate())) {
+
+            final String defaultUserMessage = "Activation date cannot be in the future.";
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.campaign.activationDate.in.the.future",
+                    defaultUserMessage, SmsCampaignValidator.activationDateParamName, getActivationLocalDate());
+
+            dataValidationErrors.add(error);
+        }
+        if (getActivationLocalDate() != null && getSubmittedOnDate() != null && getSubmittedOnDate().isAfter(getActivationLocalDate())) {
+
+            final String defaultUserMessage = "submitted date cannot be after the activation date";
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.campaign.submittedOnDate.after.activation.date",
+                    defaultUserMessage, SmsCampaignValidator.submittedOnDateParamName, this.submittedOnDate);
+
+            dataValidationErrors.add(error);
+        }
+        if (getSubmittedOnDate() != null && isDateInTheFuture(getSubmittedOnDate())) {
+
+            final String defaultUserMessage = "submitted date cannot be in the future.";
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.campaign.submittedOnDate.in.the.future",
+                    defaultUserMessage, SmsCampaignValidator.submittedOnDateParamName, this.submittedOnDate);
+
+            dataValidationErrors.add(error);
+        }
+
+    }
+
+    private void validateClosureDate(final List<ApiParameterError> dataValidationErrors){
+        if (getClosureDate() != null && isDateInTheFuture(getClosureDate())) {
+            final String defaultUserMessage = "closure date cannot be in the future.";
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.campaign.closureDate.in.the.future",
+                    defaultUserMessage, SmsCampaignValidator.closureDateParamName, this.closureDate);
+
+            dataValidationErrors.add(error);
+        }
+    }
+
 
 
 
@@ -343,6 +400,9 @@ public class SmsCampaign extends AbstractPersistable<Long> {
     public LocalDate getSubmittedOnDate() {
         return (LocalDate) ObjectUtils.defaultIfNull(new LocalDate(this.submittedOnDate), null);
 
+    }
+    public LocalDate getClosureDate() {
+        return (LocalDate) ObjectUtils.defaultIfNull(new LocalDate(this.closureDate), null);
     }
 
     public LocalDate getActivationLocalDate() {
