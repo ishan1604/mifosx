@@ -49,6 +49,8 @@ import org.mifosplatform.portfolio.fund.domain.Fund;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.AprCalculator;
 import org.mifosplatform.portfolio.loanproduct.LoanProductConstants;
 import org.springframework.data.jpa.domain.AbstractPersistable;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProductConfigurableAttributes;
+import org.mifosplatform.portfolio.loanproduct.exception.InvalidCurrencyException;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -131,7 +133,7 @@ public class LoanProduct extends AbstractPersistable<Long> {
     @LazyCollection(LazyCollectionOption.FALSE)
     @OneToOne(cascade = CascadeType.ALL, mappedBy = "loanProduct", optional = true, orphanRemoval = true)
     private LoanProductInterestRecalculationDetails productInterestRecalculationDetails;
-    
+
     @ManyToMany
     @JoinTable(name = "m_product_loan_credit_check", joinColumns = @JoinColumn(name = "product_loan_id"), inverseJoinColumns = @JoinColumn(name = "credit_check_id"))
     private List<CreditCheck> creditChecks;
@@ -142,6 +144,10 @@ public class LoanProduct extends AbstractPersistable<Long> {
     @LazyCollection(LazyCollectionOption.FALSE)
     @OneToOne(cascade = CascadeType.ALL, mappedBy = "loanProduct", optional = true, orphanRemoval = true)
     private LoanProductGuaranteeDetails loanProductGuaranteeDetails;
+    
+    @LazyCollection(LazyCollectionOption.FALSE)
+    @OneToOne(cascade = CascadeType.ALL, mappedBy = "loanProduct", optional = true, orphanRemoval = true)
+    private LoanProductConfigurableAttributes loanConfigurableAttributes; 
 
     public static LoanProduct assembleFromJson(final Fund fund, final LoanTransactionProcessingStrategy loanTransactionProcessingStrategy,
             final List<Charge> productCharges, final JsonCommand command, final AprCalculator aprCalculator,
@@ -232,6 +238,17 @@ public class LoanProduct extends AbstractPersistable<Long> {
         if (holdGuarantorFunds) {
             loanProductGuaranteeDetails = LoanProductGuaranteeDetails.createFrom(command);
         }
+        
+        LoanProductConfigurableAttributes loanConfigurableAttributes = null;
+    	if (command.parameterExists(LoanProductConstants.configurableAttributesParameterName)) {
+            final JsonArray attributeArray = command.arrayOfParameterNamed(LoanProductConstants.configurableAttributesParameterName);
+            if(attributeArray != null && attributeArray.size()>0){
+            	loanConfigurableAttributes = LoanProductConfigurableAttributes.createFrom(command,attributeArray);
+            }
+            else{
+            	loanConfigurableAttributes = LoanProductConfigurableAttributes.populateDefaultsForConfigurableAttributes();
+            }
+        }
 
         return new LoanProduct(fund, loanTransactionProcessingStrategy, name, shortName, description, currency, principal, minPrincipal,
                 maxPrincipal, interestRatePerPeriod, minInterestRatePerPeriod, maxInterestRatePerPeriod, interestFrequencyType,
@@ -239,9 +256,9 @@ public class LoanProduct extends AbstractPersistable<Long> {
                 numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, graceOnPrincipalPayment, graceOnInterestPayment,
                 graceOnInterestCharged, amortizationMethod, inArrearsTolerance, productCharges, accountingRuleType, includeInBorrowerCycle,
                 startDate, closeDate, externalId, useBorrowerCycle, loanProductBorrowerCycleVariations, multiDisburseLoan, maxTrancheCount,
-                outstandingLoanBalance, graceOnArrearsAgeing, overdueDaysForNPA, daysInMonthType, daysInYearType,
+                outstandingLoanBalance, graceOnArrearsAgeing, overdueDaysForNPA, daysInMonthType, daysInYearType, 
                 isInterestRecalculationEnabled, interestRecalculationSettings, minimumDaysBetweenDisbursalAndFirstRepayment,
-                holdGuarantorFunds, loanProductGuaranteeDetails, creditChecks);
+                holdGuarantorFunds, loanProductGuaranteeDetails, creditChecks, loanConfigurableAttributes);
 
     }
 
@@ -462,11 +479,11 @@ public class LoanProduct extends AbstractPersistable<Long> {
             final LocalDate closeDate, final String externalId, final boolean useBorrowerCycle,
             final Set<LoanProductBorrowerCycleVariations> loanProductBorrowerCycleVariations, final boolean multiDisburseLoan,
             final Integer maxTrancheCount, final BigDecimal outstandingLoanBalance, final Integer graceOnArrearsAgeing,
-            final Integer overdueDaysForNPA, final DaysInMonthType daysInMonthType, final DaysInYearType daysInYearType,
+            final Integer overdueDaysForNPA, final DaysInMonthType daysInMonthType, final DaysInYearType daysInYearType, 
             final boolean isInterestRecalculationEnabled,
             final LoanProductInterestRecalculationDetails productInterestRecalculationDetails,
             final Integer minimumDaysBetweenDisbursalAndFirstRepayment, final boolean holdGuarantorFunds,
-            final LoanProductGuaranteeDetails loanProductGuaranteeDetails, final List<CreditCheck> creditChecks) {
+            final LoanProductGuaranteeDetails loanProductGuaranteeDetails, final List<CreditCheck> creditChecks, final LoanProductConfigurableAttributes loanProductConfigurableAttributes ) {
         this.fund = fund;
         this.transactionProcessingStrategy = transactionProcessingStrategy;
         this.name = name.trim();
@@ -511,6 +528,11 @@ public class LoanProduct extends AbstractPersistable<Long> {
         this.borrowerCycleVariations = loanProductBorrowerCycleVariations;
         for (LoanProductBorrowerCycleVariations borrowerCycleVariations : this.borrowerCycleVariations) {
             borrowerCycleVariations.updateLoanProduct(this);
+        }
+        if(loanProductConfigurableAttributes != null){
+        	this.loanConfigurableAttributes = loanProductConfigurableAttributes;
+        
+        	loanConfigurableAttributes.updateLoanProduct(this);
         }
         this.loanProducTrancheDetails = new LoanProductTrancheDetails(multiDisburseLoan, maxTrancheCount, outstandingLoanBalance);
         this.overdueDaysForNPA = overdueDaysForNPA;
@@ -588,6 +610,13 @@ public class LoanProduct extends AbstractPersistable<Long> {
         return this.accountingRule;
     }
 
+    public void update(final LoanProductConfigurableAttributes loanConfigurableAttributes ) {
+        this.loanConfigurableAttributes = loanConfigurableAttributes;
+    }
+    
+    public LoanProductConfigurableAttributes getLoanProductConfigurableAttributes(){
+    	return this.loanConfigurableAttributes;
+    }
     public Map<String, Object> update(final JsonCommand command, final AprCalculator aprCalculator) {
 
         final Map<String, Object> actualChanges = this.loanProductRelatedDetail.update(command, aprCalculator);
@@ -780,6 +809,22 @@ public class LoanProduct extends AbstractPersistable<Long> {
         } else if (this.holdGuaranteeFunds) {
             this.loanProductGuaranteeDetails.update(command, actualChanges);
         }
+        
+        final String configurableAttributesChanges = LoanProductConstants.configurableAttributesParameterName;
+        if (command.hasParameter(configurableAttributesChanges)) {
+            final JsonArray jsonArray = command.arrayOfParameterNamed(configurableAttributesChanges);
+            if (jsonArray != null) {
+                actualChanges.put(configurableAttributesChanges, command.jsonFragment(configurableAttributesChanges));
+                if(jsonArray.size() > 0){
+                	this.loanConfigurableAttributes = LoanProductConfigurableAttributes.createFrom(command, jsonArray);
+                	this.loanConfigurableAttributes.updateLoanProduct(this);
+                }
+                else{
+                	this.loanConfigurableAttributes = LoanProductConfigurableAttributes.populateDefaultsForConfigurableAttributes();
+                	this.loanConfigurableAttributes.updateLoanProduct(this);
+                }
+            }
+        }
 
         return actualChanges;
     }
@@ -899,6 +944,10 @@ public class LoanProduct extends AbstractPersistable<Long> {
 
     public boolean isInterestRecalculationEnabled() {
         return this.loanProductRelatedDetail.isInterestRecalculationEnabled();
+    }
+    
+    public boolean isAttributeConfigurationAllowed(){
+    	return this.loanConfigurableAttributes.isAttributeConfigurationAllowed();
     }
 
     public Integer getMinimumDaysBetweenDisbursalAndFirstRepayment() {
@@ -1040,4 +1089,8 @@ public class LoanProduct extends AbstractPersistable<Long> {
     public Collection<Charge> getCharges() {
         return this.charges;
     }
+
+	public LoanProductRelatedDetail getLoanProductRelatedDetail() {
+		return loanProductRelatedDetail;
+	}
 }
