@@ -32,6 +32,7 @@ import org.mifosplatform.portfolio.loanproduct.domain.LoanProductValueConditionT
 import org.mifosplatform.portfolio.loanproduct.domain.RecalculationFrequencyType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProductConfigurableAttributes;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -71,8 +72,9 @@ public final class LoanProductDataValidator {
             LoanProductConstants.interestRecalculationCompoundingMethodParameterName,
             LoanProductConstants.recalculationRestFrequencyDateParamName,
             LoanProductConstants.recalculationRestFrequencyIntervalParameterName,
-            LoanProductConstants.recalculationRestFrequencyTypeParameterName, 
-            CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME));
+            LoanProductConstants.recalculationRestFrequencyTypeParameterName,
+            CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME, LoanProductConstants.configurableAttributesParameterName));
+
 
     private final FromJsonHelper fromApiJsonHelper;
 
@@ -388,10 +390,52 @@ public final class LoanProductDataValidator {
         }
 
         validateMultiDisburseLoanData(baseDataValidator, element);
+        
+        validateLoanConfigurableAttributes(baseDataValidator,element);
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
     }
 
+    private void validateLoanConfigurableAttributes(final DataValidatorBuilder baseDataValidator, final JsonElement element){
+    		if (this.fromApiJsonHelper.parameterExists(LoanProductConstants.configurableAttributesParameterName, element)) {
+                final JsonArray attributeArray = this.fromApiJsonHelper.extractJsonArrayNamed(LoanProductConstants.configurableAttributesParameterName, element);
+                final Boolean[] bool = new Boolean[attributeArray.size()];
+                int counter = 0;
+                
+                for(int i=0;i<attributeArray.size();i++){
+                	JsonElement attributeElement = attributeArray.get(i);
+
+	                	/*Get all boolean values to bool array */ 
+	                	bool[i] = this.fromApiJsonHelper.extractBooleanNamed(LoanProductConfigurableAttributes.getAllowedLoanConfigurableAttributes()[i], attributeElement);
+	                	/*Validate the boolean value */
+	                	baseDataValidator.reset()
+	                					 .parameter(LoanProductConstants.configurableAttributesParameterName)
+	                					 .value(bool[i])
+	                					 .ignoreIfNull()
+	                					 .validateForBooleanValue();
+	                	
+	                	if(bool[i]!= null && bool[i]){
+	                		/* Counter contains the number of checkboxes set to true */
+	                		counter++;
+	                	}                	
+                }
+                /* All boolean values are set to false */
+                if(counter == 0){
+                	return;
+                }
+                /* isConfigLoanAttributes is set to true,but none of the configurable attributes are checked. */
+                if(bool[0]  && counter == 1){
+                	/* Error : Atleast one configurable attribute should be set to true*/
+                	 baseDataValidator.reset().parameter(LoanProductConstants.configurableAttributesParameterName).value(bool[0]).isTrue();                	 
+                }
+                /*If isConfigLoanAttributes is false then none of the configurable attributes should be true */
+                else if(bool[0] == false && counter > 0){
+                	/* Should we throw an error for this condition ?? */
+                }
+
+    		}
+    }
+    
     private void validateMultiDisburseLoanData(final DataValidatorBuilder baseDataValidator, final JsonElement element) {
         Boolean multiDisburseLoan = false;
         if (this.fromApiJsonHelper.parameterExists(LoanProductConstants.multiDisburseLoanParameterName, element)) {
@@ -789,6 +833,8 @@ public final class LoanProductDataValidator {
         }
 
         validateMultiDisburseLoanData(baseDataValidator, element);
+        
+        validateLoanConfigurableAttributes(baseDataValidator,element);
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
     }

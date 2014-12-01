@@ -32,6 +32,7 @@ import org.mifosplatform.portfolio.loanaccount.data.LoanInterestRecalculationDat
 import org.mifosplatform.portfolio.loanproduct.domain.AmortizationMethod;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestCalculationPeriodMethod;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProductConfigurableAttributes;
 import org.mifosplatform.portfolio.loanproduct.service.LoanEnumerations;
 import org.springframework.util.CollectionUtils;
 
@@ -134,9 +135,12 @@ public class LoanProductData {
     private final Boolean multiDisburseLoan;
     private final Integer maxTrancheCount;
     private final BigDecimal outstandingLoanBalance;
-    
+
     private final Collection<CreditCheckData> creditChecks;
     private final Collection<CreditCheckData> creditCheckOptions;
+
+    private final LoanProductConfigurableAttributes loanProductConfigurableAttributes;
+
 
     /**
      * Used when returning lookup information about loan product for dropdowns.
@@ -190,7 +194,11 @@ public class LoanProductData {
         final EnumOptionData daysInYearType = null;
         final boolean isInterestRecalculationEnabled = false;
         final LoanProductInterestRecalculationData interestRecalculationData = null;
+
         final Collection<CreditCheckData> creditChecks = null;
+
+        final LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
+
 
         return new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
                 numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
@@ -200,7 +208,9 @@ public class LoanProductData {
                 accountingType, includeInBorrowerCycle, useBorrowerCycle, startDate, closeDate, status, externalId, principalVariations,
                 interestRateVariations, numberOfRepaymentVariations, multiDisburseLoan, maxTrancheCount, outstandingLoanBalance,
                 graceOnArrearsAgeing, overdueDaysForNPA, daysInMonthType, daysInYearType, isInterestRecalculationEnabled,
-                interestRecalculationData, creditChecks);
+
+                interestRecalculationData, creditChecks,loanProductConfigurableAttributes);
+
     }
 
     public static LoanProductData lookupWithCurrency(final Long id, final String name, final CurrencyData currency) {
@@ -253,7 +263,11 @@ public class LoanProductData {
         final EnumOptionData daysInYearType = null;
         final boolean isInterestRecalculationEnabled = false;
         final LoanProductInterestRecalculationData interestRecalculationData = null;
+
         final Collection<CreditCheckData> creditChecks = null;
+
+        final LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
+
 
         return new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
                 numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
@@ -263,7 +277,8 @@ public class LoanProductData {
                 accountingType, includeInBorrowerCycle, useBorrowerCycle, startDate, closeDate, status, externalId, principalVariations,
                 interestRateVariations, numberOfRepaymentVariations, multiDisburseLoan, maxTrancheCount, outstandingLoanBalance,
                 graceOnArrearsAgeing, overdueDaysForNPA, daysInMonthType, daysInYearType, isInterestRecalculationEnabled,
-                interestRecalculationData, creditChecks);
+                interestRecalculationData, creditChecks,loanProductConfigurableAttributes);
+
     }
 
     public static LoanProductData sensibleDefaultsForNewLoanProductCreation() {
@@ -323,7 +338,11 @@ public class LoanProductData {
         final boolean isInterestRecalculationEnabled = false;
         final LoanProductInterestRecalculationData interestRecalculationData = LoanProductInterestRecalculationData
                 .sensibleDefaultsForNewLoanProductCreation();
+
         final Collection<CreditCheckData> creditChecks = null;
+
+        final LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
+
 
         return new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
                 numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
@@ -333,7 +352,8 @@ public class LoanProductData {
                 accountingType, includeInBorrowerCycle, useBorrowerCycle, startDate, closeDate, status, externalId,
                 principalVariationsForBorrowerCycle, interestRateVariationsForBorrowerCycle, numberOfRepaymentVariationsForBorrowerCycle,
                 multiDisburseLoan, maxTrancheCount, outstandingLoanBalance, graceOnArrearsAgeing, overdueDaysForNPA, daysInMonthType,
-                daysInYearType, isInterestRecalculationEnabled, interestRecalculationData, creditChecks);
+                daysInYearType, isInterestRecalculationEnabled, interestRecalculationData, creditChecks,loanProductConfigurableAttributes);
+
     }
 
     public static LoanProductData withAccountingDetails(final LoanProductData productData, final Map<String, Object> accountingMappings,
@@ -363,8 +383,10 @@ public class LoanProductData {
             Collection<LoanProductBorrowerCycleVariationData> numberOfRepaymentVariations, Boolean multiDisburseLoan,
             Integer maxTrancheCount, BigDecimal outstandingLoanBalance, final Integer graceOnArrearsAgeing,
             final Integer overdueDaysForNPA, final EnumOptionData daysInMonthType, final EnumOptionData daysInYearType,
+
             final boolean isInterestRecalculationEnabled, final LoanProductInterestRecalculationData interestRecalculationData, 
-            final Collection<CreditCheckData> creditChecks) {
+            final Collection<CreditCheckData> creditChecks,LoanProductConfigurableAttributes loanProductConfigurableAttributes) {
+
         this.id = id;
         this.name = name;
         this.shortName = shortName;
@@ -434,8 +456,9 @@ public class LoanProductData {
         this.daysInYearType = daysInYearType;
         this.isInterestRecalculationEnabled = isInterestRecalculationEnabled;
         this.interestRecalculationData = interestRecalculationData;
-        this.creditChecks = creditChecks;
 
+        this.creditChecks = creditChecks;
+        this.loanProductConfigurableAttributes = loanProductConfigurableAttributes;
         this.daysInMonthTypeOptions = null;
         this.daysInYearTypeOptions = null;
         this.interestRecalculationCompoundingTypeOptions = null;
@@ -541,8 +564,12 @@ public class LoanProductData {
         this.daysInYearTypeOptions = daysInYearTypeOptions;
         this.interestRecalculationCompoundingTypeOptions = interestRecalculationCompoundingTypeOptions;
         this.rescheduleStrategyTypeOptions = rescheduleStrategyTypeOptions;
+
         this.creditChecks =  productData.creditChecks;
         this.creditCheckOptions = creditCheckOptions;
+
+        this.loanProductConfigurableAttributes = productData.loanProductConfigurableAttributes;
+
 
         if (CollectionUtils.isEmpty(interestRecalculationFrequencyTypeOptions)) {
             this.interestRecalculationFrequencyTypeOptions = null;
@@ -812,5 +839,10 @@ public class LoanProductData {
      */
     public Collection<CreditCheckData> getCreditCheckOptions() {
         return creditCheckOptions;
+    }
+
+    public LoanProductConfigurableAttributes getloanProductConfigurableAttributes(){
+    	return this.loanProductConfigurableAttributes;
+
     }
 }

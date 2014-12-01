@@ -10,15 +10,6 @@
  */
 package org.mifosplatform.portfolio.loanaccount.data;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.persistence.Transient;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.codes.data.CodeValueData;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
@@ -28,7 +19,6 @@ import org.mifosplatform.portfolio.account.data.PortfolioAccountData;
 import org.mifosplatform.portfolio.calendar.data.CalendarData;
 import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.collateral.data.CollateralData;
-import org.mifosplatform.portfolio.creditcheck.data.CreditCheckData;
 import org.mifosplatform.portfolio.fund.data.FundData;
 import org.mifosplatform.portfolio.group.data.GroupGeneralData;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanStatus;
@@ -37,9 +27,17 @@ import org.mifosplatform.portfolio.loanaccount.loanschedule.data.LoanScheduleDat
 import org.mifosplatform.portfolio.loanproduct.data.LoanProductBorrowerCycleVariationData;
 import org.mifosplatform.portfolio.loanproduct.data.LoanProductData;
 import org.mifosplatform.portfolio.loanproduct.data.TransactionProcessingStrategyData;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProductConfigurableAttributes;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductValueConditionType;
 import org.mifosplatform.portfolio.note.data.NoteData;
 import org.springframework.util.CollectionUtils;
+
+import javax.persistence.Transient;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Immutable data object representing loan account data.
@@ -100,6 +98,7 @@ public class LoanAccountData {
     private final LocalDate interestChargedFromDate;
     private final LocalDate expectedFirstRepaymentOnDate;
     private final Boolean syncDisbursementWithMeeting;
+    private final LoanProductConfigurableAttributes loanProductConfigurableAttributes;
 
     // timeline
     private final LoanApplicationTimelineData timeline;
@@ -267,7 +266,11 @@ public class LoanAccountData {
         final LoanInterestRecalculationData interestRecalculationData = null;
         final LoanScheduleData originalSchedule = null;
         final Boolean createStandingInstructionAtDisbursement = null;
+
         final Collection<LoanCreditCheckData> creditChecks = null;
+
+        final LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
+
 
         return new LoanAccountData(id, accountNo, status, externalId, clientId, clientName, clientOfficeId, group, loanType, loanProductId,
                 loanProductName, loanProductDescription, fundId, fundName, loanPurposeId, loanPurposeName, loanOfficerId, loanOfficerName,
@@ -283,9 +286,10 @@ public class LoanAccountData {
                 syncDisbursementWithMeeting, loancounter, loanProductCounter, notes, accountLinkingOptions, linkedAccount,
                 disbursementData, multiDisburseLoan, fixedEmiAmount, maxOutstandingLoanBalance, emiAmountVariations, memberVariations,
                 product, inArrears, graceOnArrearsAgeing, overdueCharges, isNPA, daysInMonthType, daysInYearType,
+
                 isInterestRecalculationEnabled, interestRecalculationData, originalSchedule, createStandingInstructionAtDisbursement, 
-                creditChecks);
-    }
+                creditChecks,loanProductConfigurableAttributes);
+ }
 
     /**
      * Used to produce a {@link LoanAccountData} with only client information
@@ -380,7 +384,9 @@ public class LoanAccountData {
         final LoanInterestRecalculationData interestRecalculationData = null;
         final LoanScheduleData originalSchedule = null;
         final Boolean createStandingInstructionAtDisbursement = null;
+
         final Collection<LoanCreditCheckData> creditChecks = null;
+        final LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
 
         return new LoanAccountData(id, accountNo, status, externalId, clientId, clientName, clientOfficeId, group, loanType, loanProductId,
                 loanProductName, loanProductDescription, fundId, fundName, loanPurposeId, loanPurposeName, loanOfficerId, loanOfficerName,
@@ -396,7 +402,10 @@ public class LoanAccountData {
                 notes, accountLinkingOptions, linkedAccount, disbursementData, multiDisburseLoan, fixedEmiAmount,
                 maxOutstandingLoanBalance, emiAmountVariations, memberVariations, product, inArrears, graceOnArrearsAgeing, overdueCharges,
                 isNPA, daysInMonthType, daysInYearType, isInterestRecalculationEnabled, interestRecalculationData, originalSchedule, 
-                createStandingInstructionAtDisbursement, creditChecks);
+                createStandingInstructionAtDisbursement, creditChecks,loanProductConfigurableAttributes);
+
+
+
     }
 
     public static LoanAccountData populateClientDefaults(final LoanAccountData acc, final LoanAccountData clientAcc) {
@@ -419,7 +428,9 @@ public class LoanAccountData {
                 acc.linkedAccount, acc.disbursementDetails, acc.multiDisburseLoan, acc.fixedEmiAmount, acc.maxOutstandingLoanBalance,
                 acc.emiAmountVariations, acc.memberVariations, acc.product, acc.inArrears, acc.graceOnArrearsAgeing, acc.overdueCharges,
                 acc.isNPA, acc.daysInMonthType, acc.daysInYearType, acc.isInterestRecalculationEnabled, acc.interestRecalculationData,
-                acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks);
+
+                acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks,acc.loanProductConfigurableAttributes);
+
     }
 
     /**
@@ -516,7 +527,9 @@ public class LoanAccountData {
         final LoanInterestRecalculationData interestRecalculationData = null;
         final LoanScheduleData originalSchedule = null;
         final Boolean createStandingInstructionAtDisbursement = null;
+
         final Collection<LoanCreditCheckData> creditChecks = null;
+        final LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
 
         return new LoanAccountData(id, accountNo, status, externalId, clientId, clientName, clientOfficeId, group, loanType, loanProductId,
                 loanProductName, loanProductDescription, fundId, fundName, loanPurposeId, loanPurposeName, loanOfficerId, loanOfficerName,
@@ -532,7 +545,9 @@ public class LoanAccountData {
                 notes, accountLinkingOptions, linkedAccount, disbursementData, multiDisburseLoan, fixedEmiAmount, maxOutstandingBalance,
                 emiAmountVariations, memberVariations, product, inArrears, graceOnArrearsAgeing, overdueCharges, isNPA, daysInMonthType,
                 daysInYearType, isInterestRecalculationEnabled, interestRecalculationData, originalSchedule, 
-                createStandingInstructionAtDisbursement, creditChecks);
+                createStandingInstructionAtDisbursement, creditChecks,loanProductConfigurableAttributes);
+
+
     }
 
     public static LoanAccountData populateGroupDefaults(final LoanAccountData acc, final LoanAccountData groupAcc) {
@@ -554,7 +569,9 @@ public class LoanAccountData {
                 acc.linkedAccount, acc.disbursementDetails, acc.multiDisburseLoan, acc.fixedEmiAmount, acc.maxOutstandingLoanBalance,
                 acc.emiAmountVariations, acc.memberVariations, acc.product, acc.inArrears, acc.graceOnArrearsAgeing, acc.overdueCharges,
                 acc.isNPA, acc.daysInMonthType, acc.daysInYearType, acc.isInterestRecalculationEnabled, acc.interestRecalculationData,
-                acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks);
+
+                acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks,acc.loanProductConfigurableAttributes);
+
     }
 
     public static LoanAccountData loanProductWithTemplateDefaults(final LoanProductData product,
@@ -664,7 +681,10 @@ public class LoanAccountData {
         final Boolean isNPA = null;
         final LoanScheduleData originalSchedule = null;
         final Boolean createStandingInstructionAtDisbursement = null;
+
         final Collection<LoanCreditCheckData> creditChecks = null;
+
+        final LoanProductConfigurableAttributes loanProductConfigurableAttributes = product.getloanProductConfigurableAttributes();
 
         return new LoanAccountData(id, accountNo, status, externalId, clientId, clientName, clientOfficeId, group, loanType,
                 product.getId(), product.getName(), product.getDescription(), product.getFundId(), product.getFundName(), loanPurposeId,
@@ -683,7 +703,8 @@ public class LoanAccountData {
                 product.getOutstandingLoanBalance(), emiAmountVariations, memberVariations, product, inArrears,
                 product.getGraceOnArrearsAgeing(), product.overdueFeeCharges(), isNPA, product.getDaysInMonthType(),
                 product.getDaysInYearType(), product.isInterestRecalculationEnabled(), product.toLoanInterestRecalculationData(),
-                originalSchedule, createStandingInstructionAtDisbursement, creditChecks);
+                originalSchedule, createStandingInstructionAtDisbursement, creditChecks,loanProductConfigurableAttributes);
+
     }
 
     public static LoanAccountData populateLoanProductDefaults(final LoanAccountData acc, final LoanProductData product) {
@@ -737,7 +758,9 @@ public class LoanAccountData {
                 product.getOutstandingLoanBalance(), acc.emiAmountVariations, acc.memberVariations, product, acc.inArrears,
                 product.getGraceOnArrearsAgeing(), product.overdueFeeCharges(), acc.isNPA, product.getDaysInMonthType(),
                 product.getDaysInYearType(), product.isInterestRecalculationEnabled(), product.toLoanInterestRecalculationData(),
-                acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks);
+
+                acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks,acc.loanProductConfigurableAttributes);
+
     }
 
     /*
@@ -793,7 +816,9 @@ public class LoanAccountData {
         final LoanProductData product = null;
         final Collection<ChargeData> overdueCharges = null;
         final LoanScheduleData originalSchedule = null;
+
         final Collection<LoanCreditCheckData> creditChecks = null;
+        final LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
 
         return new LoanAccountData(id, accountNo, status, externalId, clientId, clientName, clientOfficeId, group, loanType, loanProductId,
                 loanProductName, loanProductDescription, fundId, fundName, loanPurposeId, loanPurposeName, loanOfficerId, loanOfficerName,
@@ -809,7 +834,9 @@ public class LoanAccountData {
                 notes, accountLinkingOptions, linkedAccount, disbursementData, multiDisburseLoan, fixedEmiAmont, outstandingLoanBalance,
                 emiAmountVariations, memberVariations, product, inArrears, graceOnArrearsAgeing, overdueCharges, isNPA, daysInMonthType,
                 daysInYearType, isInterestRecalculationEnabled, interestRecalculationData, originalSchedule, createStandingInstructionAtDisbursement, 
-                creditChecks);
+                creditChecks,loanProductConfigurableAttributes);
+
+
     }
 
     /*
@@ -849,7 +876,8 @@ public class LoanAccountData {
                 acc.maxOutstandingLoanBalance, emiAmountVariations, acc.memberVariations, acc.product, acc.inArrears,
                 acc.graceOnArrearsAgeing, overdueCharges, acc.isNPA, acc.daysInMonthType, acc.daysInYearType,
                 acc.isInterestRecalculationEnabled, acc.interestRecalculationData, acc.originalSchedule, 
-                acc.createStandingInstructionAtDisbursement, creditChecks);
+                acc.createStandingInstructionAtDisbursement, creditChecks,acc.loanProductConfigurableAttributes);
+
     }
 
     public static LoanAccountData associationsAndTemplate(final LoanAccountData acc, final Collection<LoanProductData> productOptions,
@@ -881,7 +909,8 @@ public class LoanAccountData {
                 acc.linkedAccount, acc.disbursementDetails, acc.multiDisburseLoan, acc.fixedEmiAmount, acc.maxOutstandingLoanBalance,
                 acc.emiAmountVariations, acc.memberVariations, acc.product, acc.inArrears, acc.graceOnArrearsAgeing, acc.overdueCharges,
                 acc.isNPA, acc.daysInMonthType, acc.daysInYearType, acc.isInterestRecalculationEnabled, acc.interestRecalculationData,
-                acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks);
+                acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks,acc.loanProductConfigurableAttributes);
+
     }
 
     public static LoanAccountData associateMemberVariations(final LoanAccountData acc, final Map<Long, Integer> memberLoanCycle) {
@@ -939,7 +968,8 @@ public class LoanAccountData {
                 acc.linkedAccount, acc.disbursementDetails, acc.multiDisburseLoan, acc.fixedEmiAmount, acc.maxOutstandingLoanBalance,
                 acc.emiAmountVariations, memberVariations, acc.product, acc.inArrears, acc.graceOnArrearsAgeing, acc.overdueCharges,
                 acc.isNPA, acc.daysInMonthType, acc.daysInYearType, acc.isInterestRecalculationEnabled, acc.interestRecalculationData,
-                acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks);
+                acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks,acc.loanProductConfigurableAttributes);
+
     }
 
     public static LoanAccountData withInterestRecalculationCalendarData(final LoanAccountData acc, final CalendarData calendarData) {
@@ -963,7 +993,8 @@ public class LoanAccountData {
                 acc.linkedAccount, acc.disbursementDetails, acc.multiDisburseLoan, acc.fixedEmiAmount, acc.maxOutstandingLoanBalance,
                 acc.emiAmountVariations, acc.memberVariations, acc.product, acc.inArrears, acc.graceOnArrearsAgeing, acc.overdueCharges,
                 acc.isNPA, acc.daysInMonthType, acc.daysInYearType, acc.isInterestRecalculationEnabled, interestRecalculationData,
-                acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks);
+                acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks,acc.loanProductConfigurableAttributes);
+
     }
 
     public static LoanAccountData withOriginalSchedule(final LoanAccountData acc, final LoanScheduleData originalSchedule) {
@@ -985,7 +1016,8 @@ public class LoanAccountData {
                 acc.linkedAccount, acc.disbursementDetails, acc.multiDisburseLoan, acc.fixedEmiAmount, acc.maxOutstandingLoanBalance,
                 acc.emiAmountVariations, acc.memberVariations, acc.product, acc.inArrears, acc.graceOnArrearsAgeing, acc.overdueCharges,
                 acc.isNPA, acc.daysInMonthType, acc.daysInYearType, acc.isInterestRecalculationEnabled, acc.interestRecalculationData,
-                originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks);
+                originalSchedule, acc.createStandingInstructionAtDisbursement, acc.creditChecks,acc.loanProductConfigurableAttributes);
+
     }
 
     private LoanAccountData(
@@ -1042,7 +1074,8 @@ public class LoanAccountData {
             final Collection<ChargeData> overdueCharges, final Boolean isNPA, final EnumOptionData daysInMonthType,
             final EnumOptionData daysInYearType, final boolean isInterestRecalculationEnabled,
             final LoanInterestRecalculationData interestRecalculationData, final LoanScheduleData originalSchedule, 
-            final Boolean createStandingInstructionAtDisbursement, final Collection<LoanCreditCheckData> creditChecks) {
+            final Boolean createStandingInstructionAtDisbursement, final Collection<LoanCreditCheckData> creditChecks,final LoanProductConfigurableAttributes loanProductConfigurableAttributes) {
+
         this.id = id;
         this.accountNo = accountNo;
         this.status = status;
@@ -1189,6 +1222,8 @@ public class LoanAccountData {
         this.originalSchedule = originalSchedule;
         this.createStandingInstructionAtDisbursement = createStandingInstructionAtDisbursement;
         this.creditChecks = creditChecks;
+        this.loanProductConfigurableAttributes = loanProductConfigurableAttributes;
+
     }
 
     public RepaymentScheduleRelatedLoanData repaymentScheduleRelatedData() {
