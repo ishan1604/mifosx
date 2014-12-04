@@ -38,6 +38,7 @@ import org.mifosplatform.infrastructure.core.exception.PlatformServiceUnavailabl
 import org.mifosplatform.infrastructure.core.serialization.DatatableCommandFromApiJsonDeserializer;
 import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.mifosplatform.infrastructure.core.serialization.JsonParserHelper;
+import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.infrastructure.dataqueries.api.DataTableApiConstant;
 import org.mifosplatform.infrastructure.dataqueries.data.*;
@@ -777,7 +778,10 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
         if (mandatory != null) {
             if (mandatory) {
-                sqlBuilder = sqlBuilder.append(" NOT NULL");
+                if(type !=null && type.equalsIgnoreCase("date")){
+                    final LocalDate today = DateUtils.getLocalDateOfTenant();
+                    sqlBuilder =sqlBuilder.append(" NOT NULL DEFAULT "+"'"+today.toString()+"'");
+                } else { sqlBuilder = sqlBuilder.append(" NOT NULL"); }
             } else {
                 sqlBuilder = sqlBuilder.append(" DEFAULT NULL");
             }
