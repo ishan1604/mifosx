@@ -54,21 +54,24 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
     private final FromJsonHelper fromApiJsonHelper;
 
     private final GLJournalEntryMapper entryMapper = new GLJournalEntryMapper();
+    
+    private final String selectRunningBalanceSqlLimit = "limit 0, 10000";
+    
     private final String officeRunningBalanceSql = "select je.office_running_balance as runningBalance,je.account_id as accountId from acc_gl_journal_entry je "
             + "inner join (select max(id) as id from acc_gl_journal_entry where office_id=?  and entry_date < ? group by account_id,entry_date) je2 "
             + "inner join (select max(entry_date) as date from acc_gl_journal_entry where office_id=? and entry_date < ? group by account_id) je3 "
-            + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC";
+            + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC " + selectRunningBalanceSqlLimit;
 
     private final String organizationRunningBalanceSql = "select je.organization_running_balance as runningBalance,je.account_id as accountId from acc_gl_journal_entry je "
             + "inner join (select max(id) as id from acc_gl_journal_entry where entry_date < ? group by account_id,entry_date) je2 "
             + "inner join (select max(entry_date) as date from acc_gl_journal_entry where entry_date < ? group by account_id) je3 "
-            + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC";
+            + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC " + selectRunningBalanceSqlLimit;
 
     private final String officesRunningBalanceSql = "select je.office_running_balance as runningBalance,je.account_id as accountId,je.office_id as officeId "
             + "from acc_gl_journal_entry je "
             + "inner join (select max(id) as id from acc_gl_journal_entry where entry_date < ? group by office_id,account_id,entry_date) je2 "
             + "inner join (select max(entry_date) as date from acc_gl_journal_entry where entry_date < ? group by office_id,account_id) je3 "
-            + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC";
+            + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC " + selectRunningBalanceSqlLimit;
 
     @Autowired
     public JournalEntryRunningBalanceUpdateServiceImpl(final RoutingDataSource dataSource, final OfficeRepository officeRepository,
@@ -150,7 +153,7 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
         List<JournalEntryData> entryDatas = jdbcTemplate.query(entryMapper.organizationRunningBalanceSchema(), entryMapper,
                 new Object[] { entityDate });
         if (entryDatas.size() > 0) {
-            String[] updateSql = new String[entryDatas.size()];
+            String[] updateSql = new String[1000];
             int i = 0;
             for (JournalEntryData entryData : entryDatas) {
                 Map<Long, BigDecimal> officeRunningBalanceMap = null;
@@ -165,6 +168,11 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
                 String sql = "UPDATE acc_gl_journal_entry je SET je.is_running_balance_calculated=1, je.organization_running_balance="
                         + runningBalance + ",je.office_running_balance=" + officeRunningBalance + " WHERE  je.id=" + entryData.getId();
                 updateSql[i++] = sql;
+                if(i == 999){
+                    this.jdbcTemplate.batchUpdate(updateSql);
+                    i = 0;
+                    updateSql = new String[1000];
+                }
             }
             this.jdbcTemplate.batchUpdate(updateSql);
         }
