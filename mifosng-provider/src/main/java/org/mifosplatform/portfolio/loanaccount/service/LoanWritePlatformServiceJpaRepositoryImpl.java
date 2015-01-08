@@ -73,10 +73,8 @@ import org.mifosplatform.portfolio.calendar.domain.CalendarRepository;
 import org.mifosplatform.portfolio.calendar.domain.CalendarType;
 import org.mifosplatform.portfolio.calendar.exception.CalendarParameterUpdateNotSupportedException;
 import org.mifosplatform.portfolio.charge.domain.Charge;
-import org.mifosplatform.portfolio.charge.domain.ChargeCalculationType;
 import org.mifosplatform.portfolio.charge.domain.ChargePaymentMode;
 import org.mifosplatform.portfolio.charge.domain.ChargeRepositoryWrapper;
-import org.mifosplatform.portfolio.charge.domain.ChargeTimeType;
 import org.mifosplatform.portfolio.charge.exception.LoanChargeCannotBeAddedException;
 import org.mifosplatform.portfolio.charge.exception.LoanChargeCannotBeDeletedException;
 import org.mifosplatform.portfolio.charge.exception.LoanChargeCannotBeDeletedException.LOAN_CHARGE_CANNOT_BE_DELETED_REASON;
@@ -155,9 +153,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 
 @Service
 public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatformService {
@@ -196,6 +192,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     private final LoanApplicationCommandFromApiJsonHelper loanApplicationCommandFromApiJsonHelper;
     private final AccountAssociationsRepository accountAssociationRepository;
     private final AccountTransferDetailRepository accountTransferDetailRepository;
+    private final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService;
 
     @Autowired
     public LoanWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -220,7 +217,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             final LoanScheduleHistoryWritePlatformService loanScheduleHistoryWritePlatformService,
             final LoanApplicationCommandFromApiJsonHelper loanApplicationCommandFromApiJsonHelper, 
             final AccountAssociationsRepository accountAssociationRepository, 
-            final AccountTransferDetailRepository accountTransferDetailRepository) {
+            final AccountTransferDetailRepository accountTransferDetailRepository, 
+            final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService) {
         this.context = context;
         this.loanEventApiJsonValidator = loanEventApiJsonValidator;
         this.loanAssembler = loanAssembler;
@@ -253,6 +251,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         this.loanApplicationCommandFromApiJsonHelper = loanApplicationCommandFromApiJsonHelper;
         this.accountAssociationRepository = accountAssociationRepository;
         this.accountTransferDetailRepository = accountTransferDetailRepository;
+        this.loanCreditCheckWritePlatformService = loanCreditCheckWritePlatformService;
     }
 
     private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
@@ -282,6 +281,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             final LocalDate actualDisbursementDate = command.localDateValueOfParameterNamed("actualDisbursementDate");
             this.loanEventApiJsonValidator.validateDisbursementDateWithMeetingDate(actualDisbursementDate, calendarInstance);
         }
+        
+        // run any credit check associated with the loan
+        this.loanCreditCheckWritePlatformService.runLoanCreditChecks(loanId);
 
         final MonetaryCurrency currency = loan.getCurrency();
         final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepository.findOneWithNotFoundDetection(currency);
