@@ -11,25 +11,15 @@ import java.util.List;
 
 final public class ReportData {
 
-    @SuppressWarnings("unused")
     private final Long id;
-    @SuppressWarnings("unused")
     private final String reportName;
-    @SuppressWarnings("unused")
     private final String reportType;
-    @SuppressWarnings("unused")
     private final String reportSubType;
-    @SuppressWarnings("unused")
     private final String reportCategory;
-    @SuppressWarnings("unused")
     private final String description;
-    @SuppressWarnings("unused")
     private final String reportSql;
-    @SuppressWarnings("unused")
     private final Boolean coreReport;
-    @SuppressWarnings("unused")
     private final Boolean useReport;
-    @SuppressWarnings("unused")
     private final Collection<ReportParameterData> reportParameters;
 
     @SuppressWarnings("unused")
@@ -88,6 +78,76 @@ final public class ReportData {
 
         this.allowedParameters = allowedParameters;
 
+    }
+
+    /**
+     * @return the id
+     */
+    public Long getId() {
+        return id;
+    }
+
+    /**
+     * @return the reportName
+     */
+    public String getReportName() {
+        return reportName;
+    }
+
+    /**
+     * @return the reportType
+     */
+    public String getReportType() {
+        return reportType;
+    }
+
+    /**
+     * @return the reportSubType
+     */
+    public String getReportSubType() {
+        return reportSubType;
+    }
+
+    /**
+     * @return the reportCategory
+     */
+    public String getReportCategory() {
+        return reportCategory;
+    }
+
+    /**
+     * @return the description
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * @return the reportSql
+     */
+    public String getReportSql() {
+        return reportSql;
+    }
+
+    /**
+     * @return the coreReport
+     */
+    public Boolean getCoreReport() {
+        return coreReport;
+    }
+
+    /**
+     * @return the useReport
+     */
+    public Boolean getUseReport() {
+        return useReport;
+    }
+
+    /**
+     * @return the reportParameters
+     */
+    public Collection<ReportParameterData> getReportParameters() {
+        return reportParameters;
     }
 
 }

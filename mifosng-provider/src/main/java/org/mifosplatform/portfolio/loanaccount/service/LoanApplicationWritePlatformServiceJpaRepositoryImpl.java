@@ -139,7 +139,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     private final ConfigurationDomainService configurationDomainService;
     private final LoanScheduleAssembler loanScheduleAssembler;
     private final LoanUtilService loanUtilService;
-
+    private final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService;
+    
     @Autowired
     public LoanApplicationWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context, final FromJsonHelper fromJsonHelper,
             final LoanApplicationTransitionApiJsonValidator loanApplicationTransitionApiJsonValidator,
@@ -157,7 +158,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             final LoanReadPlatformService loanReadPlatformService,
             final AccountNumberFormatRepositoryWrapper accountNumberFormatRepository,
             final BusinessEventNotifierService businessEventNotifierService, final ConfigurationDomainService configurationDomainService,
-            final LoanScheduleAssembler loanScheduleAssembler, final LoanUtilService loanUtilService) {
+            final LoanScheduleAssembler loanScheduleAssembler, final LoanUtilService loanUtilService, 
+            final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService) {
         this.context = context;
         this.fromJsonHelper = fromJsonHelper;
         this.loanApplicationTransitionApiJsonValidator = loanApplicationTransitionApiJsonValidator;
@@ -187,6 +189,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         this.configurationDomainService = configurationDomainService;
         this.loanScheduleAssembler = loanScheduleAssembler;
         this.loanUtilService = loanUtilService;
+        this.loanCreditCheckWritePlatformService = loanCreditCheckWritePlatformService;
     }
 
     private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
@@ -888,6 +891,9 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         final Map<String, Object> changes = loan.loanApplicationApproval(currentUser, command, disbursementDataArray,
                 defaultLoanLifecycleStateMachine());
 
+        // run loan credit checks
+        this.loanCreditCheckWritePlatformService.runLoanCreditChecks(loan);
+
         if (!changes.isEmpty()) {
 
             // If loan approved amount less than loan demanded amount, then need
@@ -1114,5 +1120,4 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         map.put(entityEvent, entity);
         return map;
     }
-
 }

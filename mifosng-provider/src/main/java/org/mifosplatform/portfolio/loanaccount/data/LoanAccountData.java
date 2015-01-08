@@ -28,6 +28,7 @@ import org.mifosplatform.portfolio.calendar.data.CalendarData;
 import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.collateral.data.CollateralData;
 import org.mifosplatform.portfolio.floatingrates.data.InterestRatePeriodData;
+import org.mifosplatform.portfolio.creditcheck.data.CreditCheckData;
 import org.mifosplatform.portfolio.fund.data.FundData;
 import org.mifosplatform.portfolio.group.data.GroupGeneralData;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanStatus;
@@ -185,6 +186,8 @@ public class LoanAccountData {
 
     private final LoanInterestRecalculationData interestRecalculationData;
     private final Boolean createStandingInstructionAtDisbursement;
+    
+    private final Collection<LoanCreditCheckData> creditChecks;
 
     // Paid In Advance
     private final PaidInAdvanceData paidInAdvance;
@@ -305,6 +308,8 @@ public class LoanAccountData {
         final Boolean isVariableInstallmentsAllowed = Boolean.FALSE;
         final Integer minimumGap = null;
         final Integer maximumGap = null;
+        
+        final Collection<LoanCreditCheckData> creditChecks = null;
 
         return new LoanAccountData(id, accountNo, status, externalId, clientId, clientAccountNo, clientName, clientOfficeId, group,
                 loanType, loanProductId, loanProductName, loanProductDescription, isLoanProductLinkedToFloatingRate, fundId, fundName,
@@ -324,8 +329,7 @@ public class LoanAccountData {
                 maxOutstandingLoanBalance, emiAmountVariations, memberVariations, product, inArrears, graceOnArrearsAgeing, overdueCharges,
                 isNPA, daysInMonthType, daysInYearType, isInterestRecalculationEnabled, interestRecalculationData, originalSchedule,
                 createStandingInstructionAtDisbursement, paidInAdvance, interestRatesPeriods, isVariableInstallmentsAllowed, minimumGap,
-                maximumGap);
-
+                maximumGap, creditChecks);
     }
 
     /**
@@ -437,6 +441,8 @@ public class LoanAccountData {
         final Boolean isVariableInstallmentsAllowed = Boolean.FALSE;
         final Integer minimumGap = null;
         final Integer maximumGap = null;
+        
+        final Collection<LoanCreditCheckData> creditChecks = null;
 
         return new LoanAccountData(id, accountNo, status, externalId, clientId, clientAccountNo, clientName, clientOfficeId, group,
                 loanType, loanProductId, loanProductName, loanProductDescription, isLoanProductLinkedToFloatingRate, fundId, fundName,
@@ -456,9 +462,8 @@ public class LoanAccountData {
                 maxOutstandingLoanBalance, emiAmountVariations, memberVariations, product, inArrears, graceOnArrearsAgeing, overdueCharges,
                 isNPA, daysInMonthType, daysInYearType, isInterestRecalculationEnabled, interestRecalculationData, originalSchedule,
                 createStandingInstructionAtDisbursement, paidInAdvance, interestRatesPeriods, isVariableInstallmentsAllowed, minimumGap,
-                maximumGap);
-
-    }
+                maximumGap, creditChecks); 
+        }
 
     public static LoanAccountData populateClientDefaults(final LoanAccountData acc, final LoanAccountData clientAcc) {
 
@@ -485,7 +490,7 @@ public class LoanAccountData {
                 acc.graceOnArrearsAgeing, acc.overdueCharges, acc.isNPA, acc.daysInMonthType, acc.daysInYearType,
                 acc.isInterestRecalculationEnabled, acc.interestRecalculationData, acc.originalSchedule,
                 acc.createStandingInstructionAtDisbursement, acc.paidInAdvance, acc.interestRatesPeriods,
-                acc.isVariableInstallmentsAllowed, acc.minimumGap, acc.maximumGap);
+                acc.isVariableInstallmentsAllowed, acc.minimumGap, acc.maximumGap, acc.creditChecks);
     }
 
     /**
@@ -599,6 +604,8 @@ public class LoanAccountData {
         final Boolean isVariableInstallmentsAllowed = Boolean.FALSE;
         final Integer minimumGap = null;
         final Integer maximumGap = null;
+        
+        final Collection<LoanCreditCheckData> creditChecks = null;
 
         return new LoanAccountData(id, accountNo, status, externalId, clientId, clientAccountNo, clientName, clientOfficeId, group,
                 loanType, loanProductId, loanProductName, loanProductDescription, isLoanProductLinkedToFloatingRate, fundId, fundName,
@@ -618,8 +625,7 @@ public class LoanAccountData {
                 maxOutstandingBalance, emiAmountVariations, memberVariations, product, inArrears, graceOnArrearsAgeing, overdueCharges,
                 isNPA, daysInMonthType, daysInYearType, isInterestRecalculationEnabled, interestRecalculationData, originalSchedule,
                 createStandingInstructionAtDisbursement, paidInAdvance, interestRatesPeriods, isVariableInstallmentsAllowed, minimumGap,
-                maximumGap);
-
+                maximumGap, creditChecks);
     }
 
     public static LoanAccountData populateGroupDefaults(final LoanAccountData acc, final LoanAccountData groupAcc) {
@@ -647,8 +653,7 @@ public class LoanAccountData {
                 acc.graceOnArrearsAgeing, acc.overdueCharges, acc.isNPA, acc.daysInMonthType, acc.daysInYearType,
                 acc.isInterestRecalculationEnabled, acc.interestRecalculationData, acc.originalSchedule,
                 acc.createStandingInstructionAtDisbursement, acc.paidInAdvance, acc.interestRatesPeriods,
-                acc.isVariableInstallmentsAllowed, acc.minimumGap, acc.maximumGap);
-
+                acc.isVariableInstallmentsAllowed, acc.minimumGap, acc.maximumGap, acc.creditChecks);
     }
 
     public static LoanAccountData loanProductWithTemplateDefaults(final LoanProductData product,
@@ -771,6 +776,8 @@ public class LoanAccountData {
         final Boolean isVariableInstallmentsAllowed = Boolean.FALSE;
         final Integer minimumGap = null;
         final Integer maximumGap = null;
+        
+        final Collection<LoanCreditCheckData> creditChecks = null;
 
         return new LoanAccountData(id, accountNo, status, externalId, clientId, clientAccountNo, clientName, clientOfficeId, group,
                 loanType, product.getId(), product.getName(), product.getDescription(), product.isLinkedToFloatingInterestRates(),
@@ -795,7 +802,7 @@ public class LoanAccountData {
                 product.getDaysInYearType(), product.isInterestRecalculationEnabled(), product.toLoanInterestRecalculationData(),
                 originalSchedule, createStandingInstructionAtDisbursement, paidInAdvance, interestRatesPeriods,
                 product.isVariableInstallmentsAllowed(), product.getMinimumGapBetweenInstallments(),
-                product.getMaximumGapBetweenInstallments());
+                product.getMaximumGapBetweenInstallments(), creditChecks);
     }
 
     public static LoanAccountData populateLoanProductDefaults(final LoanAccountData acc, final LoanProductData product) {
@@ -854,8 +861,7 @@ public class LoanAccountData {
                 product.getDaysInMonthType(), product.getDaysInYearType(), product.isInterestRecalculationEnabled(),
                 product.toLoanInterestRecalculationData(), acc.originalSchedule, acc.createStandingInstructionAtDisbursement,
                 paidInAdvance, acc.interestRatesPeriods, product.isVariableInstallmentsAllowed(),
-                product.getMinimumGapBetweenInstallments(), product.getMaximumGapBetweenInstallments());
-
+                product.getMinimumGapBetweenInstallments(), product.getMaximumGapBetweenInstallments(), acc.creditChecks);
     }
 
     /*
@@ -921,6 +927,8 @@ public class LoanAccountData {
         final PaidInAdvanceData paidInAdvance = null;
         final Collection<InterestRatePeriodData> interestRatesPeriods = null;
 
+        final Collection<LoanCreditCheckData> creditChecks = null;
+
         return new LoanAccountData(id, accountNo, status, externalId, clientId, clientAccountNo, clientName, clientOfficeId, group,
                 loanType, loanProductId, loanProductName, loanProductDescription, isLoanProductLinkedToFloatingRate, fundId, fundName,
                 loanPurposeId, loanPurposeName, loanOfficerId, loanOfficerName, currencyData, proposedPrincipal, principal,
@@ -939,7 +947,7 @@ public class LoanAccountData {
                 outstandingLoanBalance, emiAmountVariations, memberVariations, product, inArrears, graceOnArrearsAgeing, overdueCharges,
                 isNPA, daysInMonthType, daysInYearType, isInterestRecalculationEnabled, interestRecalculationData, originalSchedule,
                 createStandingInstructionAtDisbursement, paidInAdvance, interestRatesPeriods, isVariableInstallmentsAllowed, minimumGap,
-                maximumGap);
+                maximumGap, creditChecks);
     }
 
     /*
@@ -990,7 +998,7 @@ public class LoanAccountData {
                 acc.graceOnArrearsAgeing, overdueCharges, acc.isNPA, acc.daysInMonthType, acc.daysInYearType,
                 acc.isInterestRecalculationEnabled, acc.interestRecalculationData, acc.originalSchedule,
                 acc.createStandingInstructionAtDisbursement, paidInAdvance, interestRatesPeriods, acc.isVariableInstallmentsAllowed,
-                acc.minimumGap, acc.maximumGap);
+                acc.minimumGap, acc.maximumGap, acc.creditChecks);
     }
 
     public static LoanAccountData associationsAndTemplate(final LoanAccountData acc, final Collection<LoanProductData> productOptions,
@@ -1031,7 +1039,7 @@ public class LoanAccountData {
                 acc.graceOnArrearsAgeing, acc.overdueCharges, acc.isNPA, acc.daysInMonthType, acc.daysInYearType,
                 acc.isInterestRecalculationEnabled, acc.interestRecalculationData, acc.originalSchedule,
                 acc.createStandingInstructionAtDisbursement, acc.paidInAdvance, acc.interestRatesPeriods,
-                acc.isVariableInstallmentsAllowed, acc.minimumGap, acc.maximumGap);
+                acc.isVariableInstallmentsAllowed, acc.minimumGap, acc.maximumGap, acc.creditChecks);
     }
 
     public static LoanAccountData associateMemberVariations(final LoanAccountData acc, final Map<Long, Integer> memberLoanCycle) {
@@ -1095,8 +1103,7 @@ public class LoanAccountData {
                 acc.graceOnArrearsAgeing, acc.overdueCharges, acc.isNPA, acc.daysInMonthType, acc.daysInYearType,
                 acc.isInterestRecalculationEnabled, acc.interestRecalculationData, acc.originalSchedule,
                 acc.createStandingInstructionAtDisbursement, acc.paidInAdvance, acc.interestRatesPeriods,
-                acc.isVariableInstallmentsAllowed, acc.minimumGap, acc.maximumGap);
-
+                acc.isVariableInstallmentsAllowed, acc.minimumGap, acc.maximumGap, acc.creditChecks);
     }
 
     public static LoanAccountData withInterestRecalculationCalendarData(final LoanAccountData acc, final CalendarData calendarData,
@@ -1128,7 +1135,7 @@ public class LoanAccountData {
                 acc.graceOnArrearsAgeing, acc.overdueCharges, acc.isNPA, acc.daysInMonthType, acc.daysInYearType,
                 acc.isInterestRecalculationEnabled, interestRecalculationData, acc.originalSchedule,
                 acc.createStandingInstructionAtDisbursement, acc.paidInAdvance, acc.interestRatesPeriods,
-                acc.isVariableInstallmentsAllowed, acc.minimumGap, acc.maximumGap);
+                acc.isVariableInstallmentsAllowed, acc.minimumGap, acc.maximumGap, acc.creditChecks);
     }
 
     public static LoanAccountData withOriginalSchedule(final LoanAccountData acc, final LoanScheduleData originalSchedule) {
@@ -1156,7 +1163,7 @@ public class LoanAccountData {
                 acc.graceOnArrearsAgeing, acc.overdueCharges, acc.isNPA, acc.daysInMonthType, acc.daysInYearType,
                 acc.isInterestRecalculationEnabled, acc.interestRecalculationData, originalSchedule,
                 acc.createStandingInstructionAtDisbursement, acc.paidInAdvance, acc.interestRatesPeriods,
-                acc.isVariableInstallmentsAllowed, acc.minimumGap, acc.maximumGap);
+                acc.isVariableInstallmentsAllowed, acc.minimumGap, acc.maximumGap, acc.creditChecks);
     }
 
     private LoanAccountData(
@@ -1223,8 +1230,7 @@ public class LoanAccountData {
             final LoanInterestRecalculationData interestRecalculationData, final LoanScheduleData originalSchedule,
             final Boolean createStandingInstructionAtDisbursement, final PaidInAdvanceData paidInAdvance,
             final Collection<InterestRatePeriodData> interestRatesPeriods, final Boolean isVariableInstallmentsAllowed,
-            final Integer minimumGap, final Integer maximumGap) {
-
+            final Integer minimumGap, final Integer maximumGap, final Collection<LoanCreditCheckData> creditChecks) {
         this.id = id;
         this.accountNo = accountNo;
         this.status = status;
@@ -1389,13 +1395,16 @@ public class LoanAccountData {
         this.originalSchedule = originalSchedule;
         this.createStandingInstructionAtDisbursement = createStandingInstructionAtDisbursement;
         this.paidInAdvance = paidInAdvance;
+
         if (this.product != null) {
             this.product.setloanProductConfigurableAttributes(product.getloanProductConfigurableAttributes());
         }
+        
         this.interestRatesPeriods = interestRatesPeriods;
         this.isVariableInstallmentsAllowed = isVariableInstallmentsAllowed;
         this.minimumGap = minimumGap;
         this.maximumGap = maximumGap;
+        this.creditChecks = creditChecks;
     }
 
     public RepaymentScheduleRelatedLoanData repaymentScheduleRelatedData() {
@@ -1425,6 +1434,10 @@ public class LoanAccountData {
 
     public Long groupId() {
         return this.group == null ? null : this.group.getId();
+    }
+
+    public Boolean isGroupLoan() {
+        return this.group == null ? false : true;
     }
 
     public CurrencyData currency() {
@@ -1504,4 +1517,24 @@ public class LoanAccountData {
         return BigDecimal.ZERO;
     }
 
+    /**
+     * @return the creditChecks
+     */
+    public Collection<LoanCreditCheckData> getCreditChecks() {
+        return creditChecks;
+    }
+    
+    /** 
+     * @return the id of the loan account 
+     **/
+    public Long getId() {
+        return this.id;
+    }
+    
+    /** 
+     * @return the status of the loan account (LoanStatusEnumData) 
+     **/
+    public LoanStatusEnumData getStatus() {
+        return this.status;
+    }
 }
