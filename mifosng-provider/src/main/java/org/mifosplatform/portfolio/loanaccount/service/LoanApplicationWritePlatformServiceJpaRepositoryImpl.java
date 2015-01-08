@@ -133,6 +133,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     private final AccountNumberFormatRepositoryWrapper accountNumberFormatRepository;
     private final BusinessEventNotifierService businessEventNotifierService;
     private final ConfigurationDomainService configurationDomainService;
+    private final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService;
 
     @Autowired
     public LoanApplicationWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context, final FromJsonHelper fromJsonHelper,
@@ -150,7 +151,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository,
             final LoanReadPlatformService loanReadPlatformService, final LoanAccountDomainService loanAccountDomainService,
             final AccountNumberFormatRepositoryWrapper accountNumberFormatRepository,
-            final BusinessEventNotifierService businessEventNotifierService, final ConfigurationDomainService configurationDomainService) {
+            final BusinessEventNotifierService businessEventNotifierService, final ConfigurationDomainService configurationDomainService, 
+            final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService) {
         this.context = context;
         this.fromJsonHelper = fromJsonHelper;
         this.loanApplicationTransitionApiJsonValidator = loanApplicationTransitionApiJsonValidator;
@@ -179,6 +181,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         this.accountNumberFormatRepository = accountNumberFormatRepository;
         this.businessEventNotifierService = businessEventNotifierService;
         this.configurationDomainService = configurationDomainService;
+        this.loanCreditCheckWritePlatformService = loanCreditCheckWritePlatformService;
     }
 
     private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
@@ -293,7 +296,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             return CommandProcessingResult.empty();
         }
     }
-
+    
     private void createAndPersistCalendarInstanceForInterestRecalculation(final Loan loan) {
 
         LocalDate calendarStartDate = loan.loanInterestRecalculationDetails().getRestFrequencyLocalDate();
@@ -742,6 +745,9 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
         final Loan loan = retrieveLoanBy(loanId);
         checkClientOrGroupActive(loan);
+
+        // run loan credit checks
+        this.loanCreditCheckWritePlatformService.runLoanCreditChecks(loan);
 
         final Map<String, Object> changes = loan.loanApplicationApproval(currentUser, command, defaultLoanLifecycleStateMachine());
         if (!changes.isEmpty()) {

@@ -349,6 +349,10 @@ public class Loan extends AbstractPersistable<Long> {
 
     @Column(name = "create_standing_instruction_at_disbursement", nullable = true)
     private Boolean createStandingInstructionAtDisbursement;
+    
+    @LazyCollection(LazyCollectionOption.FALSE)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "loan", orphanRemoval = true)
+    private Set<LoanCreditCheck> creditChecks = new HashSet<>();
 
     @Column(name = "guarantee_amount_derived", scale = 6, precision = 19, nullable = true)
     private BigDecimal guaranteeAmountDerived;
@@ -358,13 +362,14 @@ public class Loan extends AbstractPersistable<Long> {
             final LoanTransactionProcessingStrategy transactionProcessingStrategy,
             final LoanProductRelatedDetail loanRepaymentScheduleDetail, final Set<LoanCharge> loanCharges,
             final Set<LoanCollateral> collateral, final BigDecimal fixedEmiAmount, final Set<LoanDisbursementDetails> disbursementDetails,
-            final BigDecimal maxOutstandingLoanBalance, final Boolean createStandingInstructionAtDisbursement) {
+            final BigDecimal maxOutstandingLoanBalance, final Boolean createStandingInstructionAtDisbursement, 
+            final Set<LoanCreditCheck> creditChecks) {
         final LoanStatus status = null;
         final Group group = null;
         final Boolean syncDisbursementWithMeeting = null;
         return new Loan(accountNo, client, group, loanType, fund, officer, loanPurpose, transactionProcessingStrategy, loanProduct,
                 loanRepaymentScheduleDetail, status, loanCharges, collateral, syncDisbursementWithMeeting, fixedEmiAmount,
-                disbursementDetails, maxOutstandingLoanBalance, createStandingInstructionAtDisbursement);
+                disbursementDetails, maxOutstandingLoanBalance, createStandingInstructionAtDisbursement, creditChecks);
     }
 
     public static Loan newGroupLoanApplication(final String accountNo, final Group group, final Integer loanType,
@@ -373,12 +378,12 @@ public class Loan extends AbstractPersistable<Long> {
             final LoanProductRelatedDetail loanRepaymentScheduleDetail, final Set<LoanCharge> loanCharges,
             final Set<LoanCollateral> collateral, final Boolean syncDisbursementWithMeeting, final BigDecimal fixedEmiAmount,
             final Set<LoanDisbursementDetails> disbursementDetails, final BigDecimal maxOutstandingLoanBalance,
-            final Boolean createStandingInstructionAtDisbursement) {
+            final Boolean createStandingInstructionAtDisbursement, final Set<LoanCreditCheck> creditChecks) {
         final LoanStatus status = null;
         final Client client = null;
         return new Loan(accountNo, client, group, loanType, fund, officer, loanPurpose, transactionProcessingStrategy, loanProduct,
                 loanRepaymentScheduleDetail, status, loanCharges, collateral, syncDisbursementWithMeeting, fixedEmiAmount,
-                disbursementDetails, maxOutstandingLoanBalance, createStandingInstructionAtDisbursement);
+                disbursementDetails, maxOutstandingLoanBalance, createStandingInstructionAtDisbursement, creditChecks);
     }
 
     public static Loan newIndividualLoanApplicationFromGroup(final String accountNo, final Client client, final Group group,
@@ -387,11 +392,11 @@ public class Loan extends AbstractPersistable<Long> {
             final LoanProductRelatedDetail loanRepaymentScheduleDetail, final Set<LoanCharge> loanCharges,
             final Set<LoanCollateral> collateral, final Boolean syncDisbursementWithMeeting, final BigDecimal fixedEmiAmount,
             final Set<LoanDisbursementDetails> disbursementDetails, final BigDecimal maxOutstandingLoanBalance,
-            final Boolean createStandingInstructionAtDisbursement) {
+            final Boolean createStandingInstructionAtDisbursement, final Set<LoanCreditCheck> creditChecks) {
         final LoanStatus status = null;
         return new Loan(accountNo, client, group, loanType, fund, officer, loanPurpose, transactionProcessingStrategy, loanProduct,
                 loanRepaymentScheduleDetail, status, loanCharges, collateral, syncDisbursementWithMeeting, fixedEmiAmount,
-                disbursementDetails, maxOutstandingLoanBalance, createStandingInstructionAtDisbursement);
+                disbursementDetails, maxOutstandingLoanBalance, createStandingInstructionAtDisbursement, creditChecks);
     }
 
     protected Loan() {
@@ -403,7 +408,8 @@ public class Loan extends AbstractPersistable<Long> {
             final LoanProduct loanProduct, final LoanProductRelatedDetail loanRepaymentScheduleDetail, final LoanStatus loanStatus,
             final Set<LoanCharge> loanCharges, final Set<LoanCollateral> collateral, final Boolean syncDisbursementWithMeeting,
             final BigDecimal fixedEmiAmount, final Set<LoanDisbursementDetails> disbursementDetails,
-            final BigDecimal maxOutstandingLoanBalance, final Boolean createStandingInstructionAtDisbursement) {
+            final BigDecimal maxOutstandingLoanBalance, final Boolean createStandingInstructionAtDisbursement, 
+            final Set<LoanCreditCheck> creditChecks) {
 
         this.loanRepaymentScheduleDetail = loanRepaymentScheduleDetail;
         this.loanRepaymentScheduleDetail.validateRepaymentPeriodWithGraceSettings();
@@ -457,7 +463,14 @@ public class Loan extends AbstractPersistable<Long> {
          */
 
         this.proposedPrincipal = this.loanRepaymentScheduleDetail.getPrincipal().getAmount();
-
+        
+        if (creditChecks != null && !creditChecks.isEmpty()) {
+            this.creditChecks = associateLoanCreditChecksWithThisLoan(creditChecks);
+        }
+        
+        else {
+            this.creditChecks = null;
+        }
     }
 
     private LoanSummary updateSummaryWithTotalFeeChargesDueAtDisbursement(final BigDecimal feeChargesDueAtDisbursement) {
@@ -494,6 +507,13 @@ public class Loan extends AbstractPersistable<Long> {
             item.associateWith(this);
         }
         return collateral;
+    }
+    
+    private Set<LoanCreditCheck> associateLoanCreditChecksWithThisLoan(final Set<LoanCreditCheck> loanCreditChecks) {
+        for (final LoanCreditCheck loanCreditCheck : loanCreditChecks) {
+            loanCreditCheck.update(this);
+        }
+        return loanCreditChecks;
     }
 
     public boolean isAccountNumberRequiresAutoGeneration() {
@@ -779,7 +799,7 @@ public class Loan extends AbstractPersistable<Long> {
     }
     
     public void updateLoanCharge(final LoanCharge loanCharge) {
-    	final LoanRepaymentScheduleTransactionProcessor loanRepaymentScheduleTransactionProcessor = this.transactionProcessorFactory
+        final LoanRepaymentScheduleTransactionProcessor loanRepaymentScheduleTransactionProcessor = this.transactionProcessorFactory
                 .determineProcessor(this.transactionProcessingStrategy);
         if (!loanCharge.isDueAtDisbursement()) {
             /****
@@ -829,6 +849,7 @@ public class Loan extends AbstractPersistable<Long> {
                 else {
                     amount = getPrincpal().getAmount();
                 }
+                amount = this.summary.getTotalPrincipalOutstanding();
             break;
             default:
             break;
@@ -965,17 +986,17 @@ public class Loan extends AbstractPersistable<Long> {
              * Consider removing this block of code or logically completing it
              * for the future by getting the list of affected Transactions
              ***/
-        	// reprocess loan schedule based on charge been waived.
-        	final LoanRepaymentScheduleProcessingWrapper wrapper = new LoanRepaymentScheduleProcessingWrapper();
-        	wrapper.reprocess(getCurrency(), getDisbursementDate(), this.repaymentScheduleInstallments, charges(), 
-        	        getLastUserTransactionForChargeCalc());
-        	
+            // reprocess loan schedule based on charge been waived.
+            final LoanRepaymentScheduleProcessingWrapper wrapper = new LoanRepaymentScheduleProcessingWrapper();
+            wrapper.reprocess(getCurrency(), getDisbursementDate(), this.repaymentScheduleInstallments, charges(), 
+                    getLastUserTransactionForChargeCalc());
+            
             final List<LoanTransaction> allNonContraTransactionsPostDisbursement = retreiveListOfTransactionsPostDisbursement();
             
             changedTransactionDetail = loanRepaymentScheduleTransactionProcessor.handleTransaction(getDisbursementDate(),
-            		allNonContraTransactionsPostDisbursement, getCurrency(), this.repaymentScheduleInstallments, charges(), 
-            		getLastUserTransactionForChargeCalc());
-            		
+                    allNonContraTransactionsPostDisbursement, getCurrency(), this.repaymentScheduleInstallments, charges(), 
+                    getLastUserTransactionForChargeCalc());
+                    
             LoanTransaction loanTransaction = findlatestTransaction();
             doPostLoanTransactionChecks(loanTransaction.getTransactionDate(), loanLifecycleStateMachine);
         } else {
@@ -5162,5 +5183,24 @@ public class Loan extends AbstractPersistable<Long> {
         }
 
         return lastTransactionDate == null ? now : lastTransactionDate;
+    }
+    
+    public Collection<LoanCreditCheck> getCreditChecks() {
+        Collection<LoanCreditCheck> loanCreditChecks = new ArrayList<>();
+        
+        for (LoanCreditCheck loanCreditCheck : this.creditChecks) {
+            if (!loanCreditCheck.isDeleted()) {
+                loanCreditChecks.add(loanCreditCheck);
+            }
+        }
+        
+        return loanCreditChecks;
+    }
+    
+    /** 
+     * @return the loan status integer value 
+     **/
+    public Integer getStatus() {
+        return this.loanStatus;
     }
 }

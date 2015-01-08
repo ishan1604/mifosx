@@ -6,6 +6,8 @@
 package org.mifosplatform.commands.domain;
 
 import org.mifosplatform.infrastructure.accountnumberformat.service.AccountNumberFormatConstants;
+import org.mifosplatform.portfolio.creditcheck.CreditCheckConstants;
+import org.mifosplatform.portfolio.loanaccount.api.LoanApiConstants;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.RescheduleLoansApiConstants;
 import org.mifosplatform.portfolio.savings.DepositsApiConstants;
 
@@ -998,5 +1000,16 @@ public class CommandWrapper {
     public boolean isUndoLoanRefund() {
         return this.actionName.equalsIgnoreCase("UNDOREFUND") && this.entityName.equalsIgnoreCase("LOAN");
     }
+    
+    public boolean isCreditCheckResource() {
+        return this.entityName.equalsIgnoreCase(CreditCheckConstants.CREDIT_CHECK_ENTITY_NAME);
+    }
+    
+    public boolean isLoanCreditCheckResource() {
+        return this.entityName.equalsIgnoreCase(LoanApiConstants.LOAN_CREDIT_CHECK_ENTITY_NAME);
+    }
 
+    public boolean isDeactivate() {
+        return this.actionName.equalsIgnoreCase("DEACTIVATE");
+    }
 }

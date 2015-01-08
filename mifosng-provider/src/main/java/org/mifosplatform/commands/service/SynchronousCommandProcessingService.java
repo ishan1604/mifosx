@@ -924,11 +924,18 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
                 handler = this.applicationContext.getBean("updateAccountNumberFormatCommandHandler", NewCommandSourceHandler.class);
             } else if (wrapper.isDelete()) {
                 handler = this.applicationContext.getBean("deleteAccountNumberFormatCommandHandler", NewCommandSourceHandler.class);
+            }
+        } else if (wrapper.isCreditCheckResource()) {
+            if (wrapper.isCreate()) {
+                handler = this.applicationContext.getBean("createCreditCheckCommandHandler", NewCommandSourceHandler.class);
+            } else if (wrapper.isUpdate()) {
+                handler = this.applicationContext.getBean("updateCreditCheckCommandHandler", NewCommandSourceHandler.class);
+            } else if (wrapper.isDelete()) {
+                handler = this.applicationContext.getBean("deleteCreditCheckCommandHandler", NewCommandSourceHandler.class);
             } else {
                 throw new UnsupportedCommandException(wrapper.commandName());
             }
         } else {
-
             throw new UnsupportedCommandException(wrapper.commandName());
         }
 

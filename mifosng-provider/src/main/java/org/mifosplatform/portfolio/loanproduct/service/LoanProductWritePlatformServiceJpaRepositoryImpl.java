@@ -21,12 +21,16 @@ import org.mifosplatform.infrastructure.entityaccess.service.MifosEntityAccessUt
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.portfolio.charge.domain.Charge;
 import org.mifosplatform.portfolio.charge.domain.ChargeRepositoryWrapper;
+import org.mifosplatform.portfolio.creditcheck.CreditCheckConstants;
+import org.mifosplatform.portfolio.creditcheck.domain.CreditCheck;
+import org.mifosplatform.portfolio.creditcheck.domain.CreditCheckRepositoryWrapper;
 import org.mifosplatform.portfolio.fund.domain.Fund;
 import org.mifosplatform.portfolio.fund.domain.FundRepository;
 import org.mifosplatform.portfolio.fund.exception.FundNotFoundException;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionProcessingStrategyRepository;
 import org.mifosplatform.portfolio.loanaccount.exception.LoanTransactionProcessingStrategyNotFoundException;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.AprCalculator;
+import org.mifosplatform.portfolio.loanproduct.LoanProductConstants;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductRepository;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanTransactionProcessingStrategy;
@@ -57,6 +61,7 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
     private final ChargeRepositoryWrapper chargeRepository;
     private final ProductToGLAccountMappingWritePlatformService accountMappingWritePlatformService;
     private final MifosEntityAccessUtil mifosEntityAccessUtil;
+    private final CreditCheckRepositoryWrapper creditCheckRepositoryWrapper;
 
     @Autowired
     public LoanProductWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -65,7 +70,8 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
             final LoanTransactionProcessingStrategyRepository loanTransactionProcessingStrategyRepository,
             final ChargeRepositoryWrapper chargeRepository,
             final ProductToGLAccountMappingWritePlatformService accountMappingWritePlatformService,
-            final MifosEntityAccessUtil mifosEntityAccessUtil) {
+            final MifosEntityAccessUtil mifosEntityAccessUtil, 
+            final CreditCheckRepositoryWrapper creditCheckRepositoryWrapper) {
         this.context = context;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.loanProductRepository = loanProductRepository;
@@ -75,6 +81,7 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
         this.chargeRepository = chargeRepository;
         this.accountMappingWritePlatformService = accountMappingWritePlatformService;
         this.mifosEntityAccessUtil = mifosEntityAccessUtil;
+        this.creditCheckRepositoryWrapper = creditCheckRepositoryWrapper;
     }
 
     @Transactional
@@ -95,9 +102,10 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
 
             final String currencyCode = command.stringValueOfParameterNamed("currencyCode");
             final List<Charge> charges = assembleListOfProductCharges(command, currencyCode);
+            final List<CreditCheck> creditChecks = assembleListOfProductCreditChecks(command);
 
             final LoanProduct loanproduct = LoanProduct.assembleFromJson(fund, loanTransactionProcessingStrategy, charges, command,
-                    this.aprCalculator);
+                    this.aprCalculator, creditChecks);
             loanproduct.updateLoanProductInRelatedClasses();
 
             this.loanProductRepository.save(loanproduct);
@@ -175,6 +183,15 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
                     changes.remove("charges");
                 }
             }
+            
+            if (changes.containsKey(CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME)) {
+                final List<CreditCheck> creditChecks = assembleListOfProductCreditChecks(command);
+                final boolean updated = product.updateCreditChecks(creditChecks);
+                
+                if (!updated) {
+                    changes.remove(CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME);
+                }
+            }
 
             // accounting related changes
             final boolean accountingTypeChanged = changes.containsKey("accountingRule");
@@ -230,6 +247,35 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
         }
 
         return charges;
+    }
+    
+    /** 
+     * get list of credit check entities from the JsonCommand object 
+     * 
+     * @param jsonCommand -- JsonCommand object
+     * @return list of CreditCheck objects
+     **/
+    private List<CreditCheck> assembleListOfProductCreditChecks(final JsonCommand jsonCommand) {
+        final List<CreditCheck> creditChecks = new ArrayList<>();
+        
+        if (jsonCommand.parameterExists(CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME)) {
+            final JsonArray jsonArray = jsonCommand.arrayOfParameterNamed(CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME);
+            
+            if (jsonArray != null) {
+                for (int i=0; i<jsonArray.size(); i++) {
+                    final JsonObject jsonObject = jsonArray.get(i).getAsJsonObject();
+                    
+                    if (jsonObject.has(CreditCheckConstants.ID_PARAM_NAME)) {
+                        final Long id = jsonObject.get(CreditCheckConstants.ID_PARAM_NAME).getAsLong();
+                        final CreditCheck creditCheck = this.creditCheckRepositoryWrapper.findOneThrowExceptionIfNotFound(id);
+                        
+                        creditChecks.add(creditCheck);
+                    }
+                }
+            }
+        }
+        
+        return creditChecks;
     }
 
     /*

@@ -7,6 +7,7 @@ package org.mifosplatform.portfolio.loanproduct.domain;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,6 +43,8 @@ import org.mifosplatform.portfolio.charge.domain.Charge;
 import org.mifosplatform.portfolio.common.domain.DaysInMonthType;
 import org.mifosplatform.portfolio.common.domain.DaysInYearType;
 import org.mifosplatform.portfolio.common.domain.PeriodFrequencyType;
+import org.mifosplatform.portfolio.creditcheck.CreditCheckConstants;
+import org.mifosplatform.portfolio.creditcheck.domain.CreditCheck;
 import org.mifosplatform.portfolio.fund.domain.Fund;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.AprCalculator;
 import org.mifosplatform.portfolio.loanproduct.LoanProductConstants;
@@ -128,6 +131,10 @@ public class LoanProduct extends AbstractPersistable<Long> {
     @LazyCollection(LazyCollectionOption.FALSE)
     @OneToOne(cascade = CascadeType.ALL, mappedBy = "loanProduct", optional = true, orphanRemoval = true)
     private LoanProductInterestRecalculationDetails productInterestRecalculationDetails;
+    
+    @ManyToMany
+    @JoinTable(name = "m_product_loan_credit_check", joinColumns = @JoinColumn(name = "product_loan_id"), inverseJoinColumns = @JoinColumn(name = "credit_check_id"))
+    private List<CreditCheck> creditChecks;
 
     @Column(name = "hold_guarantee_funds")
     private boolean holdGuaranteeFunds;
@@ -137,7 +144,8 @@ public class LoanProduct extends AbstractPersistable<Long> {
     private LoanProductGuaranteeDetails loanProductGuaranteeDetails;
 
     public static LoanProduct assembleFromJson(final Fund fund, final LoanTransactionProcessingStrategy loanTransactionProcessingStrategy,
-            final List<Charge> productCharges, final JsonCommand command, final AprCalculator aprCalculator) {
+            final List<Charge> productCharges, final JsonCommand command, final AprCalculator aprCalculator,
+            final List<CreditCheck> creditChecks) {
 
         final String name = command.stringValueOfParameterNamed("name");
         final String shortName = command.stringValueOfParameterNamed(LoanProductConstants.shortName);
@@ -233,7 +241,7 @@ public class LoanProduct extends AbstractPersistable<Long> {
                 startDate, closeDate, externalId, useBorrowerCycle, loanProductBorrowerCycleVariations, multiDisburseLoan, maxTrancheCount,
                 outstandingLoanBalance, graceOnArrearsAgeing, overdueDaysForNPA, daysInMonthType, daysInYearType,
                 isInterestRecalculationEnabled, interestRecalculationSettings, minimumDaysBetweenDisbursalAndFirstRepayment,
-                holdGuarantorFunds, loanProductGuaranteeDetails);
+                holdGuarantorFunds, loanProductGuaranteeDetails, creditChecks);
 
     }
 
@@ -458,7 +466,7 @@ public class LoanProduct extends AbstractPersistable<Long> {
             final boolean isInterestRecalculationEnabled,
             final LoanProductInterestRecalculationDetails productInterestRecalculationDetails,
             final Integer minimumDaysBetweenDisbursalAndFirstRepayment, final boolean holdGuarantorFunds,
-            final LoanProductGuaranteeDetails loanProductGuaranteeDetails) {
+            final LoanProductGuaranteeDetails loanProductGuaranteeDetails, final List<CreditCheck> creditChecks) {
         this.fund = fund;
         this.transactionProcessingStrategy = transactionProcessingStrategy;
         this.name = name.trim();
@@ -510,6 +518,10 @@ public class LoanProduct extends AbstractPersistable<Long> {
         this.minimumDaysBetweenDisbursalAndFirstRepayment = minimumDaysBetweenDisbursalAndFirstRepayment;
         this.holdGuaranteeFunds = holdGuarantorFunds;
         this.loanProductGuaranteeDetails = loanProductGuaranteeDetails;
+        
+        if (creditChecks != null) {
+            this.creditChecks = creditChecks;
+        }
     }
 
     public MonetaryCurrency getCurrency() {
@@ -544,6 +556,31 @@ public class LoanProduct extends AbstractPersistable<Long> {
             updated = true;
             this.charges = newProductCharges;
         }
+        return updated;
+    }
+    
+    public boolean updateCreditChecks(final List<CreditCheck> creditChecks) {
+        if (creditChecks == null) {
+            return false;
+        }
+        
+        boolean updated = false;
+        
+        if (this.creditChecks != null) {
+            final Set<CreditCheck> currentCreditChecks = new HashSet<>(this.creditChecks);
+            final Set<CreditCheck> newCreditChecks = new HashSet<>(creditChecks);
+            
+            if (!currentCreditChecks.equals(newCreditChecks)) {
+                updated = true;
+                this.creditChecks = creditChecks;
+            }
+        }
+        
+        else {
+            updated = true;
+            this.creditChecks = creditChecks;
+        }
+        
         return updated;
     }
 
@@ -609,6 +646,13 @@ public class LoanProduct extends AbstractPersistable<Long> {
             final JsonArray jsonArray = command.arrayOfParameterNamed(chargesParamName);
             if (jsonArray != null) {
                 actualChanges.put(chargesParamName, command.jsonFragment(chargesParamName));
+            }
+        }
+        
+        if (command.hasParameter(CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME)) {
+            final JsonArray jsonArray = command.arrayOfParameterNamed(CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME);
+            if (jsonArray != null) {
+                actualChanges.put(CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME, command.jsonFragment(CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME));
             }
         }
 
@@ -988,5 +1032,8 @@ public class LoanProduct extends AbstractPersistable<Long> {
     public String getShortName() {
         return this.shortName;
     }
-
+    
+    public Collection<CreditCheck> getCreditChecks() {
+        return this.creditChecks;
+    }
 }
