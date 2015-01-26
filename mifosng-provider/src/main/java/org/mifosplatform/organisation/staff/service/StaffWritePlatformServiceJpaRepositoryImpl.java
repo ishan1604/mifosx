@@ -5,6 +5,7 @@
  */
 package org.mifosplatform.organisation.staff.service;
 
+import java.math.BigInteger;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -18,6 +19,7 @@ import org.mifosplatform.organisation.office.exception.OfficeNotFoundException;
 import org.mifosplatform.organisation.staff.domain.Staff;
 import org.mifosplatform.organisation.staff.domain.StaffRepository;
 import org.mifosplatform.organisation.staff.exception.StaffNotFoundException;
+import org.mifosplatform.organisation.staff.exception.staffCannotBeSetToNonActive;
 import org.mifosplatform.organisation.staff.serialization.StaffCommandFromApiJsonDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +81,17 @@ public class StaffWritePlatformServiceJpaRepositoryImpl implements StaffWritePla
             final Staff staffForUpdate = this.staffRepository.findOne(staffId);
             if (staffForUpdate == null) { throw new StaffNotFoundException(staffId); }
 
+            final boolean isActive = command.booleanPrimitiveValueOfParameterNamed("isActive");
+
+            if(staffForUpdate.isActive() && !isActive){
+                final BigInteger isStaffActive = this.staffRepository.activeStaff(staffId);
+                if(isStaffActive.intValue() == 1){ throw new staffCannotBeSetToNonActive(staffId);}
+            }
+
+
+
             final Map<String, Object> changesOnly = staffForUpdate.update(command);
+
 
             if (changesOnly.containsKey("officeId")) {
                 final Long officeId = (Long) changesOnly.get("officeId");
@@ -88,6 +100,7 @@ public class StaffWritePlatformServiceJpaRepositoryImpl implements StaffWritePla
 
                 staffForUpdate.changeOffice(newOffice);
             }
+
 
             if (!changesOnly.isEmpty()) {
                 this.staffRepository.saveAndFlush(staffForUpdate);
