@@ -115,6 +115,8 @@ public class LoanCreditCheckWritePlatformServiceImpl implements LoanCreditCheckW
                 creditCheckReportParamData.getStaffId().toString());
         sql = this.genericDataService.replace(sql, CreditCheckConstants.OFFICE_ID_PARAM_PATTERN, 
                 creditCheckReportParamData.getOfficeId().toString());
+        sql = this.genericDataService.replace(sql, CreditCheckConstants.PRODUCT_ID_PARAM_PATTERN, 
+                creditCheckReportParamData.getProductId().toString());
         
         return this.genericDataService.wrapSQL(sql);
     }
