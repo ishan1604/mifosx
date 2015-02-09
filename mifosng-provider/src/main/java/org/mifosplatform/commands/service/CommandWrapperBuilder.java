@@ -2218,4 +2218,11 @@ public class CommandWrapperBuilder {
         this.href = "/creditchecks/" + entityId;
         return this;
     }
+    public CommandWrapperBuilder activatePasswordValidationPolicy(final Long validationPolicyId) {
+        this.actionName = "UPDATE";
+        this.entityName = "PASSWORD_VALIDATION_POLICY";
+        this.entityId =validationPolicyId ;
+        this.href = "/passwordValidationPolicy/" + validationPolicyId;
+        return this;
+    }
 }
