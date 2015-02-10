@@ -27,7 +27,9 @@ public class ChargeDropdownReadPlatformServiceImpl implements ChargeDropdownRead
         return Arrays.asList(chargeCalculationType(ChargeCalculationType.FLAT),
                 chargeCalculationType(ChargeCalculationType.PERCENT_OF_AMOUNT),
                 chargeCalculationType(ChargeCalculationType.PERCENT_OF_AMOUNT_AND_INTEREST),
-                chargeCalculationType(ChargeCalculationType.PERCENT_OF_INTEREST));
+                chargeCalculationType(ChargeCalculationType.PERCENT_OF_INTEREST), 
+                chargeCalculationType(ChargeCalculationType.PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL), 
+                chargeCalculationType(ChargeCalculationType.PERCENT_OF_ORIGINAL_PRINCIPAL));
     }
 
     @Override
@@ -64,13 +66,16 @@ public class ChargeDropdownReadPlatformServiceImpl implements ChargeDropdownRead
         return Arrays.asList(chargeCalculationType(ChargeCalculationType.FLAT),
                 chargeCalculationType(ChargeCalculationType.PERCENT_OF_AMOUNT),
                 chargeCalculationType(ChargeCalculationType.PERCENT_OF_AMOUNT_AND_INTEREST),
-                chargeCalculationType(ChargeCalculationType.PERCENT_OF_INTEREST));
+                chargeCalculationType(ChargeCalculationType.PERCENT_OF_INTEREST), 
+                chargeCalculationType(ChargeCalculationType.PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL), 
+                chargeCalculationType(ChargeCalculationType.PERCENT_OF_ORIGINAL_PRINCIPAL));
     }
 
     @Override
     public List<EnumOptionData> retrieveLoanCollectionTimeTypes() {
         return Arrays.asList(chargeTimeType(ChargeTimeType.DISBURSEMENT), chargeTimeType(ChargeTimeType.SPECIFIED_DUE_DATE),
-                chargeTimeType(ChargeTimeType.INSTALMENT_FEE), chargeTimeType(ChargeTimeType.OVERDUE_INSTALLMENT));
+                chargeTimeType(ChargeTimeType.INSTALMENT_FEE), chargeTimeType(ChargeTimeType.OVERDUE_INSTALLMENT), 
+                chargeTimeType(ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT));
     }
 
     @Override

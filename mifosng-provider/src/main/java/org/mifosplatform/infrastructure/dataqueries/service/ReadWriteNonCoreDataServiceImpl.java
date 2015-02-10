@@ -7,6 +7,8 @@ package org.mifosplatform.infrastructure.dataqueries.service;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,19 +31,22 @@ import org.mifosplatform.infrastructure.core.data.ApiParameterError;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
+import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.mifosplatform.infrastructure.core.exception.PlatformServiceUnavailableException;
 import org.mifosplatform.infrastructure.core.serialization.DatatableCommandFromApiJsonDeserializer;
 import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.mifosplatform.infrastructure.core.serialization.JsonParserHelper;
+import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.infrastructure.dataqueries.api.DataTableApiConstant;
-import org.mifosplatform.infrastructure.dataqueries.data.DataTableValidator;
-import org.mifosplatform.infrastructure.dataqueries.data.DatatableData;
-import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
-import org.mifosplatform.infrastructure.dataqueries.data.ResultsetColumnHeaderData;
-import org.mifosplatform.infrastructure.dataqueries.data.ResultsetRowData;
+import org.mifosplatform.infrastructure.dataqueries.data.*;
+import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTable;
+import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableMetaData;
+import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableMetaDataRepository;
+import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableRepository;
+import org.mifosplatform.infrastructure.dataqueries.exception.DataTableIsSystemDefined;
 import org.mifosplatform.infrastructure.dataqueries.exception.DatatableNotFoundException;
 import org.mifosplatform.infrastructure.dataqueries.exception.DatatableSystemErrorException;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
@@ -53,6 +58,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.jdbc.support.rowset.SqlRowSetMetaData;
 import org.springframework.stereotype.Service;
@@ -96,6 +102,10 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     private final ConfigurationDomainService configurationDomainService;
     private final CodeReadPlatformService codeReadPlatformService;
     private final DataTableValidator dataTableValidator;
+    private final RegisteredTableMetaDataRepository registeredTableMetaDataRepository;
+    private final RegisteredTableRepository registeredTableRepository;
+
+
 
     // private final GlobalConfigurationWritePlatformServiceJpaRepositoryImpl
     // configurationWriteService;
@@ -104,7 +114,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     public ReadWriteNonCoreDataServiceImpl(final RoutingDataSource dataSource, final PlatformSecurityContext context,
             final FromJsonHelper fromJsonHelper, final GenericDataService genericDataService,
             final DatatableCommandFromApiJsonDeserializer fromApiJsonDeserializer, final CodeReadPlatformService codeReadPlatformService,
-            final ConfigurationDomainService configurationDomainService, final DataTableValidator dataTableValidator) {
+            final ConfigurationDomainService configurationDomainService, final DataTableValidator dataTableValidator,
+            final RegisteredTableMetaDataRepository registeredTableMetaDataRepository,
+            final RegisteredTableRepository registeredTableRepository) {
         this.dataSource = dataSource;
         this.jdbcTemplate = new JdbcTemplate(this.dataSource);
         this.context = context;
@@ -115,6 +127,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         this.codeReadPlatformService = codeReadPlatformService;
         this.configurationDomainService = configurationDomainService;
         this.dataTableValidator = dataTableValidator;
+        this.registeredTableMetaDataRepository = registeredTableMetaDataRepository;
+        this.registeredTableRepository = registeredTableRepository;
         // this.configurationWriteService = configurationWriteService;
     }
 
@@ -129,7 +143,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
 
         // PERMITTED datatables
-        final String sql = "select application_table_name, registered_table_name" + " from x_registered_table " + " where exists"
+        final String sql = "select application_table_name, registered_table_name,category,system_defined" + " from x_registered_table " + " where exists"
                 + " (select 'f'" + " from m_appuser_role ur " + " join m_role r on r.id = ur.role_id"
                 + " left join m_role_permission rp on rp.role_id = r.id" + " left join m_permission p on p.id = rp.permission_id"
                 + " where ur.appuser_id = " + this.context.authenticatedUser().getId()
@@ -142,10 +156,16 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         while (rs.next()) {
             final String appTableName = rs.getString("application_table_name");
             final String registeredDatatableName = rs.getString("registered_table_name");
+            final Long category                   = rs.getLong("category");
+            final boolean systemDefined = rs.getBoolean("system_defined");
+
+
             final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService
                     .fillResultsetColumnHeaders(registeredDatatableName);
 
-            datatables.add(DatatableData.create(appTableName, registeredDatatableName, columnHeaderData));
+            final List<MetaDataResultSet> metaDataResultSets = this.genericDataService.retrieveRegisteredTableMetaData(registeredDatatableName);
+
+            datatables.add(DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined));
         }
 
         return datatables;
@@ -155,7 +175,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     public DatatableData retrieveDatatable(final String datatable) {
 
         // PERMITTED datatables
-        final String sql = "select application_table_name, registered_table_name" + " from x_registered_table " + " where exists"
+        final String sql = "select application_table_name, registered_table_name,category,system_defined" + " from x_registered_table " + " where exists"
                 + " (select 'f'" + " from m_appuser_role ur " + " join m_role r on r.id = ur.role_id"
                 + " left join m_role_permission rp on rp.role_id = r.id" + " left join m_permission p on p.id = rp.permission_id"
                 + " where ur.appuser_id = " + this.context.authenticatedUser().getId() + " and registered_table_name='" + datatable + "'"
@@ -168,10 +188,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         while (rs.next()) {
             final String appTableName = rs.getString("application_table_name");
             final String registeredDatatableName = rs.getString("registered_table_name");
+            final Long category                 =  rs.getLong("category");
+            final boolean systemDefined = rs.getBoolean("system_defined");
             final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService
                     .fillResultsetColumnHeaders(registeredDatatableName);
 
-            datatableData = DatatableData.create(appTableName, registeredDatatableName, columnHeaderData);
+            final List<MetaDataResultSet> metaDataResultSets = this.genericDataService.retrieveRegisteredTableMetaData(registeredDatatableName);
+            datatableData = DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined);
         }
 
         return datatableData;
@@ -183,10 +206,11 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
     @Transactional
     @Override
-    public void registerDatatable(final String dataTableName, final String applicationTableName) {
-
+    public void registerDatatable(final String dataTableName, final String applicationTableName,final Long categoryId) {
         Integer category = DataTableApiConstant.CATEGORY_DEFAULT;
-
+        if(categoryId != null){
+            category = categoryId.intValue();
+        }
         final String permissionSql = this._getPermissionSql(dataTableName);
         this._registerDataTable(applicationTableName, dataTableName, category, permissionSql);
 
@@ -330,6 +354,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         sqlArray[1] = deletePermissionsSql;
         sqlArray[2] = deleteRegisteredDatatableSql;
         sqlArray[3] = deleteFromConfigurationSql;
+          /* Delete registeredMetaData  columns */
+        this.deleteRegisteredTableMetaData(datatable);
 
         this.jdbcTemplate.batchUpdate(sqlArray);
     }
@@ -434,6 +460,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 + datatableName, "name", datatableName); }
     }
 
+    private boolean isDataTableSystemDefined(final String name){
+        final String sql = "select if((exists (select 1 from x_registered_table where registered_table_name = ? and system_defined = ?)) = 1, 'true', 'false')";
+        final Integer system_defined = 1;
+        final String isRegisteredDataTable = this.jdbcTemplate.queryForObject(sql, String.class, new Object[] { name,system_defined });
+        return new Boolean(isRegisteredDataTable);
+    }
+
     private void validateDatatableName(final String name) {
 
         if (name == null || name.isEmpty()) {
@@ -511,6 +544,10 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String apptableName = this.fromJsonHelper.extractStringNamed("apptableName", element);
             Boolean multiRow = this.fromJsonHelper.extractBooleanNamed("multiRow", element);
 
+            Boolean metaData = this.fromJsonHelper.extractBooleanNamed("metaData",element);
+
+            final Long categoryId = this.fromJsonHelper.extractLongNamed("category",element);
+
             /***
              * In cases of tables storing hierarchical entities (like m_group),
              * different entities would end up being stored in the same table.
@@ -524,6 +561,10 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 multiRow = false;
             }
 
+            if(metaData == null){
+                metaData = false;
+            }
+
             validateDatatableName(datatableName);
             validateAppTable(apptableName);
             final boolean isConstraintApproach = this.configurationDomainService.isConstraintApproachEnabledForDatatables();
@@ -533,6 +574,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             StringBuilder sqlBuilder = new StringBuilder();
             final StringBuilder constrainBuilder = new StringBuilder();
             final Map<String, Long> codeMappings = new HashMap<>();
+			final List<Map<String,Object>> fieldNameAndOrder = new ArrayList<Map<String,Object>>();
+
             sqlBuilder = sqlBuilder.append("CREATE TABLE `" + datatableName + "` (");
 
             if (multiRow) {
@@ -545,6 +588,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             for (final JsonElement column : columns) {
                 parseDatatableColumnObjectForCreate(column.getAsJsonObject(), sqlBuilder, constrainBuilder, dataTableNameAlias,
                         codeMappings, isConstraintApproach);
+                if(metaData){
+                     fieldNameAndOrder.add(this.returnFieldNameAndOrder(column.getAsJsonObject(),isConstraintApproach));
+                }
             }
 
             // Remove trailing comma and space
@@ -565,8 +611,19 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             sqlBuilder = sqlBuilder.append(") ENGINE=InnoDB DEFAULT CHARSET=utf8;");
             this.jdbcTemplate.execute(sqlBuilder.toString());
 
-            registerDatatable(datatableName, apptableName);
+            registerDatatable(datatableName, apptableName,categoryId);
             registerColumnCodeMapping(codeMappings);
+            /*
+               for creating metaData for x_registered_table musoni related
+             */
+
+            if(metaData){
+                final RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
+                for(final Map<String,Object> map : fieldNameAndOrder){
+                    this.registeredTableMetaDataRepository.save(RegisteredTableMetaData.createNewRegisterTableMetaData(registeredTable,datatableName,map));
+                }
+            }
+
         } catch (final SQLGrammarException e) {
             final Throwable realCause = e.getCause();
             final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
@@ -721,7 +778,10 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
         if (mandatory != null) {
             if (mandatory) {
-                sqlBuilder = sqlBuilder.append(" NOT NULL");
+                if(type !=null && type.equalsIgnoreCase("date")){
+                    final LocalDate today = DateUtils.getLocalDateOfTenant();
+                    sqlBuilder =sqlBuilder.append(" NOT NULL DEFAULT "+"'"+today.toString()+"'");
+                } else { sqlBuilder = sqlBuilder.append(" NOT NULL"); }
             } else {
                 sqlBuilder = sqlBuilder.append(" DEFAULT NULL");
             }
@@ -813,6 +873,17 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final JsonArray addColumns = this.fromJsonHelper.extractJsonArrayNamed("addColumns", element);
             final JsonArray dropColumns = this.fromJsonHelper.extractJsonArrayNamed("dropColumns", element);
             final String apptableName = this.fromJsonHelper.extractStringNamed("apptableName", element);
+            final Long categoryId = this.fromJsonHelper.extractLongNamed("category",element);
+            Boolean metaData = this.fromJsonHelper.extractBooleanNamed("metaData",element);
+
+            final List<Map<String,Object>> fieldNameAndOrder = new ArrayList<Map<String, Object>>();
+            final List<Map<String,Object>> fieldNameAndOrderForChangeColumns = new ArrayList<Map<String, Object>>();
+
+
+
+            if(metaData == null){
+                metaData = false;
+            }
 
             validateDatatableName(datatableName);
 
@@ -854,7 +925,11 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     this.jdbcTemplate.execute(sqlBuilder.toString());
 
                     deregisterDatatable(datatableName);
-                    registerDatatable(datatableName, apptableName);
+                    registerDatatable(datatableName, apptableName,categoryId);
+                }else{
+                    final RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
+                    if(registeredTable !=null && categoryId !=null){ registeredTable.updateCategory(categoryId.intValue());}
+
                 }
             }
 
@@ -877,6 +952,18 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 sqlBuilder.append(constrainBuilder);
                 this.jdbcTemplate.execute(sqlBuilder.toString());
                 deleteColumnCodeMapping(codeMappings);
+                //remove metaData column from x_registered_metadData
+                if(metaData){
+                    for (final JsonElement column : dropColumns) {
+                        JsonObject columnName = column.getAsJsonObject();
+                        String name = (columnName.has("name")) ? columnName.get("name").getAsString() : null;
+                        RegisteredTableMetaData registeredTableMetaData = this.registeredTableMetaDataRepository.findOneByTableNameAndFieldName(datatableName,name);
+                        if(registeredTableMetaData !=null){
+                            this.registeredTableMetaDataRepository.delete(registeredTableMetaData);
+                        }
+                    }
+                }
+
             }
             if (addColumns != null) {
 
@@ -886,6 +973,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 for (final JsonElement column : addColumns) {
                     parseDatatableColumnForAdd(column.getAsJsonObject(), sqlBuilder, datatableName.toLowerCase().replaceAll("\\s", "_"),
                             constrainBuilder, codeMappings, isConstraintApproach);
+                    if(metaData){
+                        fieldNameAndOrder.add(this.returnFieldNameAndOrder(column.getAsJsonObject(),isConstraintApproach));
+                    }
                 }
 
                 // Remove the first comma, right after ALTER TABLE `datatable`
@@ -896,6 +986,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 sqlBuilder.append(constrainBuilder);
                 this.jdbcTemplate.execute(sqlBuilder.toString());
                 registerColumnCodeMapping(codeMappings);
+                //Meta data insertion for musoni specific
+                if(metaData){
+                    final RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
+                    for(Map<String,Object> map : fieldNameAndOrder){
+                        this.registeredTableMetaDataRepository.save(RegisteredTableMetaData.createNewRegisterTableMetaData(registeredTable,datatableName,map));
+                    }
+                }
             }
             if (changeColumns != null) {
 
@@ -909,6 +1006,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
                     parseDatatableColumnForUpdate(column.getAsJsonObject(), mapColumnNameDefinition, sqlBuilder, datatableName,
                             constrainBuilder, codeMappings, removeMappings, isConstraintApproach);
+
                 }
 
                 // Remove the first comma, right after ALTER TABLE `datatable`
@@ -921,6 +1019,27 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     this.jdbcTemplate.execute(sqlBuilder.toString());
                     deleteColumnCodeMapping(removeMappings);
                     registerColumnCodeMapping(codeMappings);
+                    //update metaData information with
+                    if(metaData){
+                        for (final JsonElement column : changeColumns) {
+                            final JsonObject columnName = column.getAsJsonObject();
+                            final String name = (columnName.has("name")) ? columnName.get("name").getAsString() : null;
+                            final String labelName = (columnName.has("labelName")) ? columnName.get("labelName").getAsString() : null;
+                            final Integer order =(columnName.has("order")) ? columnName.get("order").getAsInt() : 0;
+                            final  RegisteredTableMetaData registeredTableMetaData = this.registeredTableMetaDataRepository.findOneByTableNameAndFieldName(datatableName,name);
+                            if(registeredTableMetaData != null){
+                                registeredTableMetaData.updateLabelName(labelName);
+                                registeredTableMetaData.updateOrder(order);
+                                this.registeredTableMetaDataRepository.saveAndFlush(registeredTableMetaData);
+                            }else{
+                                //if column does not exist save the column
+                                final Map<String, Object> columnsNotSaveYet = this.returnFieldNameAndOrder(column.getAsJsonObject(),isConstraintApproach);
+                                final RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
+                                this.registeredTableMetaDataRepository.save(RegisteredTableMetaData.createNewRegisterTableMetaData(registeredTable,datatableName,columnsNotSaveYet));
+                            }
+                        }
+                    }
+
                 } catch (final GenericJDBCException e) {
                     if (e.getMessage().contains("Error on rename")) { throw new PlatformServiceUnavailableException(
                             "error.msg.datatable.column.update.not.allowed", "One of the column name modification not allowed"); }
@@ -959,9 +1078,14 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         try {
             this.context.authenticatedUser();
             if (!isRegisteredDataTable(datatableName)) { throw new DatatableNotFoundException(datatableName); }
+            if (isDataTableSystemDefined(datatableName)) { throw new DataTableIsSystemDefined(datatableName); }
+
+
             validateDatatableName(datatableName);
             deregisterDatatable(datatableName);
             String[] sqlArray = null;
+
+
             if (this.configurationDomainService.isConstraintApproachEnabledForDatatables()) {
                 final String deleteColumnCodeSql = "delete from x_table_column_code_mappings where column_alias_name like'"
                         + datatableName.toLowerCase().replaceAll("\\s", "_") + "_%'";
@@ -972,6 +1096,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             }
             final String sql = "DROP TABLE `" + datatableName + "`";
             sqlArray[0] = sql;
+
             this.jdbcTemplate.batchUpdate(sqlArray);
         } catch (final SQLGrammarException e) {
             final Throwable realCause = e.getCause();
@@ -1628,5 +1753,43 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         if (currValue.equals(pValue)) { return false; }
 
         return true;
+    }
+
+    private HashMap<String,Object> returnFieldNameAndOrder(JsonObject column,boolean isConstraintApproach){
+        final HashMap<String,Object> fieldNameAndOrder = new HashMap<String, Object>();
+        String fieldName = (column.has("name")) ? column.get("name").getAsString() : null;
+        if(fieldName == null){
+            fieldName =(column.has("name")) ? column.get("name").getAsString() : null;
+        }
+        String labelName =  (column.has("labelName")) ? column.get("labelName").getAsString() : null;
+        if(labelName == null){
+            labelName = fieldName;
+        }
+        final String code = (column.has("code")) ? column.get("code").getAsString() : null;
+        final Integer order =(column.has("order")) ? column.get("order").getAsInt() : 0;
+
+        if (StringUtils.isNotBlank(code)) {
+            if (isConstraintApproach) {
+                fieldNameAndOrder.put("fieldName",fieldName);
+            } else {
+                fieldNameAndOrder.put("fieldName",datatableColumnNameToCodeValueName(fieldName,code));
+            }
+        }else{fieldNameAndOrder.put("fieldName",fieldName);}
+
+        fieldNameAndOrder.put("labelName",labelName);
+        fieldNameAndOrder.put("order",order);
+
+        return fieldNameAndOrder;
+    }
+
+
+    private void deleteRegisteredTableMetaData(final String xRegisteredTableName){
+        final List<MetaDataResultSet> metaDataResultSets = this.genericDataService.retrieveRegisteredTableMetaData(xRegisteredTableName);
+        if(metaDataResultSets !=null){
+            for(final MetaDataResultSet metaDataResultSet : metaDataResultSets){
+                this.registeredTableMetaDataRepository.delete(metaDataResultSet.getId());
+            }
+            this.registeredTableMetaDataRepository.flush();
+        }
     }
 }

@@ -17,19 +17,29 @@ public class DatatableData {
     @SuppressWarnings("unused")
     private final String registeredTableName;
     @SuppressWarnings("unused")
+    private final Long category;
+
+    @SuppressWarnings("unused")
+    private final boolean systemDefined;
+    @SuppressWarnings("unused")
     private final List<ResultsetColumnHeaderData> columnHeaderData;
+    @SuppressWarnings("unused")
+    private final List<MetaDataResultSet> metaDataResultSets;
 
 
     public static DatatableData create(final String applicationTableName, final String registeredTableName,
-            final List<ResultsetColumnHeaderData> columnHeaderData) {
-        return new DatatableData(applicationTableName, registeredTableName, columnHeaderData);
+            final List<ResultsetColumnHeaderData> columnHeaderData,final Long category,final List<MetaDataResultSet> metaDataResultSets,final boolean systemDefined) {
+        return new DatatableData(applicationTableName, registeredTableName, columnHeaderData,category,metaDataResultSets,systemDefined);
     }
 
-    private DatatableData(final String applicationTableName, final String registeredTableName,
-            final List<ResultsetColumnHeaderData> columnHeaderData) {
+    private DatatableData(final String applicationTableName, final String registeredTableName,final List<ResultsetColumnHeaderData> columnHeaderData,
+                          final Long category,final List<MetaDataResultSet> metaDataResultSets,final boolean systemDefined) {
         this.applicationTableName = applicationTableName;
         this.registeredTableName = registeredTableName;
         this.columnHeaderData = columnHeaderData;
+        this.category  = category;
+        this.metaDataResultSets = metaDataResultSets;
+        this.systemDefined = systemDefined;
 
     }
 }

@@ -64,6 +64,10 @@ public class ChargeEnumerations {
                 optionData = new EnumOptionData(ChargeTimeType.OVERDRAFT_FEE.getValue().longValue(),
                         ChargeTimeType.OVERDRAFT_FEE.getCode(), "Overdraft Fee");
             break;
+            case DISBURSEMENT_PAID_WITH_REPAYMENT:
+            	optionData = new EnumOptionData(ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT.getValue().longValue(),
+                        ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT.getCode(), "Disbursement Paid With Repayment");
+            	break;
             default:
                 optionData = new EnumOptionData(ChargeTimeType.INVALID.getValue().longValue(), ChargeTimeType.INVALID.getCode(), "Invalid");
             break;
@@ -115,6 +119,14 @@ public class ChargeEnumerations {
             case PERCENT_OF_INTEREST:
                 optionData = new EnumOptionData(ChargeCalculationType.PERCENT_OF_INTEREST.getValue().longValue(),
                         ChargeCalculationType.PERCENT_OF_INTEREST.getCode(), "% Interest");
+            break;
+            case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
+            	optionData = new EnumOptionData(ChargeCalculationType.PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL.getValue().longValue(),
+                        ChargeCalculationType.PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL.getCode(), "% Total Outstanding Loan Principal");
+            break;
+            case PERCENT_OF_ORIGINAL_PRINCIPAL:
+            	optionData = new EnumOptionData(ChargeCalculationType.PERCENT_OF_ORIGINAL_PRINCIPAL.getValue().longValue(),
+                        ChargeCalculationType.PERCENT_OF_ORIGINAL_PRINCIPAL.getCode(), "% Original Loan Principal");
             break;
             default:
                 optionData = new EnumOptionData(ChargeCalculationType.INVALID.getValue().longValue(),

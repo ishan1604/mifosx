@@ -46,8 +46,12 @@ import org.mifosplatform.organisation.monetary.service.CurrencyReadPlatformServi
 import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.charge.service.ChargeReadPlatformService;
 import org.mifosplatform.portfolio.common.service.DropdownReadPlatformService;
+import org.mifosplatform.portfolio.creditcheck.CreditCheckConstants;
+import org.mifosplatform.portfolio.creditcheck.data.CreditCheckData;
+import org.mifosplatform.portfolio.creditcheck.service.CreditCheckReadPlatformService;
 import org.mifosplatform.portfolio.fund.data.FundData;
 import org.mifosplatform.portfolio.fund.service.FundReadPlatformService;
+import org.mifosplatform.portfolio.loanproduct.LoanProductConstants;
 import org.mifosplatform.portfolio.loanproduct.data.LoanProductData;
 import org.mifosplatform.portfolio.loanproduct.data.TransactionProcessingStrategyData;
 import org.mifosplatform.portfolio.loanproduct.productmix.data.ProductMixData;
@@ -74,7 +78,8 @@ public class LoanProductsApiResource {
             "paymentTypeOptions", "currencyOptions", "repaymentFrequencyTypeOptions", "interestRateFrequencyTypeOptions",
             "amortizationTypeOptions", "interestTypeOptions", "interestCalculationPeriodTypeOptions",
             "transactionProcessingStrategyOptions", "chargeOptions", "accountingOptions", "accountingRuleOptions",
-            "accountingMappingOptions"));
+            "accountingMappingOptions", CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME, 
+            CreditCheckConstants.CREDIT_CHECK_OPTIONS_PARAM_NAME));
 
     private final Set<String> PRODUCT_MIX_DATA_PARAMETERS = new HashSet<>(Arrays.asList("productId", "productName", "restrictedProducts",
             "allowedProducts", "productOptions"));
@@ -96,6 +101,7 @@ public class LoanProductsApiResource {
     private final DefaultToApiJsonSerializer<ProductMixData> productMixDataApiJsonSerializer;
     private final ProductMixReadPlatformService productMixReadPlatformService;
     private final DropdownReadPlatformService commonDropdownReadPlatformService;
+    private final CreditCheckReadPlatformService creditCheckReadPlatformService;
 
     @Autowired
     public LoanProductsApiResource(final PlatformSecurityContext context, final LoanProductReadPlatformService readPlatformService,
@@ -109,7 +115,8 @@ public class LoanProductsApiResource {
             final AccountingDropdownReadPlatformService accountingDropdownReadPlatformService,
             final DefaultToApiJsonSerializer<ProductMixData> productMixDataApiJsonSerializer,
             final ProductMixReadPlatformService productMixReadPlatformService,
-            final DropdownReadPlatformService commonDropdownReadPlatformService) {
+            final DropdownReadPlatformService commonDropdownReadPlatformService, 
+            final CreditCheckReadPlatformService creditCheckReadPlatformService) {
         this.context = context;
         this.loanProductReadPlatformService = readPlatformService;
         this.chargeReadPlatformService = chargeReadPlatformService;
@@ -125,6 +132,7 @@ public class LoanProductsApiResource {
         this.productMixDataApiJsonSerializer = productMixDataApiJsonSerializer;
         this.productMixReadPlatformService = productMixReadPlatformService;
         this.commonDropdownReadPlatformService = commonDropdownReadPlatformService;
+        this.creditCheckReadPlatformService = creditCheckReadPlatformService;
     }
 
     @POST
@@ -278,12 +286,14 @@ public class LoanProductsApiResource {
         final List<EnumOptionData> rescheduleStrategyTypeOptions = dropdownReadPlatformService.retrieveRescheduleStrategyTypeOptions();
         final List<EnumOptionData> interestRecalculationFrequencyTypeOptions = dropdownReadPlatformService
                 .retrieveInterestRecalculationFrequencyTypeOptions();
+        Collection<CreditCheckData> creditCheckOptions = this.creditCheckReadPlatformService.retrieveAllLoanApplicableCreditChecks();
 
         return new LoanProductData(productData, chargeOptions, penaltyOptions, paymentTypeOptions, currencyOptions,
                 amortizationTypeOptions, interestTypeOptions, interestCalculationPeriodTypeOptions, repaymentFrequencyTypeOptions,
                 interestRateFrequencyTypeOptions, fundOptions, transactionProcessingStrategyOptions, accountOptions,
                 accountingRuleTypeOptions, loanCycleValueConditionTypeOptions, daysInMonthTypeOptions, daysInYearTypeOptions,
-                interestRecalculationCompoundingTypeOptions, rescheduleStrategyTypeOptions, interestRecalculationFrequencyTypeOptions);
+                interestRecalculationCompoundingTypeOptions, rescheduleStrategyTypeOptions, interestRecalculationFrequencyTypeOptions, 
+                creditCheckOptions);
     }
 
 }

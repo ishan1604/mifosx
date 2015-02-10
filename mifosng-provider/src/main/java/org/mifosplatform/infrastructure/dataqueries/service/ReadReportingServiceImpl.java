@@ -189,6 +189,35 @@ public class ReadReportingServiceImpl implements ReadReportingService {
         logger.info("FINISHING Report/Request Name: " + name + " - " + type + "     Elapsed Time: " + elapsed);
         return result;
     }
+    @Override
+    public GenericResultsetData retrieveGenericResultSetForSmsCampaign(final String name, final String type, final Map<String, String> queryParams){
+        final long startTime = System.currentTimeMillis();
+        logger.info("STARTING REPORT: " + name + "   Type: " + type);
+
+        final String sql = sqlToRunForSmsCampaign(name, type, queryParams);
+
+        final GenericResultsetData result = this.genericDataService.fillGenericResultSet(sql);
+
+        final long elapsed = System.currentTimeMillis() - startTime;
+        logger.info("FINISHING Report/Request Name: " + name + " - " + type + "     Elapsed Time: " + elapsed);
+        return result;
+
+    }
+
+    private String  sqlToRunForSmsCampaign(final String name, final String type, final Map<String, String> queryParams) {
+        String sql = getSql(name, type);
+
+        final Set<String> keys = queryParams.keySet();
+        for (final String key : keys) {
+            final String pValue = queryParams.get(key);
+            // logger.info("(" + key + " : " + pValue + ")");
+            sql = this.genericDataService.replace(sql, key, pValue);
+        }
+
+        sql = this.genericDataService.wrapSQL(sql);
+
+        return sql;
+    }
 
     private String getSQLtoRun(final String name, final String type, final Map<String, String> queryParams) {
 
@@ -324,8 +353,9 @@ public class ReadReportingServiceImpl implements ReadReportingService {
              * error
              */
             for (final ParameterDefinitionEntry paramDefEntry : paramsDefinition.getParameterDefinitions()) {
+
                 final String paramName = paramDefEntry.getName();
-                if (!((paramName.equals("tenantUrl")) || (paramName.equals("userhierarchy") || (paramName.equals("username")) || (paramName
+                if (!( (paramName.equals("tenantdb")) ||  (paramName.equals("tenantUrl")) || (paramName.equals("userhierarchy") || (paramName.equals("username")) || (paramName
                         .equals("password"))))) {
                     logger.info("paramName:" + paramName);
                     final String pValue = queryParams.get(paramName);
@@ -353,13 +383,20 @@ public class ReadReportingServiceImpl implements ReadReportingService {
             // data scoping
             final Connection connection = this.dataSource.getConnection();
             String tenantUrl;
+            String tenantdb;
             try {
                 tenantUrl = connection.getMetaData().getURL();
+                tenantdb = connection.getCatalog();
             } finally {
                 connection.close();
             }
+
+
             final String userhierarchy = currentUser.getOffice().getHierarchy();
             logger.info("db URL:" + tenantUrl + "      userhierarchy:" + userhierarchy);
+            logger.info("db name:" + tenantdb + "      userhierarchy:" + userhierarchy);
+
+            rptParamValues.put("tenantdb", tenantdb);
             rptParamValues.put("userhierarchy", userhierarchy);
 
             final MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();

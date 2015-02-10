@@ -49,9 +49,18 @@ import org.mifosplatform.organisation.workingdays.domain.WorkingDaysRepositoryWr
 import org.mifosplatform.portfolio.account.PortfolioAccountType;
 import org.mifosplatform.portfolio.account.data.AccountTransferDTO;
 import org.mifosplatform.portfolio.account.data.PortfolioAccountData;
+import org.mifosplatform.portfolio.account.domain.AccountAssociations;
+import org.mifosplatform.portfolio.account.domain.AccountAssociationsRepository;
+import org.mifosplatform.portfolio.account.domain.AccountTransferDetailRepository;
+import org.mifosplatform.portfolio.account.domain.AccountTransferDetails;
+import org.mifosplatform.portfolio.account.domain.AccountTransferRecurrenceType;
 import org.mifosplatform.portfolio.account.domain.AccountTransferRepository;
+import org.mifosplatform.portfolio.account.domain.AccountTransferStandingInstruction;
 import org.mifosplatform.portfolio.account.domain.AccountTransferTransaction;
 import org.mifosplatform.portfolio.account.domain.AccountTransferType;
+import org.mifosplatform.portfolio.account.domain.StandingInstructionPriority;
+import org.mifosplatform.portfolio.account.domain.StandingInstructionStatus;
+import org.mifosplatform.portfolio.account.domain.StandingInstructionType;
 import org.mifosplatform.portfolio.account.service.AccountAssociationsReadPlatformService;
 import org.mifosplatform.portfolio.account.service.AccountTransfersReadPlatformService;
 import org.mifosplatform.portfolio.account.service.AccountTransfersWritePlatformService;
@@ -181,6 +190,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     private final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository;
     private final LoanScheduleHistoryWritePlatformService loanScheduleHistoryWritePlatformService;
     private final LoanApplicationCommandFromApiJsonHelper loanApplicationCommandFromApiJsonHelper;
+    private final AccountAssociationsRepository accountAssociationRepository;
+    private final AccountTransferDetailRepository accountTransferDetailRepository;
+    private final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService;
 
     @Autowired
     public LoanWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -203,7 +215,10 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             final CalendarRepository calendarRepository,
             final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository,
             final LoanScheduleHistoryWritePlatformService loanScheduleHistoryWritePlatformService,
-            final LoanApplicationCommandFromApiJsonHelper loanApplicationCommandFromApiJsonHelper) {
+            final LoanApplicationCommandFromApiJsonHelper loanApplicationCommandFromApiJsonHelper, 
+            final AccountAssociationsRepository accountAssociationRepository, 
+            final AccountTransferDetailRepository accountTransferDetailRepository, 
+            final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService) {
         this.context = context;
         this.loanEventApiJsonValidator = loanEventApiJsonValidator;
         this.loanAssembler = loanAssembler;
@@ -234,18 +249,21 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         this.repaymentScheduleInstallmentRepository = repaymentScheduleInstallmentRepository;
         this.loanScheduleHistoryWritePlatformService = loanScheduleHistoryWritePlatformService;
         this.loanApplicationCommandFromApiJsonHelper = loanApplicationCommandFromApiJsonHelper;
+        this.accountAssociationRepository = accountAssociationRepository;
+        this.accountTransferDetailRepository = accountTransferDetailRepository;
+        this.loanCreditCheckWritePlatformService = loanCreditCheckWritePlatformService;
     }
 
     private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
         final List<LoanStatus> allowedLoanStatuses = Arrays.asList(LoanStatus.values());
         return new DefaultLoanLifecycleStateMachine(allowedLoanStatuses);
     }
-
+    
     @Transactional
     @Override
     public CommandProcessingResult disburseLoan(final Long loanId, final JsonCommand command, Boolean isAccountTransfer) {
 
-        final AppUser currentUser = this.context.authenticatedUser();
+    	final AppUser currentUser = this.context.authenticatedUser();
 
         this.loanEventApiJsonValidator.validateDisbursement(command.json(), isAccountTransfer);
 
@@ -263,6 +281,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             final LocalDate actualDisbursementDate = command.localDateValueOfParameterNamed("actualDisbursementDate");
             this.loanEventApiJsonValidator.validateDisbursementDateWithMeetingDate(actualDisbursementDate, calendarInstance);
         }
+        
+        // run any credit check associated with the loan
+        this.loanCreditCheckWritePlatformService.runLoanCreditChecks(loanId);
 
         final MonetaryCurrency currency = loan.getCurrency();
         final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepository.findOneWithNotFoundDetection(currency);
@@ -289,6 +310,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         loan.validateAccountStatus(LoanEvent.LOAN_DISBURSED);
         boolean canDisburse = loan.canDisburse(actualDisbursementDate);
         ChangedTransactionDetail changedTransactionDetail = null;
+        
         if (canDisburse) {
             Money disburseAmount = loan.adjustDisburseAmount(command, actualDisbursementDate);
             boolean recalculateSchedule = amountBeforeAdjust.isNotEqualTo(loan.getPrincpal());
@@ -329,8 +351,32 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
             changedTransactionDetail = loan.disburse(currentUser, command, changes, scheduleGeneratorDTO);
         }
+        
+        final Set<LoanCharge> loanCharges = loan.charges();
+        
+        final List<LoanRepaymentScheduleInstallment> repaymentScheduleInstallments = loan.getRepaymentScheduleInstallments();
+        LoanRepaymentScheduleInstallment firstUnpaidInstallment = null;
+        
+        if (repaymentScheduleInstallments.size() > 0) {
+        	for (LoanRepaymentScheduleInstallment repaymentScheduleInstallment : repaymentScheduleInstallments) {
+        		if (!repaymentScheduleInstallment.isObligationsMet()) {
+        			firstUnpaidInstallment = repaymentScheduleInstallment;
+        			break;
+        		}
+        	}
+        }
+        
+        for (LoanCharge loanCharge : loanCharges) {
+        	if (loanCharge.isDisbursementPaidWithRepayment() && loanCharge.getDueLocalDate() == null) {
+        		loanCharge.update(firstUnpaidInstallment.getDueDate());
+        		loan.updateLoanCharge(loanCharge);
+        		
+        		this.loanChargeRepository.save(loanCharge);
+        	}
+        }
+        
         if (!changes.isEmpty()) {
-            saveAndFlushLoanWithDataIntegrityViolationChecks(loan);
+        	saveAndFlushLoanWithDataIntegrityViolationChecks(loan);
 
             final String noteText = command.stringValueOfParameterNamed("note");
             if (StringUtils.isNotBlank(noteText)) {
@@ -344,12 +390,14 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                     this.accountTransfersWritePlatformService.updateLoanTransaction(mapEntry.getKey(), mapEntry.getValue());
                 }
             }
+            
+            // auto create standing instruction
+            createStandingInstruction(loan);
 
             postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
 
         }
 
-        final Set<LoanCharge> loanCharges = loan.charges();
         final Map<Long, BigDecimal> disBuLoanCharges = new HashMap<>();
         for (final LoanCharge loanCharge : loanCharges) {
             if (loanCharge.isDueAtDisbursement() && loanCharge.getChargePaymentMode().isPaymentModeAccountTransfer()
@@ -382,6 +430,47 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 .withLoanId(loanId) //
                 .with(changes) //
                 .build();
+    }
+    
+    /** 
+     * create standing instruction for disbursed loan 
+     * 
+     * @param loan the disbursed loan
+     * @return void
+     **/
+    private void createStandingInstruction(Loan loan) {
+        
+        if(loan.createStandingInstructionAtDisbursement()) {
+            AccountAssociations accountAssociations = this.accountAssociationRepository.findByLoanId(loan.getId());
+            
+            if(accountAssociations != null) {
+                
+                SavingsAccount linkedSavingsAccount = accountAssociations.linkedSavingsAccount();
+                
+                // name is auto-generated
+                final String name = "To loan " + loan.getAccountNumber() + " from savings " + linkedSavingsAccount.getAccountNumber();
+                final Office fromOffice = loan.getOffice();
+                final Client fromClient = loan.getClient();
+                final Office toOffice = loan.getOffice();
+                final Client toClient = loan.getClient();
+                final Integer priority = StandingInstructionPriority.MEDIUM.getValue();
+                final Integer transferType = AccountTransferType.LOAN_REPAYMENT.getValue();
+                final Integer instructionType = StandingInstructionType.DUES.getValue();
+                final Integer status = StandingInstructionStatus.ACTIVE.getValue();
+                final Integer recurrenceType = AccountTransferRecurrenceType.AS_PER_DUES.getValue();
+                final LocalDate validFrom = new LocalDate();
+                
+                AccountTransferDetails accountTransferDetails = AccountTransferDetails.savingsToLoanTransfer(fromOffice, 
+                        fromClient, linkedSavingsAccount, toOffice, toClient, loan, transferType);
+                
+                AccountTransferStandingInstruction accountTransferStandingInstruction = AccountTransferStandingInstruction.create(
+                        accountTransferDetails, name, priority, instructionType, status, null, validFrom, null, 
+                        recurrenceType, null, null, null, null);
+                accountTransferDetails.updateAccountTransferStandingInstruction(accountTransferStandingInstruction);
+                
+                this.accountTransferDetailRepository.save(accountTransferDetails);
+            }
+        }
     }
 
     private void updateRecurringCalendarDatesForInterestRecalculation(final Loan loan) {
@@ -1738,6 +1827,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
         final LoanTransaction newTransferAcceptanceTransaction = LoanTransaction.approveTransfer(acceptedInOffice, loan, transferDate);
         loan.getLoanTransactions().add(newTransferAcceptanceTransaction);
+
         if (loan.getTotalOverpaid() != null) {
             loan.setLoanStatus(LoanStatus.OVERPAID.getValue());
         } else {
@@ -2588,5 +2678,4 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         }
         return installments;
     }
-
 }

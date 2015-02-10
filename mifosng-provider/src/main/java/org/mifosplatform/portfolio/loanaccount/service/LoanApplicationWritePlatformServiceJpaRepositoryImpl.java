@@ -120,6 +120,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     private final AccountAssociationsRepository accountAssociationsRepository;
     private final LoanReadPlatformService loanReadPlatformService;
     private final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository;
+    private final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService;
 
     @Autowired
     public LoanApplicationWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context, final FromJsonHelper fromJsonHelper,
@@ -135,7 +136,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             final CalendarRepository calendarRepository, final CalendarInstanceRepository calendarInstanceRepository,
             final SavingsAccountAssembler savingsAccountAssembler, final AccountAssociationsRepository accountAssociationsRepository,
             final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository,
-            final LoanReadPlatformService loanReadPlatformService) {
+            final LoanReadPlatformService loanReadPlatformService, 
+            final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService) {
         this.context = context;
         this.fromJsonHelper = fromJsonHelper;
         this.loanApplicationTransitionApiJsonValidator = loanApplicationTransitionApiJsonValidator;
@@ -160,6 +162,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         this.accountAssociationsRepository = accountAssociationsRepository;
         this.repaymentScheduleInstallmentRepository = repaymentScheduleInstallmentRepository;
         this.loanReadPlatformService = loanReadPlatformService;
+        this.loanCreditCheckWritePlatformService = loanCreditCheckWritePlatformService;
     }
 
     private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
@@ -382,9 +385,12 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
              * If there are any charges already present, which are now not
              * passed in as a part of the request, deem the charges as modified
              **/
-            if (!possiblyModifedLoanCharges.containsAll(existingCharges)) {
-                isChargeModified = true;
+            if(!possiblyModifedLoanCharges.isEmpty()){
+                if (!possiblyModifedLoanCharges.containsAll(existingCharges)) {
+                    isChargeModified = true;
+                }
             }
+
 
             /**
              * If any new charges are added or values of existing charges are
@@ -717,6 +723,9 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
         final Loan loan = retrieveLoanBy(loanId);
         checkClientOrGroupActive(loan);
+        
+        // run loan credit checks
+        this.loanCreditCheckWritePlatformService.runLoanCreditChecks(loanId);
 
         final Map<String, Object> changes = loan.loanApplicationApproval(currentUser, command, defaultLoanLifecycleStateMachine());
         if (!changes.isEmpty()) {
@@ -907,5 +916,4 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                     "Validation errors exist.", dataValidationErrors); }
         }
     }
-
 }

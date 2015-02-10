@@ -24,6 +24,7 @@ import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.InvalidJsonException;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
+import org.mifosplatform.portfolio.creditcheck.CreditCheckConstants;
 import org.mifosplatform.portfolio.loanproduct.LoanProductConstants;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
@@ -70,7 +71,8 @@ public final class LoanProductDataValidator {
             LoanProductConstants.interestRecalculationCompoundingMethodParameterName,
             LoanProductConstants.recalculationRestFrequencyDateParamName,
             LoanProductConstants.recalculationRestFrequencyIntervalParameterName,
-            LoanProductConstants.recalculationRestFrequencyTypeParameterName));
+            LoanProductConstants.recalculationRestFrequencyTypeParameterName, 
+            CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME));
 
     private final FromJsonHelper fromApiJsonHelper;
 

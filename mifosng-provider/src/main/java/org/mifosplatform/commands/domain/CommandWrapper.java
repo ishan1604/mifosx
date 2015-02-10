@@ -5,6 +5,8 @@
  */
 package org.mifosplatform.commands.domain;
 
+import org.mifosplatform.portfolio.creditcheck.CreditCheckConstants;
+import org.mifosplatform.portfolio.loanaccount.api.LoanApiConstants;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.RescheduleLoansApiConstants;
 
 public class CommandWrapper {
@@ -266,6 +268,9 @@ public class CommandWrapper {
     }
     public boolean isSmsCampaignClosure() {
         return this.actionName.equalsIgnoreCase("CLOSE") && this.entityName.equalsIgnoreCase("SMS_CAMPAIGN");
+    }
+    public boolean isSmsCampaignReactivation(){
+        return this.actionName.equals("REACTIVATE") && this.entityName.equalsIgnoreCase("SMS_CAMPAIGN");
     }
 
     public boolean isCodeResource() {
@@ -735,6 +740,14 @@ public class CommandWrapper {
         return this.actionName.equalsIgnoreCase("PROPOSEANDACCEPTTRANSFER") && this.entityName.equalsIgnoreCase("CLIENT");
     }
 
+    public boolean isUndoClientTransfer(){
+        return this.actionName.equalsIgnoreCase("UNDOTRANSFER") && this.entityName.equalsIgnoreCase("CLIENT");
+    }
+
+    public boolean isUndoGroupTransfer(){
+        return this.actionName.equalsIgnoreCase("UNDOTRANSFER") && this.entityName.equalsIgnoreCase("GROUP");
+    }
+
     public boolean isWithdrawClientTransfer() {
         return this.actionName.equalsIgnoreCase("WITHDRAWTRANSFER") && this.entityName.equalsIgnoreCase("CLIENT");
     }
@@ -928,5 +941,16 @@ public class CommandWrapper {
     public boolean isInactivateSavingsAccountCharge() {
         return this.actionName.equalsIgnoreCase("INACTIVATE") && this.entityName.equalsIgnoreCase("SAVINGSACCOUNTCHARGE");
     }
+    
+    public boolean isCreditCheckResource() {
+        return this.entityName.equalsIgnoreCase(CreditCheckConstants.CREDIT_CHECK_ENTITY_NAME);
+    }
+    
+    public boolean isLoanCreditCheckResource() {
+        return this.entityName.equalsIgnoreCase(LoanApiConstants.LOAN_CREDIT_CHECK_ENTITY_NAME);
+    }
 
+    public boolean isDeactivate() {
+        return this.actionName.equalsIgnoreCase("DEACTIVATE");
+    }
 }

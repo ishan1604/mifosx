@@ -150,7 +150,7 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
         List<JournalEntryData> entryDatas = jdbcTemplate.query(entryMapper.organizationRunningBalanceSchema(), entryMapper,
                 new Object[] { entityDate });
         if (entryDatas.size() > 0) {
-            String[] updateSql = new String[entryDatas.size()];
+            String[] updateSql = new String[1000];
             int i = 0;
             for (JournalEntryData entryData : entryDatas) {
                 Map<Long, BigDecimal> officeRunningBalanceMap = null;
@@ -165,6 +165,11 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
                 String sql = "UPDATE acc_gl_journal_entry je SET je.is_running_balance_calculated=1, je.organization_running_balance="
                         + runningBalance + ",je.office_running_balance=" + officeRunningBalance + " WHERE  je.id=" + entryData.getId();
                 updateSql[i++] = sql;
+                if(i == 999){
+                    this.jdbcTemplate.batchUpdate(updateSql);
+                    i = 0;
+                    updateSql = new String[1000];
+                }
             }
             this.jdbcTemplate.batchUpdate(updateSql);
         }

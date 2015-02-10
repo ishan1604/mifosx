@@ -11,4 +11,5 @@ import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 public interface NewCommandSourceHandler {
 
     CommandProcessingResult processCommand(JsonCommand command);
+
 }
