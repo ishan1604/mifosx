@@ -226,4 +226,18 @@ public class ChargeData implements Comparable<ChargeData>, Serializable {
         }
         return isOverdueInstallmentCharge;
     }
+    
+    public boolean isLoanReschedulingFee() {
+        boolean isLoanReschedulingFee = false;
+        
+        if(this.chargeTimeType != null){
+            isLoanReschedulingFee = ChargeTimeType.fromInt(this.chargeTimeType.getId().intValue()).isLoanReschedulingFee();
+        }
+        
+        return isLoanReschedulingFee;
+    }
+    
+    public BigDecimal getAmount() {
+        return this.amount;
+    }
 }

@@ -209,7 +209,8 @@ public class LoanCharge extends AbstractPersistable<Long> {
         }
 
         if (ChargeTimeType.fromInt(this.chargeTime).equals(ChargeTimeType.SPECIFIED_DUE_DATE)
-                || ChargeTimeType.fromInt(this.chargeTime).equals(ChargeTimeType.OVERDUE_INSTALLMENT)) {
+                || ChargeTimeType.fromInt(this.chargeTime).equals(ChargeTimeType.OVERDUE_INSTALLMENT)
+                || ChargeTimeType.fromInt(this.chargeTime).equals(ChargeTimeType.LOAN_RESCHEDULING_FEE)) {
 
             if (dueDate == null) {
                 final String defaultUserMessage = "Loan charge is missing due date.";
@@ -910,6 +911,10 @@ public class LoanCharge extends AbstractPersistable<Long> {
     
     public boolean isDisbursementPaidWithRepayment() {
         return ChargeTimeType.fromInt(this.chargeTime).equals(ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT);
+    }
+    
+    public boolean isLoanReschedulingFee() {
+        return ChargeTimeType.fromInt(this.chargeTime).equals(ChargeTimeType.LOAN_RESCHEDULING_FEE);
     }
     
     public void update(final LocalDate dueDate) {
