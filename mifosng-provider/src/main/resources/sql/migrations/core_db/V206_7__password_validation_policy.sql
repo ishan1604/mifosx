@@ -15,7 +15,7 @@ INSERT INTO `m_password_validation_policy` (
 `active`
 )
 VALUES (
-NULL ,  '^.{2,8}$',  'Password most be at least 1 character and not more that 50 characters long',  '1'
+NULL ,  '^.{1,50}$',  'Password most be at least 1 character and not more that 50 characters long',  '1'
 );
 
 INSERT INTO `m_password_validation_policy` (
