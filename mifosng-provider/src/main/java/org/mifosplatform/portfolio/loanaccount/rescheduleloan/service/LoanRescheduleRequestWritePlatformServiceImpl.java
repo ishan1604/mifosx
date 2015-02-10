@@ -39,6 +39,10 @@ import org.mifosplatform.organisation.workingdays.domain.WorkingDaysRepositoryWr
 import org.mifosplatform.portfolio.calendar.domain.CalendarEntityType;
 import org.mifosplatform.portfolio.calendar.domain.CalendarInstance;
 import org.mifosplatform.portfolio.calendar.domain.CalendarInstanceRepository;
+import org.mifosplatform.portfolio.charge.domain.Charge;
+import org.mifosplatform.portfolio.charge.domain.ChargeCalculationType;
+import org.mifosplatform.portfolio.charge.domain.ChargePaymentMode;
+import org.mifosplatform.portfolio.charge.domain.ChargeTimeType;
 import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargePaidByData;
 import org.mifosplatform.portfolio.loanaccount.data.ScheduleGeneratorDTO;
@@ -72,7 +76,9 @@ import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanResched
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.exception.LoanRescheduleRequestNotFoundException;
 import org.mifosplatform.portfolio.loanaccount.service.LoanAssembler;
 import org.mifosplatform.portfolio.loanaccount.service.LoanChargeReadPlatformService;
+import org.mifosplatform.portfolio.loanaccount.service.LoanWritePlatformService;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductMinimumRepaymentScheduleRelatedDetail;
 import org.mifosplatform.useradministration.domain.AppUser;
 import org.slf4j.Logger;
@@ -106,6 +112,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
     private final JournalEntryWritePlatformService journalEntryWritePlatformService;
     private final LoanRepository loanRepository;
     private final LoanAssembler loanAssembler;
+    private final LoanWritePlatformService loanWritePlatformService;
 
     /**
      * LoanRescheduleRequestWritePlatformServiceImpl constructor
@@ -125,7 +132,8 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
             final LoanChargeReadPlatformService loanChargeReadPlatformService, final LoanScheduleGeneratorFactory loanScheduleFactory,
             final LoanTransactionRepository loanTransactionRepository,
             final JournalEntryWritePlatformService journalEntryWritePlatformService, final LoanRepository loanRepository,
-            final LoanAssembler loanAssembler) {
+            final LoanAssembler loanAssembler,
+            final LoanWritePlatformService loanWritePlatformService) {
         this.loanRepositoryWrapper = loanRepositoryWrapper;
         this.codeValueRepositoryWrapper = codeValueRepositoryWrapper;
         this.platformSecurityContext = platformSecurityContext;
@@ -145,6 +153,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
         this.journalEntryWritePlatformService = journalEntryWritePlatformService;
         this.loanRepository = loanRepository;
         this.loanAssembler = loanAssembler;
+        this.loanWritePlatformService = loanWritePlatformService;
     }
 
     /**
@@ -317,13 +326,13 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                 final InterestMethod interestMethod = loan.getLoanRepaymentScheduleDetail().getInterestMethod();
                 final RoundingMode roundingMode = RoundingMode.HALF_EVEN;
                 final MathContext mathContext = new MathContext(8, roundingMode);
-
+                
                 Collection<LoanRepaymentScheduleHistory> loanRepaymentScheduleHistoryList = this.loanScheduleHistoryWritePlatformService
                         .createLoanScheduleArchive(loan.getRepaymentScheduleInstallments(), loan, loanRescheduleRequest);
 
                 HolidayDetailDTO holidayDetailDTO = new HolidayDetailDTO(isHolidayEnabled, holidays, workingDays);
                 LoanRescheduleModel loanRescheduleModel = new DefaultLoanReschedulerFactory().reschedule(mathContext, interestMethod,
-                        loanRescheduleRequest, applicationCurrency, holidayDetailDTO);
+                        loanRescheduleRequest, applicationCurrency, holidayDetailDTO, loan.charges());
 
                 final Collection<LoanRescheduleModelRepaymentPeriod> periods = loanRescheduleModel.getPeriods();
                 List<LoanRepaymentScheduleInstallment> repaymentScheduleInstallments = loan.getRepaymentScheduleInstallments();
@@ -372,6 +381,9 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                 for (LoanRepaymentScheduleHistory loanRepaymentScheduleHistory : loanRepaymentScheduleHistoryList) {
                     this.loanRepaymentScheduleHistoryRepository.save(loanRepaymentScheduleHistory);
                 }
+                
+                // add "Loan Rescheduling Fee" charges to the loan
+                addLoanReschedulingFeeCharges(loan, loanRescheduleRequest.getRescheduleFromDate(), periods.size());
 
                 loan.updateRescheduledByUser(appUser);
                 loan.updateRescheduledOnDate(new LocalDate());
@@ -574,5 +586,38 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 
         throw new PlatformDataIntegrityException("error.msg.loan.reschedule.unknown.data.integrity.issue",
                 "Unknown data integrity issue with resource.");
+    }
+    
+    /** 
+     * Add "Loan Rescheduling Fee" charge to the loan if attached to the loan product 
+     * 
+     * @param loan -- the loan product
+     * @param instalmentDueDate -- due date of the "reschedule from date" instalment
+     * @param numberOfRepayments -- the number of repayments of the loan
+     * @return None
+     **/
+    @Transactional
+    private void addLoanReschedulingFeeCharges(final Loan loan, final LocalDate instalmentDueDate, 
+            final Integer numberOfRepayments) {
+        this.loanAssembler.setHelpers(loan);
+        
+        final LoanProduct loanProduct = loan.getLoanProduct();
+        final Collection<Charge> loanProductCharges = loanProduct.getCharges();
+        
+        for (Charge loanProductCharge : loanProductCharges) {
+            if (loanProductCharge.isLoanReschedulingFee()) {
+                final BigDecimal loanPrincipal = loan.getPrincpal().getAmount();
+                final BigDecimal chargeAmount = loanProductCharge.getAmount();
+                final ChargeTimeType chargeTimeType = ChargeTimeType.fromInt(loanProductCharge.getChargeTime());
+                final ChargeCalculationType chargeCalculationType = ChargeCalculationType.fromInt(loanProductCharge.getChargeCalculation());
+                final ChargePaymentMode chargePaymentMode = ChargePaymentMode.fromInt(loanProductCharge.getChargePaymentMode());
+                
+                LoanCharge loanCharge = new LoanCharge(loan, loanProductCharge, loanPrincipal, chargeAmount, 
+                        chargeTimeType, chargeCalculationType, instalmentDueDate, chargePaymentMode, numberOfRepayments, BigDecimal.ZERO);
+                
+                // add the loan charge to the loan
+                this.loanWritePlatformService.addLoanCharge(loan, loanProductCharge, loanCharge);
+            }
+        }
     }
 }

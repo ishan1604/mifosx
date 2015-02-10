@@ -8,9 +8,12 @@ package org.mifosplatform.portfolio.charge.service;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.joda.time.MonthDay;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
@@ -31,6 +34,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -45,17 +49,20 @@ public class ChargeReadPlatformServiceImpl implements ChargeReadPlatformService 
     private final ChargeDropdownReadPlatformService chargeDropdownReadPlatformService;
     private final DropdownReadPlatformService dropdownReadPlatformService;
     private final MifosEntityAccessUtil mifosEntityAccessUtil;
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     
     @Autowired
     public ChargeReadPlatformServiceImpl(final CurrencyReadPlatformService currencyReadPlatformService,
             final ChargeDropdownReadPlatformService chargeDropdownReadPlatformService, final RoutingDataSource dataSource,
             final DropdownReadPlatformService dropdownReadPlatformService,
-    		final MifosEntityAccessUtil mifosEntityAccessUtil) {
+    		final MifosEntityAccessUtil mifosEntityAccessUtil, 
+    		final NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
         this.chargeDropdownReadPlatformService = chargeDropdownReadPlatformService;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
         this.currencyReadPlatformService = currencyReadPlatformService;
         this.dropdownReadPlatformService = dropdownReadPlatformService;
         this.mifosEntityAccessUtil = mifosEntityAccessUtil;
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
     }
 
     @Override
@@ -162,15 +169,19 @@ public class ChargeReadPlatformServiceImpl implements ChargeReadPlatformService 
     public Collection<ChargeData> retrieveLoanAccountApplicableCharges(final Long loanId, ChargeTimeType[] excludeChargeTimes) {
         final ChargeMapper rm = new ChargeMapper();
         StringBuilder excludeClause = new StringBuilder("");
-        Object[] params = new Object[] { loanId, ChargeAppliesTo.LOAN.getValue() };
-        params = processChargeExclusionsForLoans(excludeChargeTimes, excludeClause, params);
-        String sql = "select " + rm.chargeSchema() + " join m_loan la on la.currency_code = c.currency_code" + " where la.id=?"
-                + " and c.is_deleted=0 and c.is_active=1 and c.charge_applies_to_enum=?" + excludeClause + " ";
-        sql += addInClauseToSQL_toLimitChargesMappedToOffice_ifOfficeSpecificProductsEnabled();
-        sql += " order by c.name ";
+        Map<String, Object> params = new HashMap<String, Object>();
+        
+        params.put("loanId", loanId);
+        params.put("ChargeAppliesTo", ChargeAppliesTo.LOAN.getValue());
+        
+        processChargeExclusionsForLoans(excludeChargeTimes, excludeClause, params);
+        
+        String sql = "select " + rm.chargeSchema() + " join m_loan la on la.currency_code = c.currency_code" + " where la.id=:loanId"
+                + " and c.is_deleted=0 and c.is_active=1 and c.charge_applies_to_enum=:ChargeAppliesTo" + excludeClause + " "
+                + addInClauseToSQL_toLimitChargesMappedToOffice_ifOfficeSpecificProductsEnabled() + " order by c.name ";
         
 
-        return this.jdbcTemplate.query(sql, rm, params);
+        return this.namedParameterJdbcTemplate.query(sql, params, rm);
     }
 
     /**
@@ -179,34 +190,35 @@ public class ChargeReadPlatformServiceImpl implements ChargeReadPlatformService 
      * @param params
      * @return
      */
-    private Object[] processChargeExclusionsForLoans(ChargeTimeType[] excludeChargeTimes, StringBuilder excludeClause, Object[] params) {
+    private void processChargeExclusionsForLoans(ChargeTimeType[] excludeChargeTimes, StringBuilder excludeClause, Map<String, Object> params) {
         if (excludeChargeTimes != null && excludeChargeTimes.length > 0) {
-            excludeClause = excludeClause.append(" and c.charge_time_enum not in(?) ");
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < excludeChargeTimes.length; i++) {
-                if (i != 0) {
-                    sb.append(",");
-                }
-                sb.append(excludeChargeTimes[i].getValue());
+            excludeClause = excludeClause.append(" and c.charge_time_enum not in (:excludeChargeTimes) ");
+            Set<Integer> chargeTimesToBeExcluded = new HashSet<Integer>();
+            
+            for (ChargeTimeType chargeTimeType : excludeChargeTimes) {
+                chargeTimesToBeExcluded.add(chargeTimeType.getValue());
             }
-            params = Arrays.copyOf(params, params.length + 1);
-            params[params.length - 1] = sb.toString();
+            
+            params.put("excludeChargeTimes", chargeTimesToBeExcluded);
         }
-        return params;
     }
 
     @Override
     public Collection<ChargeData> retrieveLoanProductApplicableCharges(final Long loanProductId, ChargeTimeType[] excludeChargeTimes) {
         final ChargeMapper rm = new ChargeMapper();
         StringBuilder excludeClause = new StringBuilder("");
-        Object[] params = new Object[] { loanProductId, ChargeAppliesTo.LOAN.getValue() };
-        params = processChargeExclusionsForLoans(excludeChargeTimes, excludeClause, params);
-        String sql = "select " + rm.chargeSchema() + " join m_product_loan lp on lp.currency_code = c.currency_code" + " where lp.id=?"
-                + " and c.is_deleted=0 and c.is_active=1 and c.charge_applies_to_enum=?" + excludeClause + " ";
-        sql += addInClauseToSQL_toLimitChargesMappedToOffice_ifOfficeSpecificProductsEnabled();
-        sql += " order by c.name ";
-
-        return this.jdbcTemplate.query(sql, rm, params);
+        Map<String, Object> params = new HashMap<String, Object>();
+        
+        params.put("loanProductId", loanProductId);
+        params.put("ChargeAppliesTo", ChargeAppliesTo.LOAN.getValue());
+        
+        processChargeExclusionsForLoans(excludeChargeTimes, excludeClause, params);
+        
+        String sql = "select " + rm.chargeSchema() + " join m_product_loan lp on lp.currency_code = c.currency_code" + " where lp.id=:loanProductId"
+                + " and c.is_deleted=0 and c.is_active=1 and c.charge_applies_to_enum=:ChargeAppliesTo" + excludeClause + " "
+                + addInClauseToSQL_toLimitChargesMappedToOffice_ifOfficeSpecificProductsEnabled() + " order by c.name ";
+        
+        return this.namedParameterJdbcTemplate.query(sql, params, rm);
     }
 
     @Override

@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -124,7 +123,6 @@ import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionRepository;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionType;
 import org.mifosplatform.portfolio.loanaccount.exception.InvalidPaidInAdvanceAmountException;
-import org.mifosplatform.portfolio.loanaccount.exception.InvalidRefundDateException;
 import org.mifosplatform.portfolio.loanaccount.exception.LoanDisbursalException;
 import org.mifosplatform.portfolio.loanaccount.exception.LoanOfficerAssignmentException;
 import org.mifosplatform.portfolio.loanaccount.exception.LoanOfficerUnassignmentException;
@@ -1298,25 +1296,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
         validateAddLoanCharge(loan, chargeDefinition, loanCharge);
 
-        final List<Long> existingTransactionIds = new ArrayList<>(loan.findExistingTransactionIds());
-        final List<Long> existingReversedTransactionIds = new ArrayList<>(loan.findExistingReversedTransactionIds());
-
-        boolean isAppliedOnBackDate = addCharge(loan, chargeDefinition, loanCharge);
-
-        if (loan.repaymentScheduleDetail().isInterestRecalculationEnabled()) {
-            if (isAppliedOnBackDate && loan.isFeeCompoundingEnabledForInterestRecalculation()) {
-                runScheduleRecalculation(loan);
-            }
-            updateOriginalSchedule(loan);
-
-        }
-
-        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
-
-        if (loan.repaymentScheduleDetail().isInterestRecalculationEnabled() && isAppliedOnBackDate
-                && loan.isFeeCompoundingEnabledForInterestRecalculation()) {
-            this.loanAccountDomainService.recalculateAccruals(loan);
-        }
+        addLoanCharge(loan, chargeDefinition, loanCharge);
+        
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
                 .withEntityId(loanCharge.getId()) //
@@ -1331,6 +1312,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         if (chargeDefinition.isOverdueInstallment()) {
             final String defaultUserMessage = "Installment charge cannot be added to the loan.";
             throw new LoanChargeCannotBeAddedException("loanCharge", "overdue.charge", defaultUserMessage, null, chargeDefinition.getName());
+        } else if (chargeDefinition.isLoanReschedulingFee()) {
+            throw new LoanChargeCannotBeAddedException("loanCharge", "loan.rescheduling.fee", 
+                    "Loan rescheduling fee charge cannot be added to the loan", null, chargeDefinition.getName());
         } else if (loanCharge.getDueLocalDate() != null
                 && loanCharge.getDueLocalDate().isBefore(loan.getLastUserTransactionForChargeCalc())) {
             final String defaultUserMessage = "charge with date before last transaction date can not be added to loan.";
@@ -2806,5 +2790,29 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             user = this.context.getAuthenticatedUserIfPresent();
         }
         return user;
+    }
+
+    @Transactional
+    @Override
+    public void addLoanCharge(Loan loan, Charge charge, LoanCharge loanCharge) {
+        final List<Long> existingTransactionIds = new ArrayList<>(loan.findExistingTransactionIds());
+        final List<Long> existingReversedTransactionIds = new ArrayList<>(loan.findExistingReversedTransactionIds());
+
+        boolean isAppliedOnBackDate = addCharge(loan, charge, loanCharge);
+
+        if (loan.repaymentScheduleDetail().isInterestRecalculationEnabled()) {
+            if (isAppliedOnBackDate && loan.isFeeCompoundingEnabledForInterestRecalculation()) {
+                runScheduleRecalculation(loan);
+            }
+            updateOriginalSchedule(loan);
+
+        }
+
+        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
+
+        if (loan.repaymentScheduleDetail().isInterestRecalculationEnabled() && isAppliedOnBackDate
+                && loan.isFeeCompoundingEnabledForInterestRecalculation()) {
+            this.loanAccountDomainService.recalculateAccruals(loan);
+        }
     }
 }

@@ -22,7 +22,8 @@ public enum ChargeTimeType {
                                                                  // loan charges
     OVERDRAFT_FEE(10, "chargeTimeType.overdraftFee"),// only for savings
     WEEKLY_FEE(11, "chargeTimeType.weeklyFee"), // only for savings
-    DISBURSEMENT_PAID_WITH_REPAYMENT(12, "chargeTimeType.disbursementPaidWithRepayment"); // only for loan charge
+    DISBURSEMENT_PAID_WITH_REPAYMENT(12, "chargeTimeType.disbursementPaidWithRepayment"), // only for loan charge
+    LOAN_RESCHEDULING_FEE(13, "chargeTimeType.loanReschedulingFee"); // only for loan charges
     
     private final Integer value;
     private final String code;
@@ -43,12 +44,13 @@ public enum ChargeTimeType {
     public static Object[] validLoanValues() {
         return new Integer[] { ChargeTimeType.DISBURSEMENT.getValue(), ChargeTimeType.SPECIFIED_DUE_DATE.getValue(),
                 ChargeTimeType.INSTALMENT_FEE.getValue(), ChargeTimeType.OVERDUE_INSTALLMENT.getValue(), 
-                ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT.getValue() };
+                ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT.getValue(), ChargeTimeType.LOAN_RESCHEDULING_FEE.getValue() };
     }
     
     public static Object[] validLoanChargeValues() {
         return new Integer[] { ChargeTimeType.DISBURSEMENT.getValue(), ChargeTimeType.SPECIFIED_DUE_DATE.getValue(),
-                ChargeTimeType.INSTALMENT_FEE.getValue(), ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT.getValue()};
+                ChargeTimeType.INSTALMENT_FEE.getValue(), ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT.getValue(), 
+                ChargeTimeType.LOAN_RESCHEDULING_FEE.getValue() };
     }
 
     public static Object[] validSavingsValues() {
@@ -97,6 +99,9 @@ public enum ChargeTimeType {
                 case 12:
                 	chargeTimeType = DISBURSEMENT_PAID_WITH_REPAYMENT;
                 break; 
+                case 13:
+                    chargeTimeType = LOAN_RESCHEDULING_FEE;
+                break;
                 default:
                     chargeTimeType = INVALID;
                 break;
@@ -148,10 +153,14 @@ public enum ChargeTimeType {
     public boolean isOverdueInstallment() {
         return this.value.equals(ChargeTimeType.OVERDUE_INSTALLMENT.getValue());
     }
+    
+    public boolean isLoanReschedulingFee() {
+        return this.value.equals(ChargeTimeType.LOAN_RESCHEDULING_FEE.getValue());
+    }
 
     public boolean isAllowedLoanChargeTime() {
         return isTimeOfDisbursement() || isOnSpecifiedDueDate() || isInstalmentFee() || isOverdueInstallment() 
-        		|| isDisbursementPaidWithRepayment();
+        		|| isDisbursementPaidWithRepayment() || isLoanReschedulingFee();
     }
 
     public boolean isAllowedSavingsChargeTime() {

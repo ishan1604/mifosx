@@ -5203,4 +5203,8 @@ public class Loan extends AbstractPersistable<Long> {
     public Integer getStatus() {
         return this.loanStatus;
     }
+    
+    public LoanProduct getLoanProduct() {
+        return this.loanProduct;
+    }
 }
