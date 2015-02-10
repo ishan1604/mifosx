@@ -1350,9 +1350,9 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     new ChargeTimeType[] { ChargeTimeType.OVERDUE_INSTALLMENT });
         } else {
             chargeOptions = this.chargeReadPlatformService.retrieveLoanProductApplicableCharges(productId, new ChargeTimeType[] {
-                    ChargeTimeType.OVERDUE_INSTALLMENT, ChargeTimeType.TRANCHE_DISBURSEMENT });
+                    ChargeTimeType.OVERDUE_INSTALLMENT, ChargeTimeType.TRANCHE_DISBURSEMENT, 
+                    ChargeTimeType.LOAN_RESCHEDULING_FEE });
         }
-
         Integer loanCycleCounter = null;
         if (loanProduct.useBorrowerCycle()) {
             if (clientId == null) {

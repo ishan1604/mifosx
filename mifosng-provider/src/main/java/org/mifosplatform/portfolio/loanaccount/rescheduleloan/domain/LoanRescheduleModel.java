@@ -18,7 +18,7 @@ import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanRepayment
 
 public final class LoanRescheduleModel {
 
-    private final Collection<LoanRescheduleModelRepaymentPeriod> periods;
+    private Collection<LoanRescheduleModelRepaymentPeriod> periods;
     private final Collection<LoanRepaymentScheduleHistory> oldPeriods;
     private final ApplicationCurrency applicationCurrency;
     private final int loanTermInDays;
@@ -101,5 +101,11 @@ public final class LoanRescheduleModel {
 
     public Collection<LoanRepaymentScheduleHistory> getOldPeriods() {
         return this.oldPeriods;
+    }
+    
+    public void updatePeriods(final Collection<LoanRescheduleModelRepaymentPeriod> periods) {
+        if (periods != null) {
+            this.periods = periods;
+        }
     }
 }

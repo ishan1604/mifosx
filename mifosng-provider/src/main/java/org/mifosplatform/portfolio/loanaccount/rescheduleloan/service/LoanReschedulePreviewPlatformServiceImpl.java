@@ -8,6 +8,8 @@ package org.mifosplatform.portfolio.loanaccount.rescheduleloan.service;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.mifosplatform.infrastructure.configuration.domain.ConfigurationDomainService;
@@ -28,19 +30,28 @@ import org.mifosplatform.portfolio.floatingrates.data.FloatingRateDTO;
 import org.mifosplatform.portfolio.floatingrates.data.FloatingRatePeriodData;
 import org.mifosplatform.portfolio.floatingrates.exception.FloatingRateNotFoundException;
 import org.mifosplatform.portfolio.floatingrates.service.FloatingRatesReadPlatformService;
+import org.mifosplatform.organisation.monetary.domain.Money;
+import org.mifosplatform.portfolio.charge.domain.Charge;
+import org.mifosplatform.portfolio.charge.domain.ChargeCalculationType;
+import org.mifosplatform.portfolio.charge.domain.ChargePaymentMode;
+import org.mifosplatform.portfolio.charge.domain.ChargeTimeType;
 import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanRepaymentScheduleHistory;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.service.LoanScheduleHistoryWritePlatformService;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.DefaultLoanReschedulerFactory;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleModel;
+import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleModelRepaymentPeriod;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleRequest;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleRequestRepository;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.exception.LoanRescheduleRequestNotFoundException;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductMinimumRepaymentScheduleRelatedDetail;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class LoanReschedulePreviewPlatformServiceImpl implements LoanReschedulePreviewPlatformService {
@@ -73,12 +84,38 @@ public class LoanReschedulePreviewPlatformServiceImpl implements LoanRescheduleP
     }
 
     @Override
+    @Transactional
     public LoanRescheduleModel previewLoanReschedule(Long requestId) {
         final LoanRescheduleRequest loanRescheduleRequest = this.loanRescheduleRequestRepository.findOne(requestId);
 
         if (loanRescheduleRequest == null) { throw new LoanRescheduleRequestNotFoundException(requestId); }
 
-        Loan loan = loanRescheduleRequest.getLoan();
+        final Loan loan = loanRescheduleRequest.getLoan();
+        final LoanProduct loanProduct = loan.getLoanProduct();
+        final Collection<LoanCharge> loanChargeList = loan.charges();
+        final Collection<Charge> loanProductCharges = loanProduct.getCharges();
+        BigDecimal chargesDueAtTimeOfDisbursement = BigDecimal.ZERO;
+        
+        for (Charge loanProductCharge : loanProductCharges) {
+            if (loanProductCharge.isLoanReschedulingFee()) {
+                final BigDecimal loanPrincipal = loan.getPrincpal().getAmount();
+                final BigDecimal chargeAmount = loanProductCharge.getAmount();
+                final ChargeTimeType chargeTimeType = ChargeTimeType.fromInt(loanProductCharge.getChargeTimeType());
+                final ChargeCalculationType chargeCalculationType = ChargeCalculationType.fromInt(loanProductCharge.getChargeCalculation());
+                final ChargePaymentMode chargePaymentMode = ChargePaymentMode.fromInt(loanProductCharge.getChargePaymentMode());
+                
+                LoanCharge loanCharge = new LoanCharge(loan, loanProductCharge, loanPrincipal, chargeAmount, 
+                        chargeTimeType, chargeCalculationType, loanRescheduleRequest.getRescheduleFromDate(), chargePaymentMode, null, BigDecimal.ZERO);
+                
+                loanChargeList.add(loanCharge);
+            }
+        }
+        
+        for (LoanCharge loanCharge : loanChargeList) {
+            if (loanCharge.isDueAtDisbursement()) {
+                chargesDueAtTimeOfDisbursement = chargesDueAtTimeOfDisbursement.add(loanCharge.amount());
+            }
+        } 
 
         final boolean isHolidayEnabled = this.configurationDomainService.isRescheduleRepaymentsOnHolidaysEnabled();
         final List<Holiday> holidays = this.holidayRepository.findByOfficeIdAndGreaterThanDate(loan.getOfficeId(), loan
@@ -111,7 +148,20 @@ public class LoanReschedulePreviewPlatformServiceImpl implements LoanRescheduleP
         final FloatingRateDTO floatingRateDTO = constructFloatingRateDTO(loan);
         LoanRescheduleModel loanRescheduleModel = new DefaultLoanReschedulerFactory().reschedule(mathContext, interestMethod,
                 loanRescheduleRequest, applicationCurrency, holidayDetailDTO, restCalendarInstance, compoundingCalendarInstance,
-                loanCalendar, floatingRateDTO);
+                loanCalendar, floatingRateDTO, loanChargeList);
+        List<LoanRescheduleModelRepaymentPeriod> newPeriods = new ArrayList<>(loanRescheduleModel.getPeriods());
+        
+        // create a new LoanRescheduleModelRepaymentPeriod for the disbursement period
+        LoanRescheduleModelRepaymentPeriod loanRescheduleModelRepaymentPeriod = LoanRescheduleModelRepaymentPeriod
+                .instance(0, 0, null, loan.getDisbursementDate(), loan.getPrincpal(), null, Money.zero(currency), Money.of(currency, chargesDueAtTimeOfDisbursement), 
+                        Money.zero(currency), Money.of(currency, chargesDueAtTimeOfDisbursement), false);
+        
+        // add disbursement period to the beginning of the list of new periods
+        newPeriods.add(0, loanRescheduleModelRepaymentPeriod);
+        
+        // update the "periods" property of the LoanRescheduleModel object
+        loanRescheduleModel.updatePeriods(newPeriods);
+        
         LoanRescheduleModel loanRescheduleModelWithOldPeriods = LoanRescheduleModel.createWithSchedulehistory(loanRescheduleModel,
                 oldPeriods);
         return loanRescheduleModelWithOldPeriods;

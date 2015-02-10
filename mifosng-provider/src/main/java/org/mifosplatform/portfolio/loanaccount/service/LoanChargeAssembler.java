@@ -114,6 +114,11 @@ public class LoanChargeAssembler {
                             throw new LoanChargeCannotBeAddedException("loanCharge", "overdue.charge", defaultUserMessage, null,
                                     chargeDefinition.getName());
                         }
+                        
+                        if (chargeDefinition.isLoanReschedulingFee()) {
+                            throw new LoanChargeCannotBeAddedException("loanCharge", "loan.rescheduling.fee", 
+                                    "Loan rescheduling fee charge cannot be added to the loan", null, chargeDefinition.getName());
+                        }
 
                         ChargeTimeType chargeTime = null;
                         if (chargeTimeType != null) {

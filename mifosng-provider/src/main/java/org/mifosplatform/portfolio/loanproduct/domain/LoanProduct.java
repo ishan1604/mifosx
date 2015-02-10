@@ -1364,4 +1364,8 @@ public class LoanProduct extends AbstractPersistable<Long> {
     public Collection<CreditCheck> getCreditChecks() {
         return this.creditChecks;
     }
+    
+    public Collection<Charge> getCharges() {
+        return this.charges;
+    }
 }

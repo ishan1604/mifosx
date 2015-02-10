@@ -1247,75 +1247,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                                                                  // apply this
                                                                  // charge
         }
-        final List<Long> existingTransactionIds = new ArrayList<>(loan.findExistingTransactionIds());
-        final List<Long> existingReversedTransactionIds = new ArrayList<>(loan.findExistingReversedTransactionIds());
-
-        boolean isAppliedOnBackDate = false;
-        LoanCharge loanCharge = null;
-        LocalDate recalculateFrom = loan.fetchInterestRecalculateFromDate();
-        if (chargeDefinition.isPercentageOfDisbursementAmount()) {
-            LoanTrancheDisbursementCharge loanTrancheDisbursementCharge = null;
-            for (LoanDisbursementDetails disbursementDetail : loanDisburseDetails) {
-                if (disbursementDetail.actualDisbursementDate() == null) {
-                    loanCharge = LoanCharge.createNewWithoutLoan(chargeDefinition, disbursementDetail.principal(), null, null, null,
-                            disbursementDetail.expectedDisbursementDateAsLocalDate(), null, null);
-                    loanTrancheDisbursementCharge = new LoanTrancheDisbursementCharge(loanCharge, disbursementDetail);
-                    loanCharge.updateLoanTrancheDisbursementCharge(loanTrancheDisbursementCharge);
-                    this.businessEventNotifierService.notifyBusinessEventToBeExecuted(BUSINESS_EVENTS.LOAN_ADD_CHARGE,
-                            constructEntityMap(BUSINESS_ENTITY.LOAN_CHARGE, loanCharge));
-                    validateAddLoanCharge(loan, chargeDefinition, loanCharge);
-                    addCharge(loan, chargeDefinition, loanCharge);
-                    isAppliedOnBackDate = true;
-                    if (recalculateFrom.isAfter(disbursementDetail.expectedDisbursementDateAsLocalDate())) {
-                        recalculateFrom = disbursementDetail.expectedDisbursementDateAsLocalDate();
-                    }
-                }
-            }
-            loan.addTrancheLoanCharge(chargeDefinition);
-        } else {
-            loanCharge = LoanCharge.createNewFromJson(loan, chargeDefinition, command);
-            this.businessEventNotifierService.notifyBusinessEventToBeExecuted(BUSINESS_EVENTS.LOAN_ADD_CHARGE,
-                    constructEntityMap(BUSINESS_ENTITY.LOAN_CHARGE, loanCharge));
-
-            validateAddLoanCharge(loan, chargeDefinition, loanCharge);
-            isAppliedOnBackDate = addCharge(loan, chargeDefinition, loanCharge);
-            if (loanCharge.getDueLocalDate() == null || recalculateFrom.isAfter(loanCharge.getDueLocalDate())) {
-                isAppliedOnBackDate = true;
-                recalculateFrom = loanCharge.getDueLocalDate();
-            }
-        }
-
-        boolean reprocessRequired = true;
-        if (loan.repaymentScheduleDetail().isInterestRecalculationEnabled()) {
-            if (isAppliedOnBackDate && loan.isFeeCompoundingEnabledForInterestRecalculation()) {
-
-                runScheduleRecalculation(loan, recalculateFrom);
-                reprocessRequired = false;
-            }
-            updateOriginalSchedule(loan);
-        }
-        if (reprocessRequired) {
-            ChangedTransactionDetail changedTransactionDetail = loan.reprocessTransactions();
-            if (changedTransactionDetail != null) {
-                for (final Map.Entry<Long, LoanTransaction> mapEntry : changedTransactionDetail.getNewTransactionMappings().entrySet()) {
-                    this.loanTransactionRepository.save(mapEntry.getValue());
-                    // update loan with references to the newly created
-                    // transactions
-                    loan.getLoanTransactions().add(mapEntry.getValue());
-                    this.accountTransfersWritePlatformService.updateLoanTransaction(mapEntry.getKey(), mapEntry.getValue());
-                }
-            }
-            saveLoanWithDataIntegrityViolationChecks(loan);
-        }
-
-        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
-
-        if (loan.repaymentScheduleDetail().isInterestRecalculationEnabled() && isAppliedOnBackDate
-                && loan.isFeeCompoundingEnabledForInterestRecalculation()) {
-            this.loanAccountDomainService.recalculateAccruals(loan);
-        }
-        this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_ADD_CHARGE,
-                constructEntityMap(BUSINESS_ENTITY.LOAN_CHARGE, loanCharge));
+        
+        LoanCharge loanCharge = this.addLoanCharge(loan, chargeDefinition, command, null);
+        
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
                 .withEntityId(loanCharge.getId()) //
@@ -1330,6 +1264,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         if (chargeDefinition.isOverdueInstallment()) {
             final String defaultUserMessage = "Installment charge cannot be added to the loan.";
             throw new LoanChargeCannotBeAddedException("loanCharge", "overdue.charge", defaultUserMessage, null, chargeDefinition.getName());
+        } else if (chargeDefinition.isLoanReschedulingFee()) {
+            throw new LoanChargeCannotBeAddedException("loanCharge", "loan.rescheduling.fee", 
+                    "Loan rescheduling fee charge cannot be added to the loan", null, chargeDefinition.getName());
         } else if (loanCharge.getDueLocalDate() != null
                 && loanCharge.getDueLocalDate().isBefore(loan.getLastUserTransactionForChargeCalc())) {
             final String defaultUserMessage = "charge with date before last transaction date can not be added to loan.";
@@ -2870,6 +2807,84 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             final String errorMessage = "tranches.should.be.disbursed.more.than.one.to.undo.last.disbursal";
             throw new LoanMultiDisbursementException(errorMessage);
         }
+    }
+    
+    @Transactional
+    @Override
+    public LoanCharge addLoanCharge(Loan loan, Charge charge, JsonCommand command, LoanCharge loanCharge) {
+        final Set<LoanDisbursementDetails> loanDisburseDetails = loan.getDisbursementDetails();
+        final List<Long> existingTransactionIds = new ArrayList<>(loan.findExistingTransactionIds());
+        final List<Long> existingReversedTransactionIds = new ArrayList<>(loan.findExistingReversedTransactionIds());
 
+        boolean isAppliedOnBackDate = false;
+        
+        LocalDate recalculateFrom = loan.fetchInterestRecalculateFromDate();
+        if (charge.isPercentageOfDisbursementAmount() && loanCharge == null) {
+            LoanTrancheDisbursementCharge loanTrancheDisbursementCharge = null;
+            for (LoanDisbursementDetails disbursementDetail : loanDisburseDetails) {
+                if (disbursementDetail.actualDisbursementDate() == null) {
+                    loanCharge = LoanCharge.createNewWithoutLoan(charge, disbursementDetail.principal(), null, null, null,
+                            disbursementDetail.expectedDisbursementDateAsLocalDate(), null, null);
+                    loanTrancheDisbursementCharge = new LoanTrancheDisbursementCharge(loanCharge, disbursementDetail);
+                    loanCharge.updateLoanTrancheDisbursementCharge(loanTrancheDisbursementCharge);
+                    this.businessEventNotifierService.notifyBusinessEventToBeExecuted(BUSINESS_EVENTS.LOAN_ADD_CHARGE,
+                            constructEntityMap(BUSINESS_ENTITY.LOAN_CHARGE, loanCharge));
+                    validateAddLoanCharge(loan, charge, loanCharge);
+                    addCharge(loan, charge, loanCharge);
+                    isAppliedOnBackDate = true;
+                    if (recalculateFrom.isAfter(disbursementDetail.expectedDisbursementDateAsLocalDate())) {
+                        recalculateFrom = disbursementDetail.expectedDisbursementDateAsLocalDate();
+                    }
+                }
+            }
+            loan.addTrancheLoanCharge(charge);
+        } else {
+            if (loanCharge == null) {
+                loanCharge = LoanCharge.createNewFromJson(loan, charge, command);
+                this.businessEventNotifierService.notifyBusinessEventToBeExecuted(BUSINESS_EVENTS.LOAN_ADD_CHARGE,
+                        constructEntityMap(BUSINESS_ENTITY.LOAN_CHARGE, loanCharge));
+            }
+
+            validateAddLoanCharge(loan, charge, loanCharge);
+            isAppliedOnBackDate = addCharge(loan, charge, loanCharge);
+            if (loanCharge.getDueLocalDate() == null || recalculateFrom.isAfter(loanCharge.getDueLocalDate())) {
+                isAppliedOnBackDate = true;
+                recalculateFrom = loanCharge.getDueLocalDate();
+            }
+        }
+
+        boolean reprocessRequired = true;
+        if (loan.repaymentScheduleDetail().isInterestRecalculationEnabled()) {
+            if (isAppliedOnBackDate && loan.isFeeCompoundingEnabledForInterestRecalculation()) {
+
+                runScheduleRecalculation(loan, recalculateFrom);
+                reprocessRequired = false;
+            }
+            updateOriginalSchedule(loan);
+        }
+        if (reprocessRequired) {
+            ChangedTransactionDetail changedTransactionDetail = loan.reprocessTransactions();
+            if (changedTransactionDetail != null) {
+                for (final Map.Entry<Long, LoanTransaction> mapEntry : changedTransactionDetail.getNewTransactionMappings().entrySet()) {
+                    this.loanTransactionRepository.save(mapEntry.getValue());
+                    // update loan with references to the newly created
+                    // transactions
+                    loan.getLoanTransactions().add(mapEntry.getValue());
+                    this.accountTransfersWritePlatformService.updateLoanTransaction(mapEntry.getKey(), mapEntry.getValue());
+                }
+            }
+            saveLoanWithDataIntegrityViolationChecks(loan);
+        }
+
+        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
+
+        if (loan.repaymentScheduleDetail().isInterestRecalculationEnabled() && isAppliedOnBackDate
+                && loan.isFeeCompoundingEnabledForInterestRecalculation()) {
+            this.loanAccountDomainService.recalculateAccruals(loan);
+        }
+        this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_ADD_CHARGE,
+                constructEntityMap(BUSINESS_ENTITY.LOAN_CHARGE, loanCharge));
+        
+        return loanCharge;
     }
 }

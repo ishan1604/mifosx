@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,13 @@ import org.mifosplatform.portfolio.floatingrates.data.FloatingRateDTO;
 import org.mifosplatform.portfolio.floatingrates.data.FloatingRatePeriodData;
 import org.mifosplatform.portfolio.floatingrates.exception.FloatingRateNotFoundException;
 import org.mifosplatform.portfolio.floatingrates.service.FloatingRatesReadPlatformService;
+import org.mifosplatform.portfolio.charge.domain.Charge;
+import org.mifosplatform.portfolio.charge.domain.ChargeCalculationType;
+import org.mifosplatform.portfolio.charge.domain.ChargePaymentMode;
+import org.mifosplatform.portfolio.charge.domain.ChargeTimeType;
+import org.mifosplatform.portfolio.common.BusinessEventNotificationConstants.BUSINESS_ENTITY;
+import org.mifosplatform.portfolio.common.BusinessEventNotificationConstants.BUSINESS_EVENTS;
+import org.mifosplatform.portfolio.common.service.BusinessEventNotifierService;
 import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargePaidByData;
 import org.mifosplatform.portfolio.loanaccount.data.ScheduleGeneratorDTO;
@@ -78,7 +86,9 @@ import org.mifosplatform.portfolio.loanaccount.rescheduleloan.exception.LoanResc
 import org.mifosplatform.portfolio.loanaccount.service.LoanAssembler;
 import org.mifosplatform.portfolio.loanaccount.service.LoanChargeReadPlatformService;
 import org.mifosplatform.portfolio.loanaccount.service.LoanUtilService;
+import org.mifosplatform.portfolio.loanaccount.service.LoanWritePlatformService;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductMinimumRepaymentScheduleRelatedDetail;
 import org.mifosplatform.useradministration.domain.AppUser;
 import org.slf4j.Logger;
@@ -112,7 +122,9 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
     private final LoanAssembler loanAssembler;
     private final FloatingRatesReadPlatformService floatingRatesReadPlatformService;
     private final LoanUtilService loanUtilService;
-
+    private final LoanWritePlatformService loanWritePlatformService;
+    private final BusinessEventNotifierService businessEventNotifierService;
+    
     /**
      * LoanRescheduleRequestWritePlatformServiceImpl constructor
      * 
@@ -131,7 +143,9 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
             final LoanTransactionRepository loanTransactionRepository,
             final JournalEntryWritePlatformService journalEntryWritePlatformService, final LoanRepository loanRepository,
             final LoanAssembler loanAssembler, final FloatingRatesReadPlatformService floatingRatesReadPlatformService,
-            final LoanUtilService loanUtilService) {
+            final LoanUtilService loanUtilService, 
+            final LoanWritePlatformService loanWritePlatformService, 
+            final BusinessEventNotifierService businessEventNotifierService) {
         this.loanRepositoryWrapper = loanRepositoryWrapper;
         this.codeValueRepositoryWrapper = codeValueRepositoryWrapper;
         this.platformSecurityContext = platformSecurityContext;
@@ -151,6 +165,8 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
         this.loanAssembler = loanAssembler;
         this.floatingRatesReadPlatformService = floatingRatesReadPlatformService;
         this.loanUtilService = loanUtilService;
+        this.loanWritePlatformService = loanWritePlatformService;
+        this.businessEventNotifierService = businessEventNotifierService;
     }
 
     /**
@@ -323,7 +339,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                 final InterestMethod interestMethod = loan.getLoanRepaymentScheduleDetail().getInterestMethod();
                 final RoundingMode roundingMode = MoneyHelper.getRoundingMode();
                 final MathContext mathContext = new MathContext(8, roundingMode);
-
+                
                 Collection<LoanRepaymentScheduleHistory> loanRepaymentScheduleHistoryList = this.loanScheduleHistoryWritePlatformService
                         .createLoanScheduleArchive(loan.getRepaymentScheduleInstallments(), loan, loanRescheduleRequest);
 
@@ -345,7 +361,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                 FloatingRateDTO floatingRateDTO = constructFloatingRateDTO(loan);
                 LoanRescheduleModel loanRescheduleModel = new DefaultLoanReschedulerFactory().reschedule(mathContext, interestMethod,
                         loanRescheduleRequest, applicationCurrency, holidayDetailDTO, restCalendarInstance, compoundingCalendarInstance,
-                        loanCalendar, floatingRateDTO);
+                        loanCalendar, floatingRateDTO, loan.charges());
 
                 final Collection<LoanRescheduleModelRepaymentPeriod> periods = loanRescheduleModel.getPeriods();
                 List<LoanRepaymentScheduleInstallment> repaymentScheduleInstallments = loan.getRepaymentScheduleInstallments();
@@ -394,6 +410,9 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                 for (LoanRepaymentScheduleHistory loanRepaymentScheduleHistory : loanRepaymentScheduleHistoryList) {
                     this.loanRepaymentScheduleHistoryRepository.save(loanRepaymentScheduleHistory);
                 }
+                
+                // add "Loan Rescheduling Fee" charges to the loan
+                addLoanReschedulingFeeCharges(loan, loanRescheduleRequest.getRescheduleFromDate(), periods.size());
 
                 loan.updateRescheduledByUser(appUser);
                 loan.updateRescheduledOnDate(new LocalDate());
@@ -589,5 +608,47 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                     baseLendingRatePeriods);
         }
         return floatingRateDTO;
+    }
+    
+    /** 
+     * Add "Loan Rescheduling Fee" charge to the loan if attached to the loan product 
+     * 
+     * @param loan -- the loan product
+     * @param instalmentDueDate -- due date of the "reschedule from date" instalment
+     * @param numberOfRepayments -- the number of repayments of the loan
+     * @return None
+     **/
+    @Transactional
+    private void addLoanReschedulingFeeCharges(final Loan loan, final LocalDate instalmentDueDate, 
+            final Integer numberOfRepayments) {
+        this.loanAssembler.setHelpers(loan);
+        
+        final LoanProduct loanProduct = loan.getLoanProduct();
+        final Collection<Charge> loanProductCharges = loanProduct.getCharges();
+        
+        for (Charge loanProductCharge : loanProductCharges) {
+            if (loanProductCharge.isLoanReschedulingFee()) {
+                final BigDecimal loanPrincipal = loan.getPrincpal().getAmount();
+                final BigDecimal chargeAmount = loanProductCharge.getAmount();
+                final ChargeTimeType chargeTimeType = ChargeTimeType.fromInt(loanProductCharge.getChargeTimeType());
+                final ChargeCalculationType chargeCalculationType = ChargeCalculationType.fromInt(loanProductCharge.getChargeCalculation());
+                final ChargePaymentMode chargePaymentMode = ChargePaymentMode.fromInt(loanProductCharge.getChargePaymentMode());
+                
+                LoanCharge loanCharge = new LoanCharge(loan, loanProductCharge, loanPrincipal, chargeAmount, 
+                        chargeTimeType, chargeCalculationType, instalmentDueDate, chargePaymentMode, numberOfRepayments, BigDecimal.ZERO);
+                
+                this.businessEventNotifierService.notifyBusinessEventToBeExecuted(BUSINESS_EVENTS.LOAN_ADD_CHARGE,
+                        constructEntityMap(BUSINESS_ENTITY.LOAN_CHARGE, loanCharge));
+                
+                // add the loan charge to the loan
+                this.loanWritePlatformService.addLoanCharge(loan, loanProductCharge, null, loanCharge);
+            }
+        }
+    }
+    
+    private Map<BUSINESS_ENTITY, Object> constructEntityMap(final BUSINESS_ENTITY entityEvent, Object entity) {
+        Map<BUSINESS_ENTITY, Object> map = new HashMap<>(1);
+        map.put(entityEvent, entity);
+        return map;
     }
 }

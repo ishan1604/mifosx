@@ -34,6 +34,7 @@ import org.mifosplatform.portfolio.charge.api.ChargesApiConstants;
 import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.charge.exception.ChargeDisbursementPaidWithRepaymentCannotBePenaltyException;
 import org.mifosplatform.portfolio.charge.exception.ChargeDueAtDisbursementCannotBePenaltyException;
+import org.mifosplatform.portfolio.charge.exception.ChargeLoanReschedulingFeeCannotBePenalty;
 import org.mifosplatform.portfolio.charge.exception.ChargeMustBePenaltyException;
 import org.mifosplatform.portfolio.charge.exception.ChargeParameterUpdateNotSupportedException;
 import org.mifosplatform.portfolio.charge.service.ChargeEnumerations;
@@ -173,8 +174,9 @@ public class Charge extends AbstractPersistable<Long> {
 
         } else if (isLoanCharge()) {
             if (penalty && (chargeTime.isTimeOfDisbursement()
-                    || chargeTime.isTrancheDisbursement() 
-                    || chargeTime.isDisbursementPaidWithRepayment())) { throw new ChargeDueAtDisbursementCannotBePenaltyException(name); }
+                    || chargeTime.isTrancheDisbursement())) { throw new ChargeDueAtDisbursementCannotBePenaltyException(name); }
+            if (penalty && chargeTime.isDisbursementPaidWithRepayment()) { throw new ChargeDisbursementPaidWithRepaymentCannotBePenaltyException(name); }
+            if (penalty && chargeTime.isLoanReschedulingFee()) { throw new ChargeLoanReschedulingFeeCannotBePenalty(name);}
             if (!penalty && chargeTime.isOverdueInstallment()) { throw new ChargeMustBePenaltyException(name); }
             // TODO vishwas, this validation seems unnecessary as identical
             // validation is performed in the write service
@@ -472,21 +474,24 @@ public class Charge extends AbstractPersistable<Long> {
                 actualChanges.put("locale", localeAsInput);
                 this.maxCap = newValue;
             }
-
         }
         
         if (this.penalty && ChargeTimeType.fromInt(this.chargeTimeType)
                 .isTimeOfDisbursement()) { throw new ChargeDueAtDisbursementCannotBePenaltyException(this.name); }
         if (!penalty
-                && ChargeTimeType.fromInt(this.chargeTimeType).isOverdueInstallment()) { throw new ChargeMustBePenaltyException(name); }
+                && ChargeTimeType.fromInt(this.chargeTimeType).isOverdueInstallment()) { 
+            throw new ChargeMustBePenaltyException(name); }
 
+        if (penalty && ChargeTimeType.fromInt(this.chargeTimeType).isDisbursementPaidWithRepayment()) { 
+            throw new ChargeDisbursementPaidWithRepaymentCannotBePenaltyException(name); }
+        
+        if (penalty && ChargeTimeType.fromInt(this.chargeTimeType).isLoanReschedulingFee()) { 
+            throw new ChargeLoanReschedulingFeeCannotBePenalty(name);}
+        
         if (command.isChangeInLongParameterNamed(ChargesApiConstants.glAccountIdParamName, getIncomeAccountId())) {
             final Long newValue = command.longValueOfParameterNamed(ChargesApiConstants.glAccountIdParamName);
             actualChanges.put(ChargesApiConstants.glAccountIdParamName, newValue);
         }
-        
-        if (penalty && ChargeTimeType.fromInt(this.chargeTimeType).isDisbursementPaidWithRepayment()) { 
-            throw new ChargeDisbursementPaidWithRepaymentCannotBePenaltyException(name); }
 
         if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
 
@@ -580,5 +585,9 @@ public class Charge extends AbstractPersistable<Long> {
     
     public boolean isDisbursementPaidWithRepayment() {
     	return ChargeTimeType.fromInt(this.chargeTimeType).isDisbursementPaidWithRepayment();
+    }
+    
+    public boolean isLoanReschedulingFee() {
+        return ChargeTimeType.fromInt(this.chargeTimeType).isLoanReschedulingFee();
     }
 }

@@ -168,4 +168,24 @@ public final class LoanRescheduleModelRepaymentPeriod implements LoanRescheduleM
     public void updateIsNew(boolean isNew) {
         this.isNew = isNew;
     }
+    
+    public BigDecimal outstandingLoanBalance() {
+        BigDecimal value = null;
+        
+        if (this.outstandingLoanBalance != null) {
+            value = this.outstandingLoanBalance.getAmount();
+        }
+
+        return value;
+    }
+    
+    public BigDecimal totalDue() {
+        BigDecimal value = null;
+        
+        if (this.totalDue != null) {
+            value = this.totalDue.getAmount();
+        }
+
+        return value;
+    }
 }
