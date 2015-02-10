@@ -97,9 +97,6 @@ public class AppUser extends AbstractPersistable<Long> implements PlatformUser {
     @Temporal(TemporalType.DATE)
     private Date lastTimePasswordUpdated;
 
-    @Column(name = "password_never_expire", nullable = false)
-    private  boolean passwordNeverExpire;
-
     public static AppUser fromJson(final Office userOffice, final Staff linkedStaff, final Set<Role> allRoles, final JsonCommand command) {
 
         final String username = command.stringValueOfParameterNamed("username");
@@ -108,12 +105,6 @@ public class AppUser extends AbstractPersistable<Long> implements PlatformUser {
 
         if (sendPasswordToEmail.booleanValue()) {
             password = new RandomPasswordGenerator(13).generate();
-        }
-
-        boolean passwordNeverExpire = false;
-
-        if(command.parameterExists("passwordNeverExpire")){
-            passwordNeverExpire = command.booleanPrimitiveValueOfParameterNamed("passwordNeverExpire");
         }
 
         final boolean userEnabled = true;
@@ -131,7 +122,7 @@ public class AppUser extends AbstractPersistable<Long> implements PlatformUser {
         final String firstname = command.stringValueOfParameterNamed("firstname");
         final String lastname = command.stringValueOfParameterNamed("lastname");
 
-        return new AppUser(userOffice, user, allRoles, email, firstname, lastname, linkedStaff,passwordNeverExpire);
+        return new AppUser(userOffice, user, allRoles, email, firstname, lastname, linkedStaff);
     }
 
     protected AppUser() {
@@ -141,7 +132,7 @@ public class AppUser extends AbstractPersistable<Long> implements PlatformUser {
     }
 
     public AppUser(final Office office, final User user, final Set<Role> roles, final String email, final String firstname,
-            final String lastname, final Staff staff, final boolean passwordNeverExpire) {
+            final String lastname, final Staff staff) {
         this.office = office;
         this.email = email.trim();
         this.username = user.getUsername().trim();
@@ -156,7 +147,6 @@ public class AppUser extends AbstractPersistable<Long> implements PlatformUser {
         this.firstTimeLoginRemaining = true;
         this.lastTimePasswordUpdated = DateUtils.getDateOfTenant();
         this.staff = staff;
-        this.passwordNeverExpire = passwordNeverExpire;
     }
 
     public EnumOptionData organisationalRoleData() {
@@ -260,16 +250,6 @@ public class AppUser extends AbstractPersistable<Long> implements PlatformUser {
             this.email = newValue;
         }
 
-        final String passwordNeverExpire = "passwordNeverExpire";
-
-        if (command.hasParameter(passwordNeverExpire)) {
-            if (command.isChangeInBooleanParameterNamed(passwordNeverExpire, this.passwordNeverExpire)) {
-                final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(passwordNeverExpire);
-                actualChanges.put(passwordNeverExpire, newValue);
-                this.passwordNeverExpire = newValue;
-            }
-        }
-
         return actualChanges;
     }
 
@@ -369,10 +349,6 @@ public class AppUser extends AbstractPersistable<Long> implements PlatformUser {
 
     public Staff getStaff() {
         return this.staff;
-    }
-
-    public boolean getPasswordNeverExpire() {
-        return this.passwordNeverExpire;
     }
 
     public Date getLastTimePasswordUpdated() {
