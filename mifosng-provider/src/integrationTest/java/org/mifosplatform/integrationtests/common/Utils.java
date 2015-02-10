@@ -53,7 +53,8 @@ public class Utils {
                 final HttpHostConnectException hh = (HttpHostConnectException) e;
                 fail("Failed to connect to mifosx platform:" + hh.getMessage());
             }
-           throw new RuntimeException(e);
+
+            throw new RuntimeException(e);
         }
     }
 

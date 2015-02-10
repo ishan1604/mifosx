@@ -23,7 +23,6 @@ public class CodeHelper {
     public static final String SUBRESPONSE_ID_ATTRIBUTE_NAME = "subResourceId";
     public static final String CODE_NAME_ATTRIBUTE_NAME = "name";
     public static final String CODE_SYSTEM_DEFINED_ATTRIBUTE_NAME = "systemDefined";
-    public static final String CODE_DEFAULT_VALUE_ATTRIBUTE_NAME  =  "defaultValue";
     public static final String CODE_URL = "/mifosng-provider/api/v1/codes";
 
     public static final String CODE_VALUE_ID_ATTRIBUTE_NAME = "id";
@@ -39,17 +38,10 @@ public class CodeHelper {
     }
 
     public static Object updateCode(final RequestSpecification requestSpec, final ResponseSpecification responseSpec, final Integer codeId,
-            final String codeName,final Integer defaultValue, final String jsonAttributeToGetback) {
+            final String codeName, final String jsonAttributeToGetback) {
 
         return Utils.performServerPut(requestSpec, responseSpec, CODE_URL + "/" + codeId + "?" + Utils.TENANT_IDENTIFIER,
-                getTestCodeUpdateAsJSON(codeName,defaultValue), jsonAttributeToGetback);
-    }
-
-    public static Object updateSystemDefinedCodeWithDefaultValue(final RequestSpecification requestSpec, final ResponseSpecification responseSpec, final Integer codeId,
-            final Integer defaultValue, final String jsonAttributeToGetback){
-        return Utils.performServerPut(requestSpec, responseSpec, CODE_URL + "/" + codeId + "?" + Utils.TENANT_IDENTIFIER,
-                getTestSystemDefinedCodeUpdateAsJson(defaultValue), jsonAttributeToGetback);
-
+                getTestCodeAsJSON(codeName), jsonAttributeToGetback);
     }
 
     public static Object getCodeById(final RequestSpecification requestSpec, final ResponseSpecification responseSpec,
@@ -81,19 +73,6 @@ public class CodeHelper {
     public static String getTestCodeAsJSON(final String codeName) {
         final HashMap<String, String> map = new HashMap<>();
         map.put(CODE_NAME_ATTRIBUTE_NAME, codeName);
-        return new Gson().toJson(map);
-    }
-
-    public static String getTestCodeUpdateAsJSON(final String codeName,final Integer defaultValue){
-        final HashMap<String, Object> map = new HashMap<>();
-        map.put(CODE_NAME_ATTRIBUTE_NAME, codeName);
-        map.put(CODE_DEFAULT_VALUE_ATTRIBUTE_NAME,defaultValue);
-        return new Gson().toJson(map);
-    }
-
-    public static String getTestSystemDefinedCodeUpdateAsJson(final Integer defaultValue){
-        final HashMap<String, Object> map = new HashMap<>();
-        map.put(CODE_DEFAULT_VALUE_ATTRIBUTE_NAME,defaultValue);
         return new Gson().toJson(map);
     }
 

@@ -9,8 +9,6 @@ import java.util.Map;
 
 import org.mifosplatform.infrastructure.codes.domain.Code;
 import org.mifosplatform.infrastructure.codes.domain.CodeRepository;
-import org.mifosplatform.infrastructure.codes.domain.CodeValue;
-import org.mifosplatform.infrastructure.codes.domain.CodeValueRepositoryWrapper;
 import org.mifosplatform.infrastructure.codes.exception.CodeNotFoundException;
 import org.mifosplatform.infrastructure.codes.exception.SystemDefinedCodeCannotBeChangedException;
 import org.mifosplatform.infrastructure.codes.serialization.CodeCommandFromApiJsonDeserializer;
@@ -35,15 +33,13 @@ public class CodeWritePlatformServiceJpaRepositoryImpl implements CodeWritePlatf
     private final PlatformSecurityContext context;
     private final CodeRepository codeRepository;
     private final CodeCommandFromApiJsonDeserializer fromApiJsonDeserializer;
-    private final CodeValueRepositoryWrapper codeValueRepositoryWrapper;
 
     @Autowired
     public CodeWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context, final CodeRepository codeRepository,
-            final CodeCommandFromApiJsonDeserializer fromApiJsonDeserializer, final CodeValueRepositoryWrapper codeValueRepositoryWrapper) {
+            final CodeCommandFromApiJsonDeserializer fromApiJsonDeserializer) {
         this.context = context;
         this.codeRepository = codeRepository;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
-        this.codeValueRepositoryWrapper = codeValueRepositoryWrapper;
     }
 
     @Transactional
@@ -56,7 +52,7 @@ public class CodeWritePlatformServiceJpaRepositoryImpl implements CodeWritePlatf
 
             this.fromApiJsonDeserializer.validateForCreate(command.json());
 
-            final Code code = Code.fromJson(command,null);
+            final Code code = Code.fromJson(command);
             this.codeRepository.save(code);
 
             return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(code.getId()).build();
@@ -77,12 +73,7 @@ public class CodeWritePlatformServiceJpaRepositoryImpl implements CodeWritePlatf
             this.fromApiJsonDeserializer.validateForUpdate(command.json());
 
             final Code code = retrieveCodeBy(codeId);
-
-            final Long codeValueId = command.longValueOfParameterNamed("defaultValue");
-
-            final CodeValue codeValue  =  this.codeValueRepositoryWrapper.findOneWithNotFoundDetection(codeValueId);
             final Map<String, Object> changes = code.update(command);
-            code.updateCodeValue(codeValue);
 
             if (!changes.isEmpty()) {
                 this.codeRepository.save(code);
