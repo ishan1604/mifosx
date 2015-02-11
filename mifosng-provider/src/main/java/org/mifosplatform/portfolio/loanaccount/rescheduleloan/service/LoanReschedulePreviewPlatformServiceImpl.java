@@ -7,6 +7,7 @@ package org.mifosplatform.portfolio.loanaccount.rescheduleloan.service;
 
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.Collection;
 import java.util.List;
 
 import org.mifosplatform.infrastructure.configuration.domain.ConfigurationDomainService;
@@ -18,6 +19,8 @@ import org.mifosplatform.organisation.monetary.domain.ApplicationCurrencyReposit
 import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
 import org.mifosplatform.organisation.workingdays.domain.WorkingDays;
 import org.mifosplatform.organisation.workingdays.domain.WorkingDaysRepositoryWrapper;
+import org.mifosplatform.portfolio.charge.data.ChargeData;
+import org.mifosplatform.portfolio.charge.service.ChargeReadPlatformService;
 import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanRepaymentScheduleHistory;
@@ -28,6 +31,7 @@ import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanResched
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleRequestRepository;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.exception.LoanRescheduleRequestNotFoundException;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductMinimumRepaymentScheduleRelatedDetail;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -41,19 +45,22 @@ public class LoanReschedulePreviewPlatformServiceImpl implements LoanRescheduleP
     private final HolidayRepository holidayRepository;
     private final WorkingDaysRepositoryWrapper workingDaysRepository;
     private final LoanScheduleHistoryWritePlatformService loanScheduleHistoryWritePlatformService;
+    private final ChargeReadPlatformService chargeReadPlatformService;
 
     @Autowired
     public LoanReschedulePreviewPlatformServiceImpl(final LoanRescheduleRequestRepository loanRescheduleRequestRepository,
             final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository,
             final ConfigurationDomainService configurationDomainService, final HolidayRepository holidayRepository,
             final WorkingDaysRepositoryWrapper workingDaysRepository,
-            final LoanScheduleHistoryWritePlatformService loanScheduleHistoryWritePlatformService) {
+            final LoanScheduleHistoryWritePlatformService loanScheduleHistoryWritePlatformService, 
+            final ChargeReadPlatformService chargeReadPlatformService) {
         this.loanRescheduleRequestRepository = loanRescheduleRequestRepository;
         this.applicationCurrencyRepository = applicationCurrencyRepository;
         this.configurationDomainService = configurationDomainService;
         this.holidayRepository = holidayRepository;
         this.workingDaysRepository = workingDaysRepository;
         this.loanScheduleHistoryWritePlatformService = loanScheduleHistoryWritePlatformService;
+        this.chargeReadPlatformService = chargeReadPlatformService;
     }
 
     @Override
@@ -62,7 +69,9 @@ public class LoanReschedulePreviewPlatformServiceImpl implements LoanRescheduleP
 
         if (loanRescheduleRequest == null) { throw new LoanRescheduleRequestNotFoundException(requestId); }
 
-        Loan loan = loanRescheduleRequest.getLoan();
+        final Loan loan = loanRescheduleRequest.getLoan();
+        final LoanProduct loanProduct = loan.getLoanProduct();
+        final Collection<ChargeData> loanProductChargesData = this.chargeReadPlatformService.retrieveLoanProductCharges(loanProduct.getId()); 
 
         final boolean isHolidayEnabled = this.configurationDomainService.isRescheduleRepaymentsOnHolidaysEnabled();
         final List<Holiday> holidays = this.holidayRepository.findByOfficeIdAndGreaterThanDate(loan.getOfficeId(), loan
@@ -79,7 +88,7 @@ public class LoanReschedulePreviewPlatformServiceImpl implements LoanRescheduleP
                 loan.getRepaymentScheduleInstallments(), loan, loanRescheduleRequest);
         HolidayDetailDTO holidayDetailDTO = new HolidayDetailDTO(isHolidayEnabled, holidays, workingDays);
         LoanRescheduleModel loanRescheduleModel = new DefaultLoanReschedulerFactory().reschedule(mathContext, interestMethod,
-                loanRescheduleRequest, applicationCurrency, holidayDetailDTO);
+                loanRescheduleRequest, applicationCurrency, holidayDetailDTO, loanProductChargesData);
         LoanRescheduleModel loanRescheduleModelWithOldPeriods = LoanRescheduleModel.createWithSchedulehistory(loanRescheduleModel,
                 oldPeriods);
         return loanRescheduleModelWithOldPeriods;

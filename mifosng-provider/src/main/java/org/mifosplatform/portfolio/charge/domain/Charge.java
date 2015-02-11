@@ -28,6 +28,7 @@ import org.mifosplatform.organisation.monetary.data.CurrencyData;
 import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.charge.exception.ChargeDisbursementPaidWithRepaymentCannotBePenaltyException;
 import org.mifosplatform.portfolio.charge.exception.ChargeDueAtDisbursementCannotBePenaltyException;
+import org.mifosplatform.portfolio.charge.exception.ChargeLoanReschedulingFeeCannotBePenalty;
 import org.mifosplatform.portfolio.charge.exception.ChargeMustBePenaltyException;
 import org.mifosplatform.portfolio.charge.exception.ChargeParameterUpdateNotSupportedException;
 import org.mifosplatform.portfolio.charge.service.ChargeEnumerations;
@@ -162,6 +163,7 @@ public class Charge extends AbstractPersistable<Long> {
 
             if (penalty && chargeTime.isTimeOfDisbursement()) { throw new ChargeDueAtDisbursementCannotBePenaltyException(name); }
             if (penalty && chargeTime.isDisbursementPaidWithRepayment()) { throw new ChargeDisbursementPaidWithRepaymentCannotBePenaltyException(name); }
+            if (penalty && chargeTime.isLoanReschedulingFee()) { throw new ChargeLoanReschedulingFeeCannotBePenalty(name);}
             if (!penalty && chargeTime.isOverdueInstallment()) { throw new ChargeMustBePenaltyException(name); }
             if (!isAllowedLoanChargeTime()) {
                 baseDataValidator.reset().parameter("chargeTimeType").value(this.chargeTime)
@@ -437,6 +439,7 @@ public class Charge extends AbstractPersistable<Long> {
                 this.name); }
         if (penalty && ChargeTimeType.fromInt(this.chargeTime).isDisbursementPaidWithRepayment()) { 
         	throw new ChargeDisbursementPaidWithRepaymentCannotBePenaltyException(name); }
+        if (penalty && ChargeTimeType.fromInt(this.chargeTime).isLoanReschedulingFee()) { throw new ChargeLoanReschedulingFeeCannotBePenalty(name);}
         if (!penalty && ChargeTimeType.fromInt(this.chargeTime).isOverdueInstallment()) { throw new ChargeMustBePenaltyException(name); }
 
         if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
@@ -506,5 +509,9 @@ public class Charge extends AbstractPersistable<Long> {
     
     public boolean isDisbursementPaidWithRepayment() {
     	return ChargeTimeType.fromInt(this.chargeTime).isDisbursementPaidWithRepayment();
+    }
+    
+    public boolean isLoanReschedulingFee() {
+        return ChargeTimeType.fromInt(this.chargeTime).isLoanReschedulingFee();
     }
 }

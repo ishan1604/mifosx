@@ -68,6 +68,10 @@ public class ChargeEnumerations {
             	optionData = new EnumOptionData(ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT.getValue().longValue(),
                         ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT.getCode(), "Disbursement Paid With Repayment");
             	break;
+            case LOAN_RESCHEDULING_FEE:
+                optionData = new EnumOptionData(ChargeTimeType.LOAN_RESCHEDULING_FEE.getValue().longValue(), 
+                        ChargeTimeType.LOAN_RESCHEDULING_FEE.getCode(), "Loan Rescheduling Fee");
+                break;
             default:
                 optionData = new EnumOptionData(ChargeTimeType.INVALID.getValue().longValue(), ChargeTimeType.INVALID.getCode(), "Invalid");
             break;

@@ -24,6 +24,7 @@ import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
 import org.mifosplatform.organisation.monetary.domain.Money;
 import org.mifosplatform.portfolio.calendar.domain.CalendarInstance;
 import org.mifosplatform.portfolio.calendar.service.CalendarUtils;
+import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.loanaccount.data.DisbursementData;
 import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
@@ -550,7 +551,8 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
 
     @Override
     public LoanRescheduleModel reschedule(final MathContext mathContext, final LoanRescheduleRequest loanRescheduleRequest,
-            final ApplicationCurrency applicationCurrency, final HolidayDetailDTO holidayDetailDTO) {
+            final ApplicationCurrency applicationCurrency, final HolidayDetailDTO holidayDetailDTO, 
+            final Collection<ChargeData> loanProductChargesData) {
 
         final Loan loan = loanRescheduleRequest.getLoan();
         final LoanSummary loanSummary = loan.getSummary();
@@ -613,6 +615,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
         LocalDate adjustedDueDate = loanRescheduleRequest.getAdjustedDueDate();
         BigDecimal newInterestRate = loanRescheduleRequest.getInterestRate();
         int loanTermInDays = Integer.valueOf(0);
+        final BigDecimal loanReschedulingFeeChargesDue = getLoanReschedulingFeeChargesDue(loanProductChargesData);
 
         if (rescheduleFromInstallmentNo > 0) {
             // this will hold the loan repayment installment that is before the
@@ -802,6 +805,14 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                     
                     Money feeChargesDue = Money.of(currency, period.feeChargesDue());
                     Money penaltyChargesDue = Money.of(currency, period.penaltyChargesDue());
+                    
+                    if (period.periodDueDate().isEqual(loanRescheduleRequest.getRescheduleFromDate())) {
+                        // add "loan rescheduling fee" due 
+                        feeChargesDue = feeChargesDue.plus(loanReschedulingFeeChargesDue);
+                        
+                        // update the fee charges due with the new figures from above
+                        period.updateFeeChargesDue(feeChargesDue);
+                    }
 
                     Money totalDue = principalDue.plus(interestDue).plus(feeChargesDue).plus(penaltyChargesDue);
 
@@ -822,12 +833,14 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                 }
             }
         }
+        
+        final BigDecimal totalFeeChargesCharged = loanSummary.getTotalFeeChargesCharged().add(loanReschedulingFeeChargesDue);
 
         final Money totalRepaymentExpected = principal // get the loan Principal
                                                        // amount
                 .plus(actualTotalCumulativeInterest) // add the actual total
                                                      // cumulative interest
-                .plus(loanSummary.getTotalFeeChargesCharged()) // add the total
+                .plus(totalFeeChargesCharged) // add the total
                                                                // fees charged
                 .plus(loanSummary.getTotalPenaltyChargesCharged()); // finally
                                                                     // add the
@@ -837,8 +850,8 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
 
         return LoanRescheduleModel.instance(periods, loanRepaymentScheduleHistoryList, applicationCurrency, loanTermInDays,
                 loan.getPrincpal(), loan.getPrincpal().getAmount(), loanSummary.getTotalPrincipalRepaid(),
-                actualTotalCumulativeInterest.getAmount(), loanSummary.getTotalFeeChargesCharged(),
-                loanSummary.getTotalPenaltyChargesCharged(), totalRepaymentExpected.getAmount(), loanSummary.getTotalOutstanding());
+                actualTotalCumulativeInterest.getAmount(), totalFeeChargesCharged, loanSummary.getTotalPenaltyChargesCharged(), 
+                totalRepaymentExpected.getAmount(), loanSummary.getTotalOutstanding());
     }
 
     private BigDecimal calculateInterestForSpecificDays(final MathContext mc, final LoanApplicationTerms loanApplicationTerms,
@@ -1807,5 +1820,23 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
     private Integer defaultToZeroIfNull(Integer value) {
 
         return (value != null) ? value : 0;
+    }
+    
+    /** 
+     * get the "Rescheduling Fee" charges amount due if the charge is added to the loan product 
+     * 
+     * @param loanProductCharges -- collection of charges attached to a loan product
+     * @return None
+     **/
+    private BigDecimal getLoanReschedulingFeeChargesDue(final Collection<ChargeData> loanProductChargesData) {
+        BigDecimal chargesAmountDue = BigDecimal.ZERO;
+        
+        for (ChargeData chargeData : loanProductChargesData) {
+            if (chargeData.isLoanReschedulingFee()) {
+                chargesAmountDue = chargesAmountDue.add(chargeData.getAmount());
+            }
+        }
+        
+        return chargesAmountDue;
     }
 }

@@ -4798,4 +4798,8 @@ public class Loan extends AbstractPersistable<Long> {
         
         return loanCharges;
     }
+    
+    public LoanProduct getLoanProduct() {
+        return this.loanProduct;
+    }
 }

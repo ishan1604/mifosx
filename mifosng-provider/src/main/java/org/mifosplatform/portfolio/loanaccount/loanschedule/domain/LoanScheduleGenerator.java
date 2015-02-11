@@ -6,12 +6,14 @@
 package org.mifosplatform.portfolio.loanaccount.loanschedule.domain;
 
 import java.math.MathContext;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
 import org.joda.time.LocalDate;
 import org.mifosplatform.organisation.monetary.domain.ApplicationCurrency;
 import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
+import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
@@ -36,5 +38,5 @@ public interface LoanScheduleGenerator {
             MathContext mc, Set<LoanCharge> charges);
 
     LoanRescheduleModel reschedule(final MathContext mathContext, final LoanRescheduleRequest loanRescheduleRequest,
-            final ApplicationCurrency applicationCurrency, final HolidayDetailDTO holidayDetailDTO);
+            final ApplicationCurrency applicationCurrency, final HolidayDetailDTO holidayDetailDTO, Collection<ChargeData> loanProductChargesData);
 }
