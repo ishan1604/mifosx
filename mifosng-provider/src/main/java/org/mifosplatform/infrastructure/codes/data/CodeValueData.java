@@ -19,22 +19,34 @@ public class CodeValueData implements Serializable {
 
     @SuppressWarnings("unused")
     private final Integer position;
+    
+    private final boolean isMandatory;
 
-    public static CodeValueData instance(final Long id, final String name, final Integer position) {
-        return new CodeValueData(id, name, position);
+    public static CodeValueData instance(final Long id, final String name, final Integer position, 
+            final boolean isMandatory) {
+        return new CodeValueData(id, name, position, isMandatory);
     }
 
     public static CodeValueData instance(final Long id, final String name) {
-        return new CodeValueData(id, name, null);
+        return new CodeValueData(id, name, null, false);
     }
 
-    private CodeValueData(final Long id, final String name, final Integer position) {
+    private CodeValueData(final Long id, final String name, final Integer position, 
+            final boolean isMandatory) {
         this.id = id;
         this.name = name;
         this.position = position;
+        this.isMandatory = isMandatory;
     }
 
     public Long getId() {
         return this.id;
+    }
+
+    /**
+     * @return the isMandatory
+     */
+    public boolean isMandatory() {
+        return isMandatory;
     }
 }

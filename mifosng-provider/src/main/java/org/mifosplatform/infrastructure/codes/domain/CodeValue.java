@@ -34,19 +34,23 @@ public class CodeValue extends AbstractPersistable<Long> {
     @ManyToOne
     @JoinColumn(name = "code_id", nullable = false)
     private Code code;
+    
+    @Column(name = "is_mandatory")
+    private boolean isMandatory;
 
-    public static CodeValue createNew(final Code code, final String label, final int position) {
-        return new CodeValue(code, label, position);
+    public static CodeValue createNew(final Code code, final String label, final int position, final boolean isMandatory) {
+        return new CodeValue(code, label, position, isMandatory);
     }
 
     protected CodeValue() {
         //
     }
 
-    private CodeValue(final Code code, final String label, final int position) {
+    private CodeValue(final Code code, final String label, final int position, final boolean isMandatory) {
         this.code = code;
         this.label = StringUtils.defaultIfEmpty(label, null);
         this.position = position;
+        this.isMandatory = isMandatory;
     }
 
     public String label() {
@@ -64,7 +68,10 @@ public class CodeValue extends AbstractPersistable<Long> {
         if (position == null) {
             position = new Integer(0);
         }
-        return new CodeValue(code, label, position.intValue());
+        
+        final boolean isMandatory = command.booleanPrimitiveValueOfParameterNamed(CODEVALUE_JSON_INPUT_PARAMS.IS_MANDATORY.getValue());
+        
+        return new CodeValue(code, label, position.intValue(), isMandatory);
     }
 
     public Map<String, Object> update(final JsonCommand command) {
@@ -84,11 +91,19 @@ public class CodeValue extends AbstractPersistable<Long> {
             actualChanges.put(positionParamName, newValue);
             this.position = newValue.intValue();
         }
+        
+        final String isMandatoryParamName = CODEVALUE_JSON_INPUT_PARAMS.IS_MANDATORY.getValue();
+        if (command.isChangeInBooleanParameterNamed(isMandatoryParamName, this.isMandatory)) {
+            final boolean isMandatory = command.booleanPrimitiveValueOfParameterNamed(isMandatoryParamName);
+            actualChanges.put(isMandatoryParamName, isMandatory);
+            
+            this.isMandatory = isMandatory;
+        }
 
         return actualChanges;
     }
 
     public CodeValueData toData() {
-        return CodeValueData.instance(getId(), this.label, this.position);
+        return CodeValueData.instance(getId(), this.label, this.position, this.isMandatory);
     }
 }
