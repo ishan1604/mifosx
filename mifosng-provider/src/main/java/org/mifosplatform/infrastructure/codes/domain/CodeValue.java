@@ -37,25 +37,30 @@ public class CodeValue extends AbstractPersistable<Long> {
     @ManyToOne
     @JoinColumn(name = "code_id", nullable = false)
     private Code code;
-
+    
     @Column(name = "is_active")
     private boolean isActive;
+    
+    @Column(name = "is_mandatory")
+    private boolean isMandatory;
 
     public static CodeValue createNew(final Code code, final String label, final int position, final String description,
-            final boolean isActive) {
-        return new CodeValue(code, label, position, description, isActive);
+            final boolean isActive, final boolean isMandatory) {
+        return new CodeValue(code, label, position, description, isActive, isMandatory);
     }
 
     protected CodeValue() {
         //
     }
 
-    private CodeValue(final Code code, final String label, final int position, final String description, final boolean isActive) {
+    private CodeValue(final Code code, final String label, final int position, final String description, final boolean isActive, 
+            final boolean isMandatory) {
         this.code = code;
         this.label = StringUtils.defaultIfEmpty(label, null);
         this.position = position;
         this.description = description;
         this.isActive = isActive;
+        this.isMandatory = isMandatory;
     }
 
     public String label() {
@@ -79,7 +84,10 @@ public class CodeValue extends AbstractPersistable<Long> {
         if (position == null) {
             position = new Integer(0);
         }
-        return new CodeValue(code, label, position.intValue(), description, isActive);
+        
+        final boolean isMandatory = command.booleanPrimitiveValueOfParameterNamed(CODEVALUE_JSON_INPUT_PARAMS.IS_MANDATORY.getValue());
+
+        return new CodeValue(code, label, position.intValue(), description, isActive, isMandatory);
     }
 
     public Map<String, Object> update(final JsonCommand command) {
@@ -106,6 +114,14 @@ public class CodeValue extends AbstractPersistable<Long> {
             actualChanges.put(positionParamName, newValue);
             this.position = newValue.intValue();
         }
+        
+        final String isMandatoryParamName = CODEVALUE_JSON_INPUT_PARAMS.IS_MANDATORY.getValue();
+        if (command.isChangeInBooleanParameterNamed(isMandatoryParamName, this.isMandatory)) {
+            final boolean isMandatory = command.booleanPrimitiveValueOfParameterNamed(isMandatoryParamName);
+            actualChanges.put(isMandatoryParamName, isMandatory);
+            
+            this.isMandatory = isMandatory;
+        }
 
         final String isActiveParamName = CODEVALUE_JSON_INPUT_PARAMS.IS_ACTIVE.getValue();
         if (command.isChangeInBooleanParameterNamed(isActiveParamName, this.isActive)) {
@@ -118,6 +134,7 @@ public class CodeValue extends AbstractPersistable<Long> {
     }
 
     public CodeValueData toData() {
-        return CodeValueData.instance(getId(), this.label, this.position, this.isActive);
+        return CodeValueData.instance(getId(), this.label, this.position, this.description, 
+                this.isActive, this.isMandatory);
     }
 }

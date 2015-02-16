@@ -25,6 +25,7 @@ import javax.ws.rs.core.UriInfo;
 import org.mifosplatform.commands.domain.CommandWrapper;
 import org.mifosplatform.commands.service.CommandWrapperBuilder;
 import org.mifosplatform.commands.service.PortfolioCommandSourceWritePlatformService;
+import org.mifosplatform.infrastructure.codes.CodeConstants.CODEVALUE_JSON_INPUT_PARAMS;
 import org.mifosplatform.infrastructure.codes.data.CodeData;
 import org.mifosplatform.infrastructure.codes.data.CodeValueData;
 import org.mifosplatform.infrastructure.codes.service.CodeValueReadPlatformService;
@@ -45,7 +46,11 @@ public class CodeValuesApiResource {
     /**
      * The set of parameters that are supported in response for {@link CodeData}
      */
-    private final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList("id", "name", "position", "description"));
+    private final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(
+            Arrays.asList(CODEVALUE_JSON_INPUT_PARAMS.CODEVALUE_ID.getValue(), 
+                    CODEVALUE_JSON_INPUT_PARAMS.NAME.getValue(), CODEVALUE_JSON_INPUT_PARAMS.POSITION.getValue(), 
+                    CODEVALUE_JSON_INPUT_PARAMS.IS_MANDATORY.getValue(), 
+                    CODEVALUE_JSON_INPUT_PARAMS.DESCRIPTION.getValue()));
     private final String resourceNameForPermissions = "CODEVALUE";
 
     private final PlatformSecurityContext context;
