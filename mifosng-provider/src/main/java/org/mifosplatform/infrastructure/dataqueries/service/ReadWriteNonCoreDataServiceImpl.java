@@ -7,8 +7,6 @@ package org.mifosplatform.infrastructure.dataqueries.service;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +18,10 @@ import java.util.Set;
 import javax.sql.DataSource;
 
 import org.apache.commons.lang.BooleanUtils;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.exception.ConstraintViolationException;
 import org.hibernate.exception.GenericJDBCException;
@@ -33,7 +35,6 @@ import org.mifosplatform.infrastructure.core.data.ApiParameterError;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
-import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.mifosplatform.infrastructure.core.exception.PlatformServiceUnavailableException;
@@ -60,16 +61,17 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.jdbc.support.rowset.SqlRowSetMetaData;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
+import javax.sql.DataSource;
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
 
 @Service
 public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataService {
@@ -183,6 +185,34 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 + " (select 'f'" + " from m_appuser_role ur " + " join m_role r on r.id = ur.role_id"
                 + " left join m_role_permission rp on rp.role_id = r.id" + " left join m_permission p on p.id = rp.permission_id"
                 + " where ur.appuser_id = " + this.context.authenticatedUser().getId() + " and registered_table_name='" + datatable + "'"
+                + " and (p.code in ('ALL_FUNCTIONS', 'ALL_FUNCTIONS_READ') or p.code = concat('READ_', registered_table_name))) "
+                + " order by application_table_name, registered_table_name";
+
+        final SqlRowSet rs = this.jdbcTemplate.queryForRowSet(sql);
+
+        DatatableData datatableData = null;
+        while (rs.next()) {
+            final String appTableName = rs.getString("application_table_name");
+            final String registeredDatatableName = rs.getString("registered_table_name");
+            final Long category                 =  rs.getLong("category");
+            final boolean systemDefined = rs.getBoolean("system_defined");
+            final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService
+                    .fillResultsetColumnHeaders(registeredDatatableName);
+
+            final List<MetaDataResultSet> metaDataResultSets = this.genericDataService.retrieveRegisteredTableMetaData(registeredDatatableName);
+            datatableData = DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined);
+        }
+
+        return datatableData;
+    }
+
+    public DatatableData retrieveDatatableById(Long tableId){
+
+        // PERMITTED datatables
+        final String sql = "select application_table_name, registered_table_name,category,system_defined" + " from x_registered_table " + " where exists"
+                + " (select 'f'" + " from m_appuser_role ur " + " join m_role r on r.id = ur.role_id"
+                + " left join m_role_permission rp on rp.role_id = r.id" + " left join m_permission p on p.id = rp.permission_id"
+                + " where ur.appuser_id = " + this.context.authenticatedUser().getId() + " and x_registered_table.id='" + tableId + "'"
                 + " and (p.code in ('ALL_FUNCTIONS', 'ALL_FUNCTIONS_READ') or p.code = concat('READ_', registered_table_name))) "
                 + " order by application_table_name, registered_table_name";
 
@@ -1834,4 +1864,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             this.registeredTableMetaDataRepository.flush();
         }
     }
+
+    public Long countDatatableEntries(final String datatableName,final Long appTableId,String foreignKeyColumn){
+
+        final String sqlString = "SELECT COUNT("+foreignKeyColumn+") FROM "+datatableName+" WHERE "+foreignKeyColumn+"="+appTableId;
+        final Long count = this.jdbcTemplate.queryForObject(sqlString,Long.class);
+        return count;
+    }
+
+
 }

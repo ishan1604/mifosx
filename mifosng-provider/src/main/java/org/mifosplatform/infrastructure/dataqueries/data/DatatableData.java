@@ -5,6 +5,9 @@
  */
 package org.mifosplatform.infrastructure.dataqueries.data;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 
 /**
@@ -26,6 +29,8 @@ public class DatatableData {
     @SuppressWarnings("unused")
     private final List<MetaDataResultSet> metaDataResultSets;
 
+    private final static Logger logger = LoggerFactory.getLogger(DatatableData.class);
+
 
     public static DatatableData create(final String applicationTableName, final String registeredTableName,
             final List<ResultsetColumnHeaderData> columnHeaderData,final Long category,final List<MetaDataResultSet> metaDataResultSets,final boolean systemDefined) {
@@ -41,5 +46,21 @@ public class DatatableData {
         this.metaDataResultSets = metaDataResultSets;
         this.systemDefined = systemDefined;
 
+    }
+
+    public boolean hasColumn(final String columnName){
+
+        for(ResultsetColumnHeaderData c : this.columnHeaderData){
+
+            if(c.getColumnName().equals(columnName)) return true;
+
+            logger.info(c.getColumnName()+"is it equal to"+ columnName);
+        }
+
+        return false;
+    }
+
+    public String getRegisteredTableName(){
+        return registeredTableName;
     }
 }

@@ -13,6 +13,7 @@ import static org.mifosplatform.infrastructure.dataqueries.api.DataTableApiConst
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +31,8 @@ import com.google.gson.reflect.TypeToken;
 public class DataTableValidator {
 
     private final FromJsonHelper fromApiJsonHelper;
+
+
 
     @Autowired
     public DataTableValidator(final FromJsonHelper fromApiJsonHelper) {

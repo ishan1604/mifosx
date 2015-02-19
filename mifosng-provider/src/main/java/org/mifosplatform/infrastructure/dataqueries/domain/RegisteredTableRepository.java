@@ -11,4 +11,5 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface RegisteredTableRepository extends JpaRepository<RegisteredTable, Long>, JpaSpecificationExecutor<RegisteredTable> {
     RegisteredTable findOneByRegisteredTableName(String registeredTableName);
+
 }

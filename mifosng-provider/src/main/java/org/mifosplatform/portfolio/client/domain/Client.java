@@ -39,6 +39,7 @@ import org.mifosplatform.infrastructure.core.data.ApiParameterError;
 import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.service.DateUtils;
+import org.mifosplatform.infrastructure.dataqueries.domain.EntityDatatableChecks;
 import org.mifosplatform.infrastructure.documentmanagement.domain.Image;
 import org.mifosplatform.infrastructure.security.service.RandomPasswordGenerator;
 import org.mifosplatform.organisation.office.domain.Office;
@@ -380,6 +381,8 @@ public final class Client extends AbstractPersistable<Long> {
 
             throw new PlatformApiDataValidationException(dataValidationErrors);
         }
+
+
 
         this.activationDate = activationLocalDate.toDate();
         this.activatedBy = currentUser;

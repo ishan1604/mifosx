@@ -28,6 +28,9 @@ import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
+import org.mifosplatform.infrastructure.dataqueries.data.EntityTables;
+import org.mifosplatform.infrastructure.dataqueries.data.StatusEnum;
+import org.mifosplatform.infrastructure.dataqueries.service.EntityDatatableChecksWritePlatformService;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.organisation.staff.domain.Staff;
 import org.mifosplatform.portfolio.account.domain.AccountAssociationType;
@@ -134,6 +137,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     private final BusinessEventNotifierService businessEventNotifierService;
     private final ConfigurationDomainService configurationDomainService;
     private final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService;
+    private final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService;
 
     @Autowired
     public LoanApplicationWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context, final FromJsonHelper fromJsonHelper,
@@ -148,11 +152,12 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             final LoanRepaymentScheduleTransactionProcessorFactory loanRepaymentScheduleTransactionProcessorFactory,
             final CalendarRepository calendarRepository, final CalendarInstanceRepository calendarInstanceRepository,
             final SavingsAccountAssembler savingsAccountAssembler, final AccountAssociationsRepository accountAssociationsRepository,
-            final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository,
+            final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository, 
             final LoanReadPlatformService loanReadPlatformService, final LoanAccountDomainService loanAccountDomainService,
             final AccountNumberFormatRepositoryWrapper accountNumberFormatRepository,
             final BusinessEventNotifierService businessEventNotifierService, final ConfigurationDomainService configurationDomainService, 
-            final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService) {
+            final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService, 
+            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService) {
         this.context = context;
         this.fromJsonHelper = fromJsonHelper;
         this.loanApplicationTransitionApiJsonValidator = loanApplicationTransitionApiJsonValidator;
@@ -182,6 +187,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         this.businessEventNotifierService = businessEventNotifierService;
         this.configurationDomainService = configurationDomainService;
         this.loanCreditCheckWritePlatformService = loanCreditCheckWritePlatformService;
+        this.entityDatatableChecksWritePlatformService = entityDatatableChecksWritePlatformService;
     }
 
     private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
@@ -746,6 +752,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         final Loan loan = retrieveLoanBy(loanId);
         checkClientOrGroupActive(loan);
 
+        entityDatatableChecksWritePlatformService.runTheCheck(loanId, EntityTables.LOAN.getName(), StatusEnum.APPROVE.getCode().longValue(), EntityTables.LOAN.getForeignKeyColumnNameOnDatatable());
+
         // run loan credit checks
         this.loanCreditCheckWritePlatformService.runLoanCreditChecks(loan);
 
@@ -837,6 +845,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         final Loan loan = retrieveLoanBy(loanId);
         checkClientOrGroupActive(loan);
 
+        entityDatatableChecksWritePlatformService.runTheCheck(loanId, EntityTables.LOAN.getName(), StatusEnum.REJECTED.getCode().longValue(), EntityTables.LOAN.getForeignKeyColumnNameOnDatatable());
+
         final Map<String, Object> changes = loan.loanApplicationRejection(currentUser, command, defaultLoanLifecycleStateMachine());
         if (!changes.isEmpty()) {
             this.loanRepository.save(loan);
@@ -869,6 +879,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
         final Loan loan = retrieveLoanBy(loanId);
         checkClientOrGroupActive(loan);
+
+        entityDatatableChecksWritePlatformService.runTheCheck(loanId, EntityTables.LOAN.getName(), StatusEnum.WITHDRAWN.getCode().longValue(), EntityTables.LOAN.getForeignKeyColumnNameOnDatatable());
 
         final Map<String, Object> changes = loan.loanApplicationWithdrawnByApplicant(currentUser, command,
                 defaultLoanLifecycleStateMachine());

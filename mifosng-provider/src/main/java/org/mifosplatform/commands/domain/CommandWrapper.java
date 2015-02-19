@@ -1023,4 +1023,16 @@ public class CommandWrapper {
         return this.actionName.equalsIgnoreCase("UPDATE");
     }
 
+    public boolean isEntityDatatableChecksResource(){
+        return this.entityName.equalsIgnoreCase("ENTITY_DATATABLE_CHECK");}
+
+
+    public boolean isCreateEntityDatatableChecks(){
+        return this.actionName.equalsIgnoreCase("CREATE");
+    }
+
+    public boolean isDeleteEntityDatatableChecks(){
+        return this.actionName.equalsIgnoreCase("DELETE");
+    }
+
 }

@@ -945,6 +945,20 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
                 throw new UnsupportedCommandException(wrapper.commandName());
             }
         }
+        else if (wrapper.isEntityDatatableChecksResource()) {
+
+            if (wrapper.isCreateEntityDatatableChecks()) {
+
+                handler = this.applicationContext.getBean("createEntityDatatableChecksCommandHandler", NewCommandSourceHandler.class);
+
+            }else if(wrapper.isDeleteEntityDatatableChecks()){
+
+                handler = this.applicationContext.getBean("deleteEntityDatatableChecksCommandHandler", NewCommandSourceHandler.class);
+
+            } else {
+                throw new UnsupportedCommandException(wrapper.commandName());
+            }
+        }
         else {
             throw new UnsupportedCommandException(wrapper.commandName());
         }
