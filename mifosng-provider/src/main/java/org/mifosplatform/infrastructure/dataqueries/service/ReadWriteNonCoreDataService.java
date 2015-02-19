@@ -5,21 +5,21 @@
  */
 package org.mifosplatform.infrastructure.dataqueries.service;
 
-import java.util.List;
-
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.dataqueries.data.DatatableCategoryData;
 import org.mifosplatform.infrastructure.dataqueries.data.DatatableData;
 import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
-import org.mifosplatform.infrastructure.dataqueries.data.MetaDataResultSet;
 import org.springframework.security.access.prepost.PreAuthorize;
+
+import java.util.List;
 
 public interface ReadWriteNonCoreDataService {
 
     List<DatatableData> retrieveDatatableNames(String appTable);
 
     DatatableData retrieveDatatable(String datatable);
+    DatatableData retrieveDatatableById(Long tableId);
 
     @PreAuthorize(value = "hasAnyRole('ALL_FUNCTIONS', 'REGISTER_DATATABLE')")
     void registerDatatable(JsonCommand command);
@@ -57,7 +57,7 @@ public interface ReadWriteNonCoreDataService {
 
     String getDataTableName(String Url);
 
-
+    Long countDatatableEntries(String datatableName,Long appTableId,String foreignKeyColumn);
 
     List<DatatableCategoryData> retreiveCategories();
 

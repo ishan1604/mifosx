@@ -61,4 +61,7 @@ public class RegisteredTable extends AbstractPersistable<Long> {
             this.displayName = displayName;
         }
     }
+    public String getDisplayName(){
+        return this.displayName;
+    }
 }

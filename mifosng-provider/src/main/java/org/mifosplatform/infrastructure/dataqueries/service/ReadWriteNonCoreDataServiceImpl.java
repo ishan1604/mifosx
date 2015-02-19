@@ -18,6 +18,10 @@ import java.util.Set;
 import javax.sql.DataSource;
 
 import org.apache.commons.lang.BooleanUtils;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.exception.ConstraintViolationException;
 import org.hibernate.exception.GenericJDBCException;
@@ -63,10 +67,9 @@ import org.springframework.jdbc.support.rowset.SqlRowSetMetaData;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
 
 @Service
 public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataService {
@@ -1895,7 +1898,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         final Long count = this.jdbcTemplate.queryForObject(sqlString,Long.class);
         return count;
     }
-
+    
     public List<DatatableCategoryData> retreiveCategories(){
         // PERMITTED datatables
         final String sql = "select code_value , category , application_table_name, registered_table_name,system_defined"
