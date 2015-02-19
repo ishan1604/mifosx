@@ -5,21 +5,6 @@
  */
 package org.mifosplatform.infrastructure.dataqueries.api;
 
-import java.util.List;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.UriInfo;
-
 import org.mifosplatform.commands.domain.CommandWrapper;
 import org.mifosplatform.commands.service.CommandWrapperBuilder;
 import org.mifosplatform.commands.service.PortfolioCommandSourceWritePlatformService;
@@ -27,6 +12,7 @@ import org.mifosplatform.infrastructure.core.api.ApiParameterHelper;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.mifosplatform.infrastructure.core.serialization.ToApiJsonSerializer;
+import org.mifosplatform.infrastructure.dataqueries.data.DatatableCategoryData;
 import org.mifosplatform.infrastructure.dataqueries.data.DatatableData;
 import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
 import org.mifosplatform.infrastructure.dataqueries.service.GenericDataService;
@@ -36,6 +22,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriInfo;
+import java.util.List;
 
 //import org.slf4j.Logger;
 
@@ -280,5 +272,17 @@ public class DatatablesApiResource {
         final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
 
         return this.toApiJsonSerializer.serialize(result);
+    }
+
+    @GET
+    @Path("categories")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String getDatatable(@Context final UriInfo uriInfo) {
+
+        final List<DatatableCategoryData>categories = this.readWriteNonCoreDataService.retreiveCategories();
+
+        final boolean prettyPrint = ApiParameterHelper.prettyPrint(uriInfo.getQueryParameters());
+        return this.toApiJsonSerializer.serializePretty(prettyPrint,categories);
     }
 }
