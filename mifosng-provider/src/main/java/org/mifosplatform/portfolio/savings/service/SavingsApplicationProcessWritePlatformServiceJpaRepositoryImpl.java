@@ -26,6 +26,9 @@ import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.mifosplatform.infrastructure.core.service.DateUtils;
+import org.mifosplatform.infrastructure.dataqueries.data.EntityTables;
+import org.mifosplatform.infrastructure.dataqueries.data.StatusEnum;
+import org.mifosplatform.infrastructure.dataqueries.service.EntityDatatableChecksWritePlatformService;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.organisation.monetary.domain.Money;
 import org.mifosplatform.organisation.staff.domain.Staff;
@@ -82,6 +85,7 @@ public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
     private final CommandProcessingService commandProcessingService;
     private final SavingsAccountDomainService savingsAccountDomainService;
     private final SavingsAccountWritePlatformService savingsAccountWritePlatformService;
+    private final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService;
 
     @Autowired
     public SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -93,7 +97,8 @@ public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
             final SavingsAccountApplicationTransitionApiJsonValidator savingsAccountApplicationTransitionApiJsonValidator,
             final SavingsAccountChargeAssembler savingsAccountChargeAssembler, final CommandProcessingService commandProcessingService,
             final SavingsAccountDomainService savingsAccountDomainService,
-            final SavingsAccountWritePlatformService savingsAccountWritePlatformService) {
+            final SavingsAccountWritePlatformService savingsAccountWritePlatformService,
+            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService) {
         this.context = context;
         this.savingAccountRepository = savingAccountRepository;
         this.savingAccountAssembler = savingAccountAssembler;
@@ -109,6 +114,7 @@ public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
         this.commandProcessingService = commandProcessingService;
         this.savingsAccountDomainService = savingsAccountDomainService;
         this.savingsAccountWritePlatformService = savingsAccountWritePlatformService;
+        this.entityDatatableChecksWritePlatformService = entityDatatableChecksWritePlatformService;
     }
 
     /*
@@ -309,6 +315,9 @@ public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
         final SavingsAccount savingsAccount = this.savingAccountAssembler.assembleFrom(savingsId);
         checkClientOrGroupActive(savingsAccount);
 
+        entityDatatableChecksWritePlatformService.runTheCheck(savingsId, EntityTables.SAVING.getName(), StatusEnum.APPROVE.getCode().longValue(),EntityTables.SAVING.getForeignKeyColumnNameOnDatatable());
+
+
         final Map<String, Object> changes = savingsAccount.approveApplication(currentUser, command, DateUtils.getLocalDateOfTenant());
         if (!changes.isEmpty()) {
             this.savingAccountRepository.save(savingsAccount);
@@ -377,6 +386,8 @@ public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
         final SavingsAccount savingsAccount = this.savingAccountAssembler.assembleFrom(savingsId);
         checkClientOrGroupActive(savingsAccount);
 
+        entityDatatableChecksWritePlatformService.runTheCheck(savingsId, EntityTables.SAVING.getName(), StatusEnum.REJECTED.getCode().longValue(),EntityTables.SAVING.getForeignKeyColumnNameOnDatatable());
+
         final Map<String, Object> changes = savingsAccount.rejectApplication(currentUser, command, DateUtils.getLocalDateOfTenant());
         if (!changes.isEmpty()) {
             this.savingAccountRepository.save(savingsAccount);
@@ -409,6 +420,8 @@ public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
 
         final SavingsAccount savingsAccount = this.savingAccountAssembler.assembleFrom(savingsId);
         checkClientOrGroupActive(savingsAccount);
+
+        entityDatatableChecksWritePlatformService.runTheCheck(savingsId, EntityTables.SAVING.getName(), StatusEnum.APPROVE.getCode().longValue(),EntityTables.SAVING.getForeignKeyColumnNameOnDatatable());
 
         final Map<String, Object> changes = savingsAccount.applicantWithdrawsFromApplication(currentUser, command,
                 DateUtils.getLocalDateOfTenant());

@@ -37,6 +37,10 @@ import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.exception.PlatformServiceUnavailableException;
 import org.mifosplatform.infrastructure.core.service.DateUtils;
+import org.mifosplatform.infrastructure.dataqueries.data.EntityTables;
+import org.mifosplatform.infrastructure.dataqueries.data.StatusEnum;
+import org.mifosplatform.infrastructure.dataqueries.domain.EntityDatatableChecks;
+import org.mifosplatform.infrastructure.dataqueries.service.EntityDatatableChecksWritePlatformService;
 import org.mifosplatform.infrastructure.jobs.annotation.CronTarget;
 import org.mifosplatform.infrastructure.jobs.service.JobName;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
@@ -115,6 +119,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     private final HolidayWritePlatformService holidayWritePlatformService;
     private final WorkingDaysWritePlatformService workingDaysWritePlatformService;
     private final ConfigurationDomainService configurationDomainService;
+    private final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService;
 
     @Autowired
     public SavingsAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -134,7 +139,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             final WorkingDaysWritePlatformService workingDaysWritePlatformService,
             final SavingsAccountDataValidator fromApiJsonDeserializer, final SavingsAccountRepositoryWrapper savingsRepository,
             final StaffRepositoryWrapper staffRepository,
-            final ConfigurationDomainService configurationDomainService) {
+            final ConfigurationDomainService configurationDomainService,
+            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService) {
         this.context = context;
         this.savingAccountRepository = savingAccountRepository;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
@@ -156,6 +162,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         this.savingsRepository = savingsRepository;
         this.staffRepository = staffRepository;
         this.configurationDomainService = configurationDomainService;
+        this.entityDatatableChecksWritePlatformService = entityDatatableChecksWritePlatformService;
     }
 
     @Transactional
@@ -173,6 +180,9 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final Set<Long> existingReversedTransactionIds = new HashSet<>();
         updateExistingTransactionsDetails(account, existingTransactionIds, existingReversedTransactionIds);
         final Map<String, Object> changes = account.activate(user, command, DateUtils.getLocalDateOfTenant());
+
+        entityDatatableChecksWritePlatformService.runTheCheck(savingsId, EntityTables.SAVING.getName(), StatusEnum.ACTIVATE.getCode().longValue(),EntityTables.SAVING.getForeignKeyColumnNameOnDatatable());
+
         if (!changes.isEmpty()) {
             final Locale locale = command.extractLocale();
             final DateTimeFormatter fmt = DateTimeFormat.forPattern(command.dateFormat()).withLocale(locale);
@@ -594,6 +604,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                     + " is not allowed, since it is linked with one of the active accounts";
             throw new SavingsAccountClosingNotAllowedException("linked", defaultUserMessage, savingsId);
         }
+
+        entityDatatableChecksWritePlatformService.runTheCheck(savingsId, EntityTables.SAVING.getName(), StatusEnum.CLOSE.getCode().longValue(),EntityTables.SAVING.getForeignKeyColumnNameOnDatatable());
 
         final boolean isWithdrawBalance = command.booleanPrimitiveValueOfParameterNamed(withdrawBalanceParamName);
 
