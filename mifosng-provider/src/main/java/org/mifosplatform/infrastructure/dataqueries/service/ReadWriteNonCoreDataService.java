@@ -7,6 +7,7 @@ package org.mifosplatform.infrastructure.dataqueries.service;
 
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
+import org.mifosplatform.infrastructure.dataqueries.data.DatatableCategoryData;
 import org.mifosplatform.infrastructure.dataqueries.data.DatatableData;
 import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -57,5 +58,7 @@ public interface ReadWriteNonCoreDataService {
     String getDataTableName(String Url);
 
     Long countDatatableEntries(String datatableName,Long appTableId,String foreignKeyColumn);
+
+    List<DatatableCategoryData> retreiveCategories();
 
 }
