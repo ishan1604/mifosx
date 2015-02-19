@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
+import org.mifosplatform.infrastructure.dataqueries.data.DatatableCategoryData;
 import org.mifosplatform.infrastructure.dataqueries.data.DatatableData;
 import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
 import org.mifosplatform.infrastructure.dataqueries.data.MetaDataResultSet;
@@ -57,5 +58,7 @@ public interface ReadWriteNonCoreDataService {
     String getDataTableName(String Url);
 
 
+
+    List<DatatableCategoryData> retreiveCategories();
 
 }

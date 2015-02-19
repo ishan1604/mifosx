@@ -1837,4 +1837,63 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             this.registeredTableMetaDataRepository.flush();
         }
     }
+
+    public Long countDatatableEntries(final String datatableName,final Long appTableId,String foreignKeyColumn){
+
+        final String sqlString = "SELECT COUNT("+foreignKeyColumn+") FROM "+datatableName+" WHERE "+foreignKeyColumn+"="+appTableId;
+        final Long count = this.jdbcTemplate.queryForObject(sqlString,Long.class);
+        return count;
+    }
+
+    public List<DatatableCategoryData> retreiveCategories(){
+        // PERMITTED datatables
+        final String sql = "select code_value , category , application_table_name, registered_table_name,system_defined"
+                + " from m_code mc "
+                + " join m_code_value cv on cv.code_id = mc.id "
+                + " left join x_registered_table on x_registered_table.category = cv.id "
+                + " where exists"
+                + " (select 'f'" + " from m_appuser_role ur " + " join m_role r on r.id = ur.role_id"
+                + " left join m_role_permission rp on rp.role_id = r.id" + " left join m_permission p on p.id = rp.permission_id"
+                + " where ur.appuser_id = " + this.context.authenticatedUser().getId()
+                + " and (p.code in ('ALL_FUNCTIONS', 'ALL_FUNCTIONS_READ') or p.code = concat('READ_', registered_table_name))) "
+                + " and mc.code_name='SurveyCategory'"
+                +  " order by code_value, registered_table_name";
+
+        final SqlRowSet rs = this.jdbcTemplate.queryForRowSet(sql);
+
+        final List<DatatableCategoryData> listOfCategoryData = new ArrayList<>();
+        final List<Long> ids = new ArrayList<Long>();
+
+        while (rs.next()) {
+
+            final Long categoryId   = rs.getLong("category");
+            final String categoryName = rs.getString("code_value");
+            final DatatableCategoryData cat = DatatableCategoryData.datatableCategoryData(categoryId,categoryName);
+
+            if(!ids.contains(categoryId)){
+                listOfCategoryData.add(cat);
+                ids.add(categoryId);
+            }
+
+        }
+
+
+
+        for(DatatableCategoryData c: listOfCategoryData){
+
+            rs.beforeFirst();
+
+            while (rs.next()) {
+                final String registeredDatatableName = rs.getString("registered_table_name");
+                final Long category = rs.getLong("category");
+
+                if(c.getId().equals(category)){
+
+                    c.addTable(registeredDatatableName);
+                }
+            }
+        }
+
+        return listOfCategoryData;
+    }
 }
