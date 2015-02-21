@@ -50,8 +50,8 @@ public class CreditCheckConstants {
 
     // stretchy report SQL parameter patterns
     public static final String CLIENT_ID_PARAM_PATTERN = "${clientId}";
-    public static final String GROUP_ID_PARAM_PATTERN = "${loanId}";
-    public static final String LOAN_ID_PARAM_PATTERN = "${groupId}";
+    public static final String GROUP_ID_PARAM_PATTERN = "${groupId}";
+    public static final String LOAN_ID_PARAM_PATTERN = "${loanId}";
     public static final String USER_ID_PARAM_PATTERN = "${userId}";
     public static final String STAFF_ID_PARAM_PATTERN = "${staffId}";
     public static final String OFFICE_ID_PARAM_PATTERN = "${officeId}";
