@@ -1933,7 +1933,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         for(DatatableCategoryData c: listOfCategoryData){
 
-            rs.first();
+            rs.beforeFirst();
 
             while (rs.next()) {
                 final String registeredDatatableName = rs.getString("registered_table_name");
