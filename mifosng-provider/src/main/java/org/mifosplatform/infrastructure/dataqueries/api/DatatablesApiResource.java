@@ -172,7 +172,6 @@ public class DatatablesApiResource {
     public String getDatatableManyEntry(@PathParam("datatable") final String datatable, @PathParam("apptableId") final Long apptableId,
             @PathParam("datatableId") final Long datatableId, @QueryParam("order") final String order, @Context final UriInfo uriInfo) {
 
-        logger.debug("::1 we came in the getDatatbleManyEntry apiRessource method");
 
         this.context.authenticatedUser().validateHasDatatableReadPermission(datatable);
 
