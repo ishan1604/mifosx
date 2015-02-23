@@ -26479,6 +26479,12 @@ No Request Body:
 						<tr class=alt>
                             <td><strong>Mandatory - </strong> apptableName</td>
 						</tr>
+						<tr class=alt>
+							<td><em>Optional - </em>category</td>
+						</tr>
+						<tr class=alt>
+							<td><em>Optional - </em>displayName</td>
+						</tr>
 						<tr>
                             <td class=fielddesc>
                                 Application table name. Must be one of the following:
@@ -26566,6 +26572,8 @@ Request Body:
 {
     "datatableName": "extra_client_details",
     "apptableName": "m_client",
+	"category":"160",
+	"displayName":"Extra client details"
     "columns": [
         {
             "name": "Gender",
@@ -26659,6 +26667,8 @@ GET https://DomainName/api/v1/datatables
   {
     "applicationTableName": "m_client",
     "registeredTableName": "extra_client_details",
+	"category":162,
+	"displayName":"Extra client details"
     "columnHeaderData": [
       {
         "columnName": "client_id",
@@ -26719,6 +26729,8 @@ GET https://DomainName/api/v1/datatables/{datatable}
 {
    "applicationTableName": "m_client",
    "registeredTableName": "extra_client_details",
+   "displayName":"Extra client details",
+	"catgeory":163
    "columnHeaderData": [
       {
         "columnName": "client_id",
@@ -26775,6 +26787,9 @@ GET https://DomainName/api/v1/datatables/{datatable}
                         </tr>
                         <tr class=alt>
                             <td><em>Optional - </em> apptableName</td>
+						</tr>
+						<tr class=alt>
+							<td><em>Optional - </em> displayName</td>
 						</tr>
 						<tr>
                             <td class=fielddesc>
@@ -26928,6 +26943,7 @@ Content-Type: application/json
 Request Body:
 {
     "apptableName": "m_client",
+	"displayName" :"Complementary client details"
     "dropColumns": [
         {
             "name": "Gender_cd_Question"

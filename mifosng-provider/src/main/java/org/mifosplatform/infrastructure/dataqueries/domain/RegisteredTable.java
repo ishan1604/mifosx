@@ -13,7 +13,6 @@ import org.springframework.data.jpa.domain.AbstractPersistable;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
@@ -28,6 +27,9 @@ public class RegisteredTable extends AbstractPersistable<Long> {
 
     @Column(name = "category")
     private Integer category;
+
+    @Column(name = "display_name")
+    private String displayName;
 
     @Column(name="system_defined")
     private boolean systemDefined;
@@ -52,4 +54,11 @@ public class RegisteredTable extends AbstractPersistable<Long> {
     }
 
     public boolean isSystemDefined() {return this.systemDefined;}
+
+    public void updateDisplayName(final String displayName){
+
+        if(!this.displayName.equals(displayName)){
+            this.displayName = displayName;
+        }
+    }
 }

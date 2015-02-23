@@ -36,11 +36,11 @@ public class DatatableCommandFromApiJsonDeserializer {
      * The parameters supported for this command.
      */
     private final Set<String> supportedParametersForCreate = new HashSet<>(Arrays.asList("datatableName", "apptableName", "multiRow",
-            "columns", "category", "metaData"));
+            "columns", "category", "metaData","displayName"));
     private final Set<String> supportedParametersForCreateColumns = new HashSet<>(Arrays.asList("name", "type", "length",
             "mandatory", "code", "labelName", "order"));
     private final Set<String> supportedParametersForUpdate = new HashSet<>(Arrays.asList("apptableName", "changeColumns",
-            "addColumns", "dropColumns", "category", "metaData"));
+            "addColumns", "dropColumns", "category", "metaData","displayName"));
     private final Set<String> supportedParametersForAddColumns = new HashSet<>(Arrays.asList("name", "type", "length", "mandatory",
             "after", "code", "labelName", "order"));
     private final Set<String> supportedParametersForChangeColumns = new HashSet<>(Arrays.asList("name", "newName", "length",
@@ -150,6 +150,14 @@ public class DatatableCommandFromApiJsonDeserializer {
 
 
             }
+
+
+        }
+
+        final String displayName = "displayName";
+        if (this.fromApiJsonHelper.parameterExists(displayName, element)) {
+            final String displayNameVal = this.fromApiJsonHelper.extractStringNamed(displayName, element);
+            baseDataValidator.reset().parameter(displayName).value(displayNameVal).notNull().notBlank();
         }
 
 
@@ -271,6 +279,12 @@ public class DatatableCommandFromApiJsonDeserializer {
         if (this.fromApiJsonHelper.parameterExists(categoryIdParameterName, element)) {
             final Long categoryId = this.fromApiJsonHelper.extractLongNamed(categoryIdParameterName, element);
             baseDataValidator.reset().parameter(categoryIdParameterName).value(categoryId).ignoreIfNull().integerGreaterThanZero();
+        }
+
+        final String displayName = "displayName";
+        if (this.fromApiJsonHelper.parameterExists(displayName, element)) {
+            final String displayNameVal = this.fromApiJsonHelper.extractStringNamed(displayName, element);
+            baseDataValidator.reset().parameter(displayName).value(displayNameVal).notNull().notBlank();
         }
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
