@@ -23,6 +23,9 @@ public class DatatableData {
     private final Long category;
 
     @SuppressWarnings("unused")
+    private final String displayName;
+
+    @SuppressWarnings("unused")
     private final boolean systemDefined;
     @SuppressWarnings("unused")
     private final List<ResultsetColumnHeaderData> columnHeaderData;
@@ -33,18 +36,19 @@ public class DatatableData {
 
 
     public static DatatableData create(final String applicationTableName, final String registeredTableName,
-            final List<ResultsetColumnHeaderData> columnHeaderData,final Long category,final List<MetaDataResultSet> metaDataResultSets,final boolean systemDefined) {
-        return new DatatableData(applicationTableName, registeredTableName, columnHeaderData,category,metaDataResultSets,systemDefined);
+            final List<ResultsetColumnHeaderData> columnHeaderData,final Long category,final List<MetaDataResultSet> metaDataResultSets,final boolean systemDefined,final String displayName) {
+        return new DatatableData(applicationTableName, registeredTableName, columnHeaderData,category,metaDataResultSets,systemDefined,displayName);
     }
 
     private DatatableData(final String applicationTableName, final String registeredTableName,final List<ResultsetColumnHeaderData> columnHeaderData,
-                          final Long category,final List<MetaDataResultSet> metaDataResultSets,final boolean systemDefined) {
+                          final Long category,final List<MetaDataResultSet> metaDataResultSets,final boolean systemDefined, final String displayName) {
         this.applicationTableName = applicationTableName;
         this.registeredTableName = registeredTableName;
         this.columnHeaderData = columnHeaderData;
         this.category  = category;
         this.metaDataResultSets = metaDataResultSets;
         this.systemDefined = systemDefined;
+        this.displayName = displayName;
 
     }
 

@@ -149,7 +149,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
 
         // PERMITTED datatables
-        final String sql = "select application_table_name, registered_table_name,category,system_defined" + " from x_registered_table " + " where exists"
+        final String sql = "select display_name, application_table_name, registered_table_name,category,system_defined" + " from x_registered_table " + " where exists"
                 + " (select 'f'" + " from m_appuser_role ur " + " join m_role r on r.id = ur.role_id"
                 + " left join m_role_permission rp on rp.role_id = r.id" + " left join m_permission p on p.id = rp.permission_id"
                 + " where ur.appuser_id = " + this.context.authenticatedUser().getId()
@@ -163,6 +163,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String appTableName = rs.getString("application_table_name");
             final String registeredDatatableName = rs.getString("registered_table_name");
             final Long category                   = rs.getLong("category");
+            final String displayName = rs.getString("display_name");
             final boolean systemDefined = rs.getBoolean("system_defined");
 
 
@@ -170,8 +171,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     .fillResultsetColumnHeaders(registeredDatatableName);
 
             final List<MetaDataResultSet> metaDataResultSets = this.genericDataService.retrieveRegisteredTableMetaData(registeredDatatableName);
-
-            datatables.add(DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined));
+            logger.info("getting the datatable");
+            datatables.add(DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined,displayName));
         }
 
         return datatables;
@@ -181,7 +182,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     public DatatableData retrieveDatatable(final String datatable) {
 
         // PERMITTED datatables
-        final String sql = "select application_table_name, registered_table_name,category,system_defined" + " from x_registered_table " + " where exists"
+        final String sql = "select display_name, application_table_name, registered_table_name,category,system_defined" + " from x_registered_table " + " where exists"
                 + " (select 'f'" + " from m_appuser_role ur " + " join m_role r on r.id = ur.role_id"
                 + " left join m_role_permission rp on rp.role_id = r.id" + " left join m_permission p on p.id = rp.permission_id"
                 + " where ur.appuser_id = " + this.context.authenticatedUser().getId() + " and registered_table_name='" + datatable + "'"
@@ -196,11 +197,12 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String registeredDatatableName = rs.getString("registered_table_name");
             final Long category                 =  rs.getLong("category");
             final boolean systemDefined = rs.getBoolean("system_defined");
+            final String displayName = rs.getString("display_name");
             final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService
                     .fillResultsetColumnHeaders(registeredDatatableName);
 
             final List<MetaDataResultSet> metaDataResultSets = this.genericDataService.retrieveRegisteredTableMetaData(registeredDatatableName);
-            datatableData = DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined);
+            datatableData = DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined,displayName);
         }
 
         return datatableData;
@@ -209,7 +211,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     public DatatableData retrieveDatatableById(Long tableId){
 
         // PERMITTED datatables
-        final String sql = "select application_table_name, registered_table_name,category,system_defined" + " from x_registered_table " + " where exists"
+        final String sql = "select display_name, application_table_name, registered_table_name,category,system_defined" + " from x_registered_table " + " where exists"
                 + " (select 'f'" + " from m_appuser_role ur " + " join m_role r on r.id = ur.role_id"
                 + " left join m_role_permission rp on rp.role_id = r.id" + " left join m_permission p on p.id = rp.permission_id"
                 + " where ur.appuser_id = " + this.context.authenticatedUser().getId() + " and x_registered_table.id='" + tableId + "'"
@@ -224,11 +226,12 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String registeredDatatableName = rs.getString("registered_table_name");
             final Long category                 =  rs.getLong("category");
             final boolean systemDefined = rs.getBoolean("system_defined");
+            final String displayName = rs.getString("display_name");
             final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService
                     .fillResultsetColumnHeaders(registeredDatatableName);
 
             final List<MetaDataResultSet> metaDataResultSets = this.genericDataService.retrieveRegisteredTableMetaData(registeredDatatableName);
-            datatableData = DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined);
+            datatableData = DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined,displayName);
         }
 
         return datatableData;
@@ -240,13 +243,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
     @Transactional
     @Override
-    public void registerDatatable(final String dataTableName, final String applicationTableName,final Long categoryId) {
+    public void registerDatatable(final String dataTableName, final String applicationTableName,final Long categoryId,final String displayName) {
         Integer category = DataTableApiConstant.CATEGORY_DEFAULT;
         if(categoryId != null){
             category = categoryId.intValue();
         }
         final String permissionSql = this._getPermissionSql(dataTableName);
-        this._registerDataTable(applicationTableName, dataTableName, category, permissionSql);
+        this._registerDataTable(applicationTableName, dataTableName, category, permissionSql,displayName);
 
     }
 
@@ -261,7 +264,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         this.dataTableValidator.validateDataTableRegistration(command.json());
         final String permissionSql = this._getPermissionSql(dataTableName);
-        this._registerDataTable(applicationTableName, dataTableName, category, permissionSql);
+        final String displayName = "";
+        this._registerDataTable(applicationTableName, dataTableName, category, permissionSql,displayName );
 
     }
 
@@ -272,22 +276,23 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         final String dataTableName = this.getDataTableName(command.getUrl());
 
         Integer category = this.getCategory(command);
+        final String displayName = "";
 
         this.dataTableValidator.validateDataTableRegistration(command.json());
 
-        this._registerDataTable(applicationTableName, dataTableName, category, permissionSql);
+        this._registerDataTable(applicationTableName, dataTableName, category, permissionSql,displayName);
 
     }
 
     @Transactional
     private void _registerDataTable(final String applicationTableName, final String dataTableName, final Integer category,
-            final String permissionsSql) {
+            final String permissionsSql,final String displayName) {
 
         validateAppTable(applicationTableName);
         assertDataTableExists(dataTableName);
 
-        final String registerDatatableSql = "insert into x_registered_table (registered_table_name, application_table_name,category) values ('"
-                + dataTableName + "', '" + applicationTableName + "', '" + category + "')";
+        final String registerDatatableSql = "insert into x_registered_table (registered_table_name, application_table_name,category, display_name) values ('"
+                + dataTableName + "', '" + applicationTableName + "', '" + category + "', '" + displayName + "')";
 
         try {
 
@@ -575,7 +580,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final JsonElement element = this.fromJsonHelper.parse(command.json());
             final JsonArray columns = this.fromJsonHelper.extractJsonArrayNamed("columns", element);
             datatableName = this.fromJsonHelper.extractStringNamed("datatableName", element);
+
             final String apptableName = this.fromJsonHelper.extractStringNamed("apptableName", element);
+
+            String datatableDisplayName = datatableName;
+            if(this.fromJsonHelper.parameterExists("displayName",element)){
+                datatableDisplayName =this.fromJsonHelper.extractStringNamed("displayName", element);
+            }
             Boolean multiRow = this.fromJsonHelper.extractBooleanNamed("multiRow", element);
 
             Boolean metaData = this.fromJsonHelper.extractBooleanNamed("metaData",element);
@@ -645,7 +656,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             sqlBuilder = sqlBuilder.append(") ENGINE=InnoDB DEFAULT CHARSET=utf8;");
             this.jdbcTemplate.execute(sqlBuilder.toString());
 
-            registerDatatable(datatableName, apptableName,categoryId);
+            registerDatatable(datatableName, apptableName,categoryId,datatableDisplayName);
             registerColumnCodeMapping(codeMappings);
             /*
                for creating metaData for x_registered_table musoni related
@@ -909,6 +920,12 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final JsonArray addColumns = this.fromJsonHelper.extractJsonArrayNamed("addColumns", element);
             final JsonArray dropColumns = this.fromJsonHelper.extractJsonArrayNamed("dropColumns", element);
             final String apptableName = this.fromJsonHelper.extractStringNamed("apptableName", element);
+
+            String datatableDisplayName = datatableName;
+
+            if(this.fromJsonHelper.parameterExists("displayName",element)){
+                datatableDisplayName =this.fromJsonHelper.extractStringNamed("displayName", element);
+            }
             final Long categoryId = this.fromJsonHelper.extractLongNamed("category",element);
             Boolean metaData = this.fromJsonHelper.extractBooleanNamed("metaData",element);
 
@@ -961,10 +978,16 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     this.jdbcTemplate.execute(sqlBuilder.toString());
 
                     deregisterDatatable(datatableName);
-                    registerDatatable(datatableName, apptableName,categoryId);
+                    registerDatatable(datatableName, apptableName,categoryId,datatableDisplayName );
                 }else{
                     final RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
                     if(registeredTable !=null && categoryId !=null){ registeredTable.updateCategory(categoryId.intValue());}
+
+                    if(this.fromJsonHelper.parameterExists("displayName",element)){
+                        datatableDisplayName =this.fromJsonHelper.extractStringNamed("displayName", element);
+                        registeredTable.updateDisplayName(datatableDisplayName);
+                    }
+
 
                 }
             }
