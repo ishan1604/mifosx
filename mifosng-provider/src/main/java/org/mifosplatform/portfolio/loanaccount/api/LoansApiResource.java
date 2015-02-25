@@ -71,7 +71,6 @@ import org.mifosplatform.portfolio.loanaccount.data.LoanCreditCheckData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanTermVariationsData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionData;
 import org.mifosplatform.portfolio.loanaccount.data.RepaymentScheduleRelatedLoanData;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanCreditCheck;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTermVariationType;
 import org.mifosplatform.portfolio.loanaccount.exception.LoanTemplateTypeRequiredException;
 import org.mifosplatform.portfolio.loanaccount.exception.NotSupportedLoanTemplateTypeException;
@@ -82,7 +81,7 @@ import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanScheduleM
 import org.mifosplatform.portfolio.loanaccount.loanschedule.service.LoanScheduleCalculationPlatformService;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.service.LoanScheduleHistoryReadPlatformService;
 import org.mifosplatform.portfolio.loanaccount.service.LoanChargeReadPlatformService;
-import org.mifosplatform.portfolio.loanaccount.service.LoanCreditCheckWritePlatformService;
+import org.mifosplatform.portfolio.loanaccount.service.LoanCreditCheckReadPlatformService;
 import org.mifosplatform.portfolio.loanaccount.service.LoanReadPlatformService;
 import org.mifosplatform.portfolio.loanproduct.data.LoanProductData;
 import org.mifosplatform.portfolio.loanproduct.data.TransactionProcessingStrategyData;
@@ -144,7 +143,7 @@ public class LoansApiResource {
     private final PortfolioAccountReadPlatformService portfolioAccountReadPlatformService;
     private final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService;
     private final LoanScheduleHistoryReadPlatformService loanScheduleHistoryReadPlatformService;
-    private final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService;
+    private final LoanCreditCheckReadPlatformService loanCreditCheckReadPlatformService;
 
     @Autowired
     public LoansApiResource(final PlatformSecurityContext context, final LoanReadPlatformService loanReadPlatformService,
@@ -163,7 +162,7 @@ public class LoansApiResource {
             final PortfolioAccountReadPlatformService portfolioAccountReadPlatformServiceImpl,
             final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
             final LoanScheduleHistoryReadPlatformService loanScheduleHistoryReadPlatformService,
-            final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService) {
+            final LoanCreditCheckReadPlatformService loanCreditCheckReadPlatformService) {
         this.context = context;
         this.loanReadPlatformService = loanReadPlatformService;
         this.loanProductReadPlatformService = loanProductReadPlatformService;
@@ -186,7 +185,7 @@ public class LoansApiResource {
         this.portfolioAccountReadPlatformService = portfolioAccountReadPlatformServiceImpl;
         this.accountAssociationsReadPlatformService = accountAssociationsReadPlatformService;
         this.loanScheduleHistoryReadPlatformService = loanScheduleHistoryReadPlatformService;
-        this.loanCreditCheckWritePlatformService = loanCreditCheckWritePlatformService;
+        this.loanCreditCheckReadPlatformService = loanCreditCheckReadPlatformService;
     }
 
     @GET
@@ -324,8 +323,7 @@ public class LoansApiResource {
         PortfolioAccountData linkedAccount = null;
         Collection<DisbursementData> disbursementData = null;
         Collection<LoanTermVariationsData> emiAmountVariations = null;
-        Collection<LoanCreditCheck> loanCreditCheckList = this.loanCreditCheckWritePlatformService.triggerLoanCreditChecks(loanId);
-        Collection<LoanCreditCheckData> loanCreditCheckDataList = LoanCreditCheckData.instance(loanCreditCheckList);
+        Collection<LoanCreditCheckData> loanCreditCheckDataList = null;
 
         final Set<String> mandatoryResponseParameters = new HashSet<>();
         final Set<String> associationParameters = ApiParameterHelper.extractAssociationsForResponseIfProvided(uriInfo.getQueryParameters());
@@ -421,6 +419,7 @@ public class LoansApiResource {
 
             if (associationParameters.contains(CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME)) {
                 mandatoryResponseParameters.add(CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME);
+                loanCreditCheckDataList = this.loanCreditCheckReadPlatformService.triggerLoanCreditChecks(loanBasicDetails);
                 
                 if (CollectionUtils.isEmpty(loanCreditCheckDataList)) {
                     loanCreditCheckDataList = null;

@@ -27,6 +27,7 @@ import org.mifosplatform.infrastructure.core.data.ApiParameterError;
 import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.mifosplatform.infrastructure.dataqueries.data.ReportData;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 
 import com.google.gson.JsonArray;
@@ -272,5 +273,10 @@ public final class Report extends AbstractPersistable<Long> {
 
     public String getReportSql() {
         return this.reportSql;
+    }
+    
+    public ReportData toData() {
+        return new ReportData(this.getId(), this.reportName, this.reportType, this.reportSubType, this.reportCategory,
+                this.description, this.reportSql, this.coreReport, this.useReport, null);
     }
 }

@@ -5,140 +5,135 @@
  */
 package org.mifosplatform.portfolio.loanaccount.service;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
-import org.joda.time.LocalDate;
-import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
-import org.mifosplatform.infrastructure.dataqueries.data.ResultsetRowData;
-import org.mifosplatform.infrastructure.dataqueries.domain.Report;
+import org.apache.commons.collections.CollectionUtils;
+import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.infrastructure.dataqueries.service.GenericDataService;
-import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
-import org.mifosplatform.portfolio.creditcheck.CreditCheckConstants;
-import org.mifosplatform.portfolio.creditcheck.data.CreditCheckReportParamData;
 import org.mifosplatform.portfolio.creditcheck.domain.CreditCheck;
 import org.mifosplatform.portfolio.creditcheck.domain.CreditCheckSeverityLevel;
 import org.mifosplatform.portfolio.creditcheck.service.CreditCheckReportParamReadPlatformService;
+import org.mifosplatform.portfolio.loanaccount.data.LoanCreditCheckData;
+import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanCreditCheck;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanCreditCheckRepository;
 import org.mifosplatform.portfolio.loanaccount.exception.LoanCreditCheckFailedException;
-import org.mifosplatform.useradministration.domain.AppUser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class LoanCreditCheckWritePlatformServiceImpl implements LoanCreditCheckWritePlatformService {
-    private final PlatformSecurityContext platformSecurityContext;
-    private final CreditCheckReportParamReadPlatformService creditCheckReportParamReadPlatformService;
     private final LoanCreditCheckRepository loanCreditCheckRepository;
-    private final GenericDataService genericDataService;
-    private final static Logger logger = LoggerFactory.getLogger(LoanCreditCheckWritePlatformServiceImpl.class);
+    private final LoanCreditCheckReadPlatformService loanCreditCheckReadPlatformService;
     
     @Autowired
-    public LoanCreditCheckWritePlatformServiceImpl(final PlatformSecurityContext platformSecurityContext, 
-            final CreditCheckReportParamReadPlatformService creditCheckReportParamReadPlatformService, 
+    public LoanCreditCheckWritePlatformServiceImpl(final CreditCheckReportParamReadPlatformService creditCheckReportParamReadPlatformService, 
             final LoanCreditCheckRepository loanCreditCheckRepository, 
-            final GenericDataService genericDataService) {
-        this.platformSecurityContext = platformSecurityContext;
-        this.creditCheckReportParamReadPlatformService = creditCheckReportParamReadPlatformService;
+            final GenericDataService genericDataService, 
+            final LoanCreditCheckReadPlatformService loanCreditCheckReadPlatformService) {
         this.loanCreditCheckRepository = loanCreditCheckRepository;
-        this.genericDataService = genericDataService;
-    }
-
-    @Override
-    @Transactional
-    public Collection<LoanCreditCheck> triggerLoanCreditChecks(final Long loanId) {
-        final AppUser appUser = this.platformSecurityContext.authenticatedUser();
-        final Collection<LoanCreditCheck> currentLoanCreditChecks = this.loanCreditCheckRepository.findByLoanId(loanId);
-        final Collection<LoanCreditCheck> loanCreditChecks = new ArrayList<>();
-        
-        for (LoanCreditCheck loanCreditCheck : currentLoanCreditChecks) {
-            if (!loanCreditCheck.hasBeenTriggered() && loanCreditCheck.isActive()) {
-                final CreditCheck creditCheck = loanCreditCheck.getCreditCheck();
-                final Report stretchyReport = creditCheck.getStretchyReport();
-                final GenericResultsetData genericResultset = retrieveGenericResultsetForCreditCheck(stretchyReport, 
-                        loanId, appUser.getId());
-                String creditCheckResult = null;
-                final List<ResultsetRowData> resultsetData = genericResultset.getData();
-                List<String> resultsetRow = null;
-                
-                if (resultsetData != null && (resultsetData.get(0) != null)) {
-                    resultsetRow = resultsetData.get(0).getRow();
-                    creditCheckResult = resultsetRow.get(0);
-                }
-                
-                loanCreditCheck.trigger(appUser, new LocalDate(), creditCheckResult);
-                
-                this.loanCreditCheckRepository.saveAndFlush(loanCreditCheck);
-            }
-            
-            loanCreditChecks.add(loanCreditCheck);
-        }
-        
-        return loanCreditChecks;
-    }
-    
-    private GenericResultsetData retrieveGenericResultsetForCreditCheck(final Report stretchyReport, final Long loanId, 
-            final Long userId) {
-        final long startTime = System.currentTimeMillis();
-        logger.info("STARTING REPORT: " + stretchyReport.getReportName() + "   Type: " + stretchyReport.getReportType());
-        
-        final String sql = searchAndReplaceParamsInSQLString(loanId, userId, stretchyReport.getReportSql());
-        final GenericResultsetData result = this.genericDataService.fillGenericResultSet(sql);
-        
-        logger.info("SQL: " + sql);
-        
-        final long elapsed = System.currentTimeMillis() - startTime;
-        logger.info("FINISHING REPORT: " + stretchyReport.getReportName() + " - " + stretchyReport.getReportType() 
-                + "     Elapsed Time: " + elapsed + " milliseconds");
-        
-        return result;
-    }
-    
-    private String searchAndReplaceParamsInSQLString(final Long loanId, final Long userId, String sql) {
-        CreditCheckReportParamData creditCheckReportParamData = this.creditCheckReportParamReadPlatformService
-                .retrieveCreditCheckReportParameters(loanId, userId);
-        
-        sql = this.genericDataService.replace(sql, CreditCheckConstants.CLIENT_ID_PARAM_PATTERN, 
-                creditCheckReportParamData.getClientId().toString());
-        sql = this.genericDataService.replace(sql, CreditCheckConstants.GROUP_ID_PARAM_PATTERN, 
-                creditCheckReportParamData.getGroupId().toString());
-        sql = this.genericDataService.replace(sql, CreditCheckConstants.LOAN_ID_PARAM_PATTERN, 
-                creditCheckReportParamData.getLoanId().toString());
-        sql = this.genericDataService.replace(sql, CreditCheckConstants.USER_ID_PARAM_PATTERN, 
-                creditCheckReportParamData.getUserId().toString());
-        sql = this.genericDataService.replace(sql, CreditCheckConstants.STAFF_ID_PARAM_PATTERN, 
-                creditCheckReportParamData.getStaffId().toString());
-        sql = this.genericDataService.replace(sql, CreditCheckConstants.OFFICE_ID_PARAM_PATTERN, 
-                creditCheckReportParamData.getOfficeId().toString());
-        sql = this.genericDataService.replace(sql, CreditCheckConstants.PRODUCT_ID_PARAM_PATTERN, 
-                creditCheckReportParamData.getProductId().toString());
-        
-        return this.genericDataService.wrapSQL(sql);
+        this.loanCreditCheckReadPlatformService = loanCreditCheckReadPlatformService;
     }
     
     /** 
-     * Iterate through list of loan credit checks and throw an exception if anyone with error severity failed
+     * Run all credit checks associated with the specified loan, throw an exception if any credit check fails
      * 
-     * @param loanId -- the identifier of the loan to be checked
-     * @return None 
+     * @param loan -- loan object
+     * @return None
      **/
     @Override
-    public void runLoanCreditChecks(final Long loanId) {
-        final Collection<LoanCreditCheck> loanCreditCheckList = triggerLoanCreditChecks(loanId);
+    public void runLoanCreditChecks(final Loan loan) {
+        final Collection<LoanCreditCheckData> loanCreditCheckDataList = this.loanCreditCheckReadPlatformService.triggerLoanCreditChecks(loan);
         
-        for (LoanCreditCheck loanCreditCheck : loanCreditCheckList) {
-            final CreditCheckSeverityLevel severityLevel = CreditCheckSeverityLevel.fromInt(loanCreditCheck.getSeverityLevelEnumValue());
-            
-            if (!loanCreditCheck.actualResultEqualsExpectedResult() && severityLevel.isError()) {
-                CreditCheck creditCheck = loanCreditCheck.getCreditCheck();
+        if (CollectionUtils.isNotEmpty(loanCreditCheckDataList)) {
+            for (LoanCreditCheckData loanCreditCheckData : loanCreditCheckDataList) {
+                final EnumOptionData severityLevelEnumOptionData = loanCreditCheckData.getSeverityLevel();
+                final CreditCheckSeverityLevel severityLevel = CreditCheckSeverityLevel.fromInt(severityLevelEnumOptionData.getId().intValue());
                 
-                throw new LoanCreditCheckFailedException(loanId, creditCheck.getId(), loanCreditCheck.getMessage());
+                if (severityLevel.isError() && !loanCreditCheckData.actualResultEqualsExpectedResult()) {
+                    throw new LoanCreditCheckFailedException(loan.getId(), loanCreditCheckData.getCreditCheckId(), loanCreditCheckData.getMessage());
+                }
             }
         }
+    }
+
+    /** 
+     * Run the credit checks, throw an exception if anyone fails, else add to the "m_loan_credit_check" table 
+     * 
+     * @param loanId -- loan object
+     * @return None
+     **/
+    @Override
+    @Transactional
+    public void addLoanCreditChecks(final Loan loan) {
+        final Collection<LoanCreditCheckData> loanCreditCheckDataList = this.loanCreditCheckReadPlatformService.triggerLoanCreditChecks(loan);
+        final LoanProduct loanProduct = loan.loanProduct();
+        
+        if (CollectionUtils.isNotEmpty(loanCreditCheckDataList)) {
+            for (LoanCreditCheckData loanCreditCheckData : loanCreditCheckDataList) {
+                final EnumOptionData severityLevelEnumOptionData = loanCreditCheckData.getSeverityLevel();
+                final CreditCheckSeverityLevel severityLevel = CreditCheckSeverityLevel.fromInt(severityLevelEnumOptionData.getId().intValue());
+                
+                if (severityLevel.isError() && !loanCreditCheckData.actualResultEqualsExpectedResult()) {
+                    throw new LoanCreditCheckFailedException(loan.getId(), loanCreditCheckData.getCreditCheckId(), loanCreditCheckData.getMessage());
+                }
+                
+                CreditCheck creditCheck = getCreditCheckFromList(loanProduct.getCreditChecks(), loanCreditCheckData.getCreditCheckId());
+                
+                if (creditCheck != null) {
+                    final Integer severityLevelIntValue = loanCreditCheckData.getSeverityLevel().getId().intValue();
+                    
+                    LoanCreditCheck loanCreditCheck = LoanCreditCheck.instance(creditCheck, loan, loanCreditCheckData.getExpectedResult(), 
+                            loanCreditCheckData.getActualResult(), severityLevelIntValue, loanCreditCheckData.getMessage(), 
+                            false, loanCreditCheckData.getSqlStatement());
+                    
+                    this.loanCreditCheckRepository.saveAndFlush(loanCreditCheck);
+                }
+            }
+        } 
+    }
+    
+    /** 
+     * Set the "is_deleted" property of all credit checks associated with loan to 1 
+     * 
+     * @param loanId -- the identifier of the loan
+     * @return None
+     **/
+    @Override
+    @Transactional
+    public void deleteLoanCreditChecks(final Loan loan) {
+        Collection<LoanCreditCheck> loanCreditCheckList = loan.getCreditChecks();
+        
+        if (CollectionUtils.isNotEmpty(loanCreditCheckList)) {
+            for (LoanCreditCheck loanCreditCheck : loanCreditCheckList) {
+                loanCreditCheck.updateIsDeleted(true);
+                
+                this.loanCreditCheckRepository.saveAndFlush(loanCreditCheck);
+            }
+        }
+    }
+    
+    /** 
+     * get credit check by id from a list of credit check objects 
+     * 
+     * @param creditChecks -- list of credit check objects
+     * @param creditCheckId -- the identifier of the credit check to be retrieved
+     * @return CreditCheck object if found, else null
+     **/
+    private CreditCheck getCreditCheckFromList(final Collection<CreditCheck> creditChecks, final Long creditCheckId) {
+        CreditCheck creditCheckFound = null;
+        
+        if (CollectionUtils.isNotEmpty(creditChecks)) {
+            for (CreditCheck creditCheck : creditChecks) {
+                if (creditCheck.getId().equals(creditCheckId)) {
+                    creditCheckFound = creditCheck;
+                    break;
+                }
+            }
+        }
+        
+        return creditCheckFound;
     }
 }

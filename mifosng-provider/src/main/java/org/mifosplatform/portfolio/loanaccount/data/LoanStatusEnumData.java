@@ -48,4 +48,20 @@ public class LoanStatusEnumData {
     public String value() {
         return this.value;
     }
+    
+    public boolean isActive() {
+        return this.active;
+    }
+    
+    public boolean isApproved() {
+        return this.waitingForDisbursal;
+    }
+    
+    public boolean isPendingApproval() {
+        return this.pendingApproval;
+    }
+    
+    public boolean isPendingApprovalOrPendingDisbursement() {
+        return this.pendingApproval || this.waitingForDisbursal;
+    }
 }

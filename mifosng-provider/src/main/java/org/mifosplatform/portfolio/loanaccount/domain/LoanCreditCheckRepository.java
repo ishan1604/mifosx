@@ -5,12 +5,9 @@
  */
 package org.mifosplatform.portfolio.loanaccount.domain;
 
-import java.util.Collection;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface LoanCreditCheckRepository extends JpaRepository<LoanCreditCheck, Long> , JpaSpecificationExecutor<LoanCreditCheck>{
     
-    public Collection<LoanCreditCheck> findByLoanId(final Long loanId);
 }

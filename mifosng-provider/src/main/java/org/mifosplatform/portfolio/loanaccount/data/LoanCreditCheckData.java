@@ -9,12 +9,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.portfolio.creditcheck.data.CreditCheckEnumerations;
 import org.mifosplatform.portfolio.creditcheck.domain.CreditCheck;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanCreditCheck;
-import org.mifosplatform.useradministration.domain.AppUser;
+import org.springframework.util.CollectionUtils;
 
 public class LoanCreditCheckData {
     private final Long id;
@@ -24,15 +23,13 @@ public class LoanCreditCheckData {
     private final String actualResult;
     private final EnumOptionData severityLevel;
     private final String message;
-    private final boolean isActive;
-    private final boolean hasBeenTriggered;
-    private final LoanCreditCheckDataTimelineData timeline;
+    private final boolean isDeleted;
     private final List<EnumOptionData> severityLevelOptions;
+    private final String sqlStatement;
     
     private LoanCreditCheckData(final Long id, final Long creditCheckId, final String name, final String expectedResult, 
             final String actualResult, final EnumOptionData severityLevel, final String message, 
-            final boolean isActive, final boolean hasBeenTriggered, final LoanCreditCheckDataTimelineData timeline, 
-            final List<EnumOptionData> severityLevelOptions) {
+            final boolean isDeleted, final List<EnumOptionData> severityLevelOptions, final String sqlStatement) {
         this.id = id;
         this.creditCheckId = creditCheckId;
         this.name = name;
@@ -40,62 +37,52 @@ public class LoanCreditCheckData {
         this.actualResult = actualResult;
         this.severityLevel = severityLevel;
         this.message = message;
-        this.isActive = isActive;
-        this.timeline = timeline;
+        this.isDeleted = isDeleted;
         this.severityLevelOptions = severityLevelOptions;
-        this.hasBeenTriggered = hasBeenTriggered;
+        this.sqlStatement = sqlStatement;
     }
     
     public static LoanCreditCheckData instance(final Long id, final Long creditCheckId, final String name, 
             final String expectedResult, final String actualResult, final EnumOptionData severityLevel, final String message, 
-            final boolean isActive, final boolean hasBeenTriggered, final LoanCreditCheckDataTimelineData timeline, 
-            final List<EnumOptionData> severityLevelOptions) {
+            final boolean isDeleted, final List<EnumOptionData> severityLevelOptions, final String sqlStatement) {
         return new LoanCreditCheckData(id, creditCheckId, name, expectedResult, actualResult, severityLevel, 
-                message, isActive, hasBeenTriggered, timeline, severityLevelOptions);
+                message, isDeleted, severityLevelOptions, sqlStatement);
     }
     
     public static LoanCreditCheckData instance(final Long id, final Long creditCheckId, final String name, 
             final String expectedResult, final String actualResult, final EnumOptionData severityLevel, 
-            final String message, final boolean isActive, final boolean hasBeenTriggered, 
-            final LoanCreditCheckDataTimelineData timeline) {
+            final String message, final boolean isDeleted, final String sqlStatement) {
         return new LoanCreditCheckData(id, creditCheckId, name, expectedResult, actualResult, severityLevel, 
-                message, isActive, hasBeenTriggered, timeline, null);
+                message, isDeleted, null, sqlStatement);
     }
     
     public static LoanCreditCheckData instance(final List<EnumOptionData> severityLevelOptions) {
         return new LoanCreditCheckData(null, null, null, null, null, null, 
-                null, false, false, null, severityLevelOptions);
+                null, false, severityLevelOptions, null);
     }
     
     public static LoanCreditCheckData instance(final LoanCreditCheck loanCreditCheck) {
         final CreditCheck creditCheck = loanCreditCheck.getCreditCheck();
         EnumOptionData severityLevel = null;
-        LoanCreditCheckDataTimelineData timeline = null;
-        final AppUser triggeredByUser = loanCreditCheck.getTriggeredByUser();
         
         if (loanCreditCheck.getSeverityLevelEnumValue() != null) {
             severityLevel = CreditCheckEnumerations.severityLevel(loanCreditCheck.getSeverityLevelEnumValue());
         }
         
-        if (triggeredByUser != null) {
-            LocalDate triggeredOnDate = new LocalDate(loanCreditCheck.getTriggeredOnDate());
-            
-            timeline = new LoanCreditCheckDataTimelineData(triggeredOnDate, triggeredByUser.getUsername(), 
-                    triggeredByUser.getFirstname(), triggeredByUser.getLastname());
-        }
-        
         return new LoanCreditCheckData(loanCreditCheck.getId(), creditCheck.getId(), creditCheck.getName(), 
                 loanCreditCheck.getExpectedResult(), loanCreditCheck.getActualResult(), severityLevel, loanCreditCheck.getMessage(), 
-                loanCreditCheck.isActive(), loanCreditCheck.hasBeenTriggered(), timeline, null);
+                loanCreditCheck.isDeleted(), null, loanCreditCheck.getSqlStatement());
     }
     
     public static Collection<LoanCreditCheckData> instance(final Collection<LoanCreditCheck> loanCreditChecks) {
         final Collection<LoanCreditCheckData> loanCreditCheckDataList = new ArrayList<>();
         
-        for (LoanCreditCheck loanCreditCheck : loanCreditChecks) {
-            LoanCreditCheckData loanCreditCheckData = LoanCreditCheckData.instance(loanCreditCheck);
-            
-            loanCreditCheckDataList.add(loanCreditCheckData);
+        if (CollectionUtils.isEmpty(loanCreditChecks)) {
+            for (LoanCreditCheck loanCreditCheck : loanCreditChecks) {
+                LoanCreditCheckData loanCreditCheckData = LoanCreditCheckData.instance(loanCreditCheck);
+                
+                loanCreditCheckDataList.add(loanCreditCheckData);
+            }
         }
         
         return loanCreditCheckDataList;
@@ -144,24 +131,10 @@ public class LoanCreditCheckData {
     }
 
     /**
-     * @return the isActive
+     * @return the isDeleted
      */
-    public boolean isActive() {
-        return isActive;
-    }
-
-    /**
-     * @return the timeline
-     */
-    public LoanCreditCheckDataTimelineData getTimeline() {
-        return timeline;
-    }
-
-    /**
-     * @return the hasBeenTriggered
-     */
-    public boolean hasBeenTriggered() {
-        return hasBeenTriggered;
+    public boolean isDeleted() {
+        return isDeleted;
     }
 
     /**
@@ -189,5 +162,12 @@ public class LoanCreditCheckData {
         }
         
         return result;
+    }
+
+    /**
+     * @return the SQL statement
+     */
+    public String getSqlStatement() {
+        return sqlStatement;
     }
 }

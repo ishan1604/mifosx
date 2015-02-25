@@ -7,11 +7,14 @@ package org.mifosplatform.portfolio.loanaccount.service;
 
 import java.util.Collection;
 
-import org.mifosplatform.portfolio.creditcheck.data.CreditCheckData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanAccountData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanCreditCheckData;
+import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 
 public interface LoanCreditCheckReadPlatformService {
     Collection<LoanCreditCheckData> retrieveLoanCreditChecks(Long loanId);
     LoanCreditCheckData retrieveLoanCreditCheckEnumOptions();
     LoanCreditCheckData retrieveLoanCreditCheck(Long loanId, Long loanCreditCheckId);
+    Collection<LoanCreditCheckData> triggerLoanCreditChecks(Loan loan);
+    Collection<LoanCreditCheckData> triggerLoanCreditChecks(LoanAccountData loanAccountData);
 }

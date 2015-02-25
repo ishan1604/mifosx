@@ -5,19 +5,13 @@
  */
 package org.mifosplatform.portfolio.loanaccount.domain;
 
-import java.util.Date;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 
-import org.joda.time.LocalDate;
 import org.mifosplatform.portfolio.creditcheck.domain.CreditCheck;
-import org.mifosplatform.useradministration.domain.AppUser;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 
 @SuppressWarnings("serial")
@@ -42,50 +36,40 @@ public class LoanCreditCheck extends AbstractPersistable<Long> {
     @Column(name = "severity_level_enum_value", nullable = false)
     private Integer severityLevelEnumValue;
     
-    @Column(name = "has_been_triggered", nullable = false)
-    private boolean hasBeenTriggered;
-    
-    @Temporal(TemporalType.DATE)
-    @Column(name = "triggered_on_date", nullable = false)
-    private Date triggeredOnDate;
-    
-    @ManyToOne
-    @JoinColumn(name = "triggered_by_user_id", nullable = false)
-    private AppUser triggeredByUser;
-    
     @Column(name = "message", nullable = false)
     private String message;
     
-    @Column(name = "is_active", nullable = false)
-    private boolean isActive;
+    @Column(name = "sqlStatement", nullable = true)
+    private String sqlStatement;
+    
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted;
 
     protected LoanCreditCheck() {}
     
     private LoanCreditCheck(final CreditCheck creditCheck, final Loan loan, final String expectedResult, 
-            final String actualResult, final Integer severityLevelEnumValue, final boolean hasBeenTriggered, 
-            final Date triggeredOnDate, final AppUser triggeredByUser, final String message, final boolean isActive) {
+            final String actualResult, final Integer severityLevelEnumValue, final String message, 
+            final boolean isDeleted, final String sqlStatement) {
         this.creditCheck = creditCheck;
         this.loan = loan;
         this.expectedResult = expectedResult;
         this.actualResult = actualResult;
         this.severityLevelEnumValue = severityLevelEnumValue;
-        this.hasBeenTriggered = hasBeenTriggered;
-        this.triggeredOnDate = triggeredOnDate;
-        this.triggeredByUser = triggeredByUser;
         this.message = message;
-        this.isActive = isActive;
+        this.isDeleted = isDeleted;
+        this.sqlStatement = sqlStatement;
     }
     
     public static LoanCreditCheck instance(final CreditCheck creditCheck, final Loan loan, final String expectedResult, 
-            final String actualResult, final Integer severityLevelEnumValue, final boolean hasBeenTriggered, 
-            final Date triggeredOnDate, final AppUser triggeredByUser, final String message, final boolean isActive) {
+            final String actualResult, final Integer severityLevelEnumValue, final String message, 
+            final boolean isDeleted, final String sqlStatement) {
         return new LoanCreditCheck(creditCheck, loan, expectedResult, actualResult, severityLevelEnumValue, 
-                hasBeenTriggered, triggeredOnDate, triggeredByUser, message, isActive);
+                message, isDeleted, sqlStatement);
     }
     
     public static LoanCreditCheck instance(final CreditCheck creditCheck) {
-        return new LoanCreditCheck(creditCheck, null, creditCheck.getExpectedResult(), null, 
-                creditCheck.getSeverityLevelEnumValue(), false, null, null, creditCheck.getMessage(), true);
+        return new LoanCreditCheck(creditCheck, null, creditCheck.getExpectedResult(), null, creditCheck.getSeverityLevelEnumValue(), 
+                creditCheck.getMessage(), false, null);
     }
     
     public void update(final Loan loan) {
@@ -128,27 +112,6 @@ public class LoanCreditCheck extends AbstractPersistable<Long> {
     }
     
     /** 
-     * @return the hasBeenTriggered 
-     **/
-    public boolean hasBeenTriggered() {
-        return this.hasBeenTriggered;
-    }
-    
-    /** 
-     * @return the triggeredOnDate 
-     **/
-    public Date getTriggeredOnDate() {
-        return this.triggeredOnDate;
-    }
-    
-    /** 
-     * @return the triggeredByUser 
-     **/
-    public AppUser getTriggeredByUser() {
-        return this.triggeredByUser;
-    }
-    
-    /** 
      * @return the message 
      **/
     public String getMessage() {
@@ -156,22 +119,10 @@ public class LoanCreditCheck extends AbstractPersistable<Long> {
     }
     
     /** 
-     * @return the isActive 
+     * @return the isDeleted 
      **/
-    public boolean isActive() {
-        return this.isActive;
-    }
-
-    /** 
-     * trigger the loan  credit check
-     * 
-     * @return None 
-     **/
-    public void trigger(final AppUser triggeredByUser, final LocalDate triggeredOnDate, final String creditCheckResult) {
-        this.hasBeenTriggered = true;
-        this.triggeredByUser = triggeredByUser;
-        this.triggeredOnDate = triggeredOnDate.toDate();
-        this.actualResult = creditCheckResult;
+    public boolean isDeleted() {
+        return this.isDeleted;
     }
     
     /** 
@@ -185,5 +136,22 @@ public class LoanCreditCheck extends AbstractPersistable<Long> {
         }
         
         return result;
+    }
+
+    /** 
+     * @return the SQL statement 
+     **/
+    public String getSqlStatement() {
+        return this.sqlStatement;
+    }
+    
+    /** 
+     * Update the "isDelete" property
+     * 
+     * @param isDeleted -- boolean true/false
+     * @return None 
+     **/
+    public void updateIsDeleted(final boolean isDeleted) {
+        this.isDeleted = isDeleted;
     }
 }

@@ -5,11 +5,10 @@
  */
 package org.mifosplatform.portfolio.loanaccount.service;
 
-import java.util.Collection;
-
-import org.mifosplatform.portfolio.loanaccount.domain.LoanCreditCheck;
+import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 
 public interface LoanCreditCheckWritePlatformService {
-    Collection<LoanCreditCheck> triggerLoanCreditChecks(Long loanId);
-    void runLoanCreditChecks(Long loanId);
+    void addLoanCreditChecks(Loan loan);
+    void runLoanCreditChecks(Loan loan);
+    void deleteLoanCreditChecks(Loan loan);
 }

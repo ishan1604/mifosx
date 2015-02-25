@@ -1324,4 +1324,18 @@ public class LoanAccountData {
     public Collection<LoanCreditCheckData> getCreditChecks() {
         return creditChecks;
     }
+    
+    /** 
+     * @return the id of the loan account 
+     **/
+    public Long getId() {
+        return this.id;
+    }
+    
+    /** 
+     * @return the status of the loan account (LoanStatusEnumData) 
+     **/
+    public LoanStatusEnumData getStatus() {
+        return this.status;
+    }
 }
