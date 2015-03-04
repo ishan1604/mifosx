@@ -636,7 +636,7 @@ public class LoanAccountData {
 
         final Collection<LoanChargeData> charges = new ArrayList<LoanChargeData>();
         for (final ChargeData charge : product.charges()) {
-            if (!charge.isOverdueInstallmentCharge()) {
+            if (!charge.isOverdueInstallmentCharge() && !charge.isLoanReschedulingFee()) {
                 charges.add(charge.toLoanChargeData());
             }
         }
@@ -1323,5 +1323,19 @@ public class LoanAccountData {
      */
     public Collection<LoanCreditCheckData> getCreditChecks() {
         return creditChecks;
+    }
+    
+    /** 
+     * @return the id of the loan account 
+     **/
+    public Long getId() {
+        return this.id;
+    }
+    
+    /** 
+     * @return the status of the loan account (LoanStatusEnumData) 
+     **/
+    public LoanStatusEnumData getStatus() {
+        return this.status;
     }
 }

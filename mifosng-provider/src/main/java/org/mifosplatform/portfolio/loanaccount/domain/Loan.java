@@ -4802,4 +4802,23 @@ public class Loan extends AbstractPersistable<Long> {
     public LoanProduct getLoanProduct() {
         return this.loanProduct;
     }
+    
+    public Collection<LoanCreditCheck> getCreditChecks() {
+        Collection<LoanCreditCheck> loanCreditChecks = new ArrayList<>();
+        
+        for (LoanCreditCheck loanCreditCheck : this.creditChecks) {
+            if (!loanCreditCheck.isDeleted()) {
+                loanCreditChecks.add(loanCreditCheck);
+            }
+        }
+        
+        return loanCreditChecks;
+    }
+    
+    /** 
+     * @return the loan status integer value 
+     **/
+    public Integer getStatus() {
+        return this.loanStatus;
+    }
 }

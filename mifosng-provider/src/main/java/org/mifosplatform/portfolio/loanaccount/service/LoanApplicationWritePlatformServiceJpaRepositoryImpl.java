@@ -73,6 +73,7 @@ import org.mifosplatform.portfolio.loanaccount.serialization.LoanApplicationComm
 import org.mifosplatform.portfolio.loanaccount.serialization.LoanApplicationTransitionApiJsonValidator;
 import org.mifosplatform.portfolio.loanproduct.LoanProductConstants;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProductConfigurableAttributes;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductRelatedDetail;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductRepository;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanTransactionProcessingStrategy;
@@ -286,40 +287,47 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
     private void updateProductRelatedDetails(LoanProductRelatedDetail productRelatedDetail,
     										LoanProduct loanProduct){
-    	final Boolean amortization = loanProduct.getLoanProductConfigurableAttributes().getConfigureAmortization();
-        final Boolean arrearsTolerance = loanProduct.getLoanProductConfigurableAttributes().getConfigureArrearsTolerance();
-        final Boolean graceOnArrearsAging = loanProduct.getLoanProductConfigurableAttributes().getConfigureGraceOnArrearsAging();
-    	final Boolean interestCalcPeriod = loanProduct.getLoanProductConfigurableAttributes().getConfigureInterestCalcPeriod();
-    	final Boolean interestMethod = loanProduct.getLoanProductConfigurableAttributes().getConfigureInterestMethod();
-    	final Boolean moratorium = loanProduct.getLoanProductConfigurableAttributes().getConfigureMoratorium();
-    	final Boolean repaymentFrequency = loanProduct.getLoanProductConfigurableAttributes().getConfigureRepaymentFrequency();
-    	final Boolean repaymentStrategy = loanProduct.getLoanProductConfigurableAttributes().getConfigureRepaymentStrategy();
+        final LoanProductConfigurableAttributes loanProductConfigurableAttributes = loanProduct.getLoanProductConfigurableAttributes();
+        final LoanProductRelatedDetail loanProductRelatedDetail = loanProduct.getLoanProductRelatedDetail();
         
-    	if(!amortization){
-    		productRelatedDetail.setAmortizationMethod(loanProduct.getLoanProductRelatedDetail().getAmortizationMethod());
-    	}
-    	if(!arrearsTolerance){
-    		productRelatedDetail.setInArrearsTolerance(loanProduct.getLoanProductRelatedDetail().getArrearsTolerance());
-    	}
-    	if(!graceOnArrearsAging){
-    		productRelatedDetail.setGraceOnArrearsAgeing(loanProduct.getLoanProductRelatedDetail().getGraceOnArrearsAgeing());
-    	}
-    	if(!interestCalcPeriod){
-    		productRelatedDetail.setInterestCalculationPeriodMethod(loanProduct.getLoanProductRelatedDetail().getInterestCalculationPeriodMethod());
-    	}
-    	if(!interestMethod){
-    		productRelatedDetail.setInterestMethod(loanProduct.getLoanProductRelatedDetail().getInterestMethod());
-    	}
-    	if(!moratorium){
-    		productRelatedDetail.setGraceOnInterestPayment(loanProduct.getLoanProductRelatedDetail().getGraceOnInterestPayment());
-    		productRelatedDetail.setGraceOnPrincipalPayment(loanProduct.getLoanProductRelatedDetail().getGraceOnPrincipalPayment());
-    	}
-    	if(!repaymentFrequency){
-    		productRelatedDetail.setRepayEvery(loanProduct.getLoanProductRelatedDetail().getRepayEvery());
-    	}
-    	if(!repaymentStrategy){
-    		productRelatedDetail.setRepaymentPeriodFrequencyType(loanProduct.getLoanProductRelatedDetail().getRepaymentPeriodFrequencyType());
-    	}
+        if (loanProductConfigurableAttributes != null) {
+            final Boolean amortization = loanProductConfigurableAttributes.getConfigureAmortization();
+            final Boolean arrearsTolerance = loanProductConfigurableAttributes.getConfigureArrearsTolerance();
+            final Boolean graceOnArrearsAging = loanProductConfigurableAttributes.getConfigureGraceOnArrearsAging();
+            final Boolean interestCalcPeriod = loanProductConfigurableAttributes.getConfigureInterestCalcPeriod();
+            final Boolean interestMethod = loanProductConfigurableAttributes.getConfigureInterestMethod();
+            final Boolean moratorium = loanProductConfigurableAttributes.getConfigureMoratorium();
+            final Boolean repaymentFrequency = loanProductConfigurableAttributes.getConfigureRepaymentFrequency();
+            final Boolean repaymentStrategy = loanProductConfigurableAttributes.getConfigureRepaymentStrategy();
+            
+            if (loanProductRelatedDetail != null) {
+                if(!amortization){
+                    productRelatedDetail.setAmortizationMethod(loanProductRelatedDetail.getAmortizationMethod());
+                }
+                if(!arrearsTolerance){
+                    productRelatedDetail.setInArrearsTolerance(loanProductRelatedDetail.getArrearsTolerance());
+                }
+                if(!graceOnArrearsAging){
+                    productRelatedDetail.setGraceOnArrearsAgeing(loanProductRelatedDetail.getGraceOnArrearsAgeing());
+                }
+                if(!interestCalcPeriod){
+                    productRelatedDetail.setInterestCalculationPeriodMethod(loanProductRelatedDetail.getInterestCalculationPeriodMethod());
+                }
+                if(!interestMethod){
+                    productRelatedDetail.setInterestMethod(loanProductRelatedDetail.getInterestMethod());
+                }
+                if(!moratorium){
+                    productRelatedDetail.setGraceOnInterestPayment(loanProductRelatedDetail.getGraceOnInterestPayment());
+                    productRelatedDetail.setGraceOnPrincipalPayment(loanProductRelatedDetail.getGraceOnPrincipalPayment());
+                }
+                if(!repaymentFrequency){
+                    productRelatedDetail.setRepayEvery(loanProductRelatedDetail.getRepayEvery());
+                }
+                if(!repaymentStrategy){
+                    productRelatedDetail.setRepaymentPeriodFrequencyType(loanProductRelatedDetail.getRepaymentPeriodFrequencyType());
+                }
+            }
+        }
     }
     private void createAndPersistCalendarInstanceForInterestRecalculation(final Loan loan) {
 
@@ -773,9 +781,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
         entityDatatableChecksWritePlatformService.runTheCheck(loanId, EntityTables.LOAN.getName(), StatusEnum.APPROVE.getCode().longValue(), EntityTables.LOAN.getForeignKeyColumnNameOnDatatable());
 
-
         // run loan credit checks
-        this.loanCreditCheckWritePlatformService.runLoanCreditChecks(loanId);
+        this.loanCreditCheckWritePlatformService.runLoanCreditChecks(loan);
 
         final Map<String, Object> changes = loan.loanApplicationApproval(currentUser, command, defaultLoanLifecycleStateMachine());
         if (!changes.isEmpty()) {

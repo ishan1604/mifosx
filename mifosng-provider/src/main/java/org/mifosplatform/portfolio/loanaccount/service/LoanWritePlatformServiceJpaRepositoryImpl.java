@@ -291,7 +291,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         }
         
         // run any credit check associated with the loan
-        this.loanCreditCheckWritePlatformService.runLoanCreditChecks(loanId);
+        this.loanCreditCheckWritePlatformService.addLoanCreditChecks(loan);
 
         final MonetaryCurrency currency = loan.getCurrency();
         final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepository.findOneWithNotFoundDetection(currency);
@@ -709,6 +709,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 .undoDisbursal(scheduleGeneratorDTO, existingTransactionIds, existingReversedTransactionIds);
 
         if (!changes.isEmpty()) {
+            // delete all credit checks associated with the loan
+            this.loanCreditCheckWritePlatformService.deleteLoanCreditChecks(loan);
+            
             saveAndFlushLoanWithDataIntegrityViolationChecks(loan);
             this.accountTransfersWritePlatformService.reverseAllTransactions(loanId, PortfolioAccountType.LOAN);
             String noteText = null;

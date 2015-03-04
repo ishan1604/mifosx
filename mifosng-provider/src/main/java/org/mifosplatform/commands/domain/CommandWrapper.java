@@ -976,4 +976,6 @@ public class CommandWrapper {
         return this.actionName.equalsIgnoreCase("DELETE");
     }
 
+    public boolean isWorkingDaysResource() {return this.entityName.equalsIgnoreCase("WORKINGDAYS");}
+
 }

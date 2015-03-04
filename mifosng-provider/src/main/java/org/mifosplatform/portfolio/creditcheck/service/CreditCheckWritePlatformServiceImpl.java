@@ -173,7 +173,7 @@ public class CreditCheckWritePlatformServiceImpl implements CreditCheckWritePlat
      * @return true/false
      **/
     private boolean hasExistingRelatedLoanEntity(final Long creditCheckId) {
-        final String sql = "select if((exists (select 1 from m_loan_credit_check lcc where lcc.credit_check_id = ? and lcc.is_active = 1)) = 1, 'true', 'false')";
+        final String sql = "select if((exists (select 1 from m_loan_credit_check lcc where lcc.credit_check_id = ? and lcc.is_deleted = 0)) = 1, 'true', 'false')";
         final String relatedEntityFound = this.jdbcTemplate.queryForObject(sql, String.class, new Object[] { creditCheckId });
         
         return new Boolean(relatedEntityFound);

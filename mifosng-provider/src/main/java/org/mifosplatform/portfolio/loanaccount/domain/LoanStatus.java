@@ -139,4 +139,8 @@ public enum LoanStatus {
     public boolean isOverpaid() {
         return this.value.equals(LoanStatus.OVERPAID.getValue());
     }
+    
+    public boolean isPendingApprovalOrPendingDisbursement() {
+        return isApproved() || isSubmittedAndPendingApproval();
+    }
 }

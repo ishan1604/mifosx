@@ -295,6 +295,22 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
             }
         }
 
+        if (searchParameters.isLoanIdPassed()) {
+            sqlBuilder.append(whereClose + " journalEntry.loan_transaction_id  in (select id from m_loan_transaction where loan_id = ?)");
+            objectArray[arrayPos] = searchParameters.getLoanId();
+            arrayPos = arrayPos + 1;
+
+            whereClose = " and ";
+        }
+        if (searchParameters.isSavingsIdPassed()) {
+            sqlBuilder.append(whereClose + " journalEntry.savings_transaction_id in (select id from m_savings_account_transaction where savings_account_id = ?)");
+            objectArray[arrayPos] = searchParameters.getSavingsId();
+            arrayPos = arrayPos + 1;
+
+            whereClose = " and ";
+        }
+
+
         if (searchParameters.isOrderByRequested()) {
             sqlBuilder.append(" order by ").append(searchParameters.getOrderBy());
 
