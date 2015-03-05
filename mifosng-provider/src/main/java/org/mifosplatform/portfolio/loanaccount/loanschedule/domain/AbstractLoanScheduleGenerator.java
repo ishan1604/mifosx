@@ -854,7 +854,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
 
         return LoanRescheduleModel.instance(periods, loanRepaymentScheduleHistoryList, applicationCurrency, loanTermInDays,
                 loan.getPrincpal(), loan.getPrincpal().getAmount(), loanSummary.getTotalPrincipalRepaid(),
-                actualTotalCumulativeInterest.getAmount(), totalFeeChargesCharged, loanSummary.getTotalPenaltyChargesCharged(), 
+                actualTotalCumulativeInterest.getAmount(), totalFeeChargesCharged, totalPenaltyChargesCharged, 
                 totalRepaymentExpected.getAmount(), loanSummary.getTotalOutstanding());
     }
 
