@@ -1288,10 +1288,25 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
         validateAddLoanCharge(loan, chargeDefinition, loanCharge);
 
+        addLoanCharge(loan, chargeDefinition, loanCharge);
+        
+        return new CommandProcessingResultBuilder() //
+                .withCommandId(command.commandId()) //
+                .withEntityId(loanCharge.getId()) //
+                .withOfficeId(loan.getOfficeId()) //
+                .withClientId(loan.getClientId()) //
+                .withGroupId(loan.getGroupId()) //
+                .withLoanId(loanId) //
+                .build();
+    }
+    
+    @Transactional
+    @Override
+    public void addLoanCharge(final Loan loan, final Charge charge, final LoanCharge loanCharge) {
         final List<Long> existingTransactionIds = new ArrayList<>(loan.findExistingTransactionIds());
         final List<Long> existingReversedTransactionIds = new ArrayList<>(loan.findExistingReversedTransactionIds());
 
-        boolean isAppliedOnBackDate = addCharge(loan, chargeDefinition, loanCharge);
+        boolean isAppliedOnBackDate = addCharge(loan, charge, loanCharge);
 
         if (loan.repaymentScheduleDetail().isInterestRecalculationEnabled()) {
             if (isAppliedOnBackDate && loan.isFeeCompoundingEnabledForInterestRecalculation()) {
@@ -1307,14 +1322,6 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 && loan.isFeeCompoundingEnabledForInterestRecalculation()) {
             this.loanAccountDomainService.recalculateAccruals(loan);
         }
-        return new CommandProcessingResultBuilder() //
-                .withCommandId(command.commandId()) //
-                .withEntityId(loanCharge.getId()) //
-                .withOfficeId(loan.getOfficeId()) //
-                .withClientId(loan.getClientId()) //
-                .withGroupId(loan.getGroupId()) //
-                .withLoanId(loanId) //
-                .build();
     }
 
     private void validateAddLoanCharge(final Loan loan, final Charge chargeDefinition, final LoanCharge loanCharge) {

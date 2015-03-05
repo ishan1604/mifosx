@@ -51,10 +51,29 @@ public final class LoanRescheduleModelRepaymentPeriod implements LoanRescheduleM
 
 	@Override
 	public LoanSchedulePeriodData toData() {
-		return LoanSchedulePeriodData.repaymentOnlyPeriod(this.periodNumber, this.fromDate, this.dueDate, this.principalDue.getAmount(),
-                this.outstandingLoanBalance.getAmount(), this.interestDue.getAmount(), this.feeChargesDue.getAmount(),
-                this.penaltyChargesDue.getAmount(), this.totalDue.getAmount());
+		return LoanSchedulePeriodData.repaymentOnlyPeriod(this.periodNumber, this.fromDate, this.dueDate, this.principalDue(),
+                this.outstandingLoanBalance(), this.interestDue(), this.feeChargesDue(), this.penaltyChargesDue(), this.totalDue());
 	}
+	
+	public BigDecimal outstandingLoanBalance() {
+	    BigDecimal value = null;
+        
+        if (this.outstandingLoanBalance != null) {
+            value = this.outstandingLoanBalance.getAmount();
+        }
+
+        return value;
+	}
+	
+	public BigDecimal totalDue() {
+        BigDecimal value = null;
+        
+        if (this.totalDue != null) {
+            value = this.totalDue.getAmount();
+        }
+
+        return value;
+    }
 
 	@Override
 	public Integer periodNumber() {

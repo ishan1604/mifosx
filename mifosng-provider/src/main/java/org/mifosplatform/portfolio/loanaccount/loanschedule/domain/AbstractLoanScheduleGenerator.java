@@ -24,7 +24,6 @@ import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
 import org.mifosplatform.organisation.monetary.domain.Money;
 import org.mifosplatform.portfolio.calendar.domain.CalendarInstance;
 import org.mifosplatform.portfolio.calendar.service.CalendarUtils;
-import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.loanaccount.data.DisbursementData;
 import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
@@ -552,7 +551,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
     @Override
     public LoanRescheduleModel reschedule(final MathContext mathContext, final LoanRescheduleRequest loanRescheduleRequest,
             final ApplicationCurrency applicationCurrency, final HolidayDetailDTO holidayDetailDTO, 
-            final Collection<ChargeData> loanProductChargesData) {
+            final Collection<LoanCharge> loanCharges) {
 
         final Loan loan = loanRescheduleRequest.getLoan();
         final LoanSummary loanSummary = loan.getSummary();
@@ -571,7 +570,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
         final Collection<LoanRescheduleModelRepaymentPeriod> periods = new ArrayList<>();
 
         Money outstandingLoanBalance = loan.getPrincpal();
-
+        
         for (LoanRepaymentScheduleInstallment repaymentScheduleInstallment : repaymentScheduleInstallments) {
 
             Integer oldPeriodNumber = repaymentScheduleInstallment.getInstallmentNumber();
@@ -615,7 +614,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
         LocalDate adjustedDueDate = loanRescheduleRequest.getAdjustedDueDate();
         BigDecimal newInterestRate = loanRescheduleRequest.getInterestRate();
         int loanTermInDays = Integer.valueOf(0);
-        final BigDecimal loanReschedulingFeeChargesDue = getLoanReschedulingFeeChargesDue(loanProductChargesData);
+        final BigDecimal loanReschedulingFeeChargesDue = getLoanReschedulingFeeChargesDue(loanCharges);
 
         if (rescheduleFromInstallmentNo > 0) {
             // this will hold the loan repayment installment that is before the
@@ -650,7 +649,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
 
             for (LoanRescheduleModelRepaymentPeriod period : periods) {
 
-                if (period.periodDueDate().isBefore(loanRescheduleRequest.getRescheduleFromDate())) {
+                if ((period.periodDueDate() != null) && period.periodDueDate().isBefore(loanRescheduleRequest.getRescheduleFromDate())) {
 
                     totalPrincipalBeforeReschedulePeriod = totalPrincipalBeforeReschedulePeriod.plus(period.principalDue());
                     actualTotalCumulativeInterest = actualTotalCumulativeInterest.plus(period.interestDue());
@@ -730,8 +729,8 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
 
             for (LoanRescheduleModelRepaymentPeriod period : periods) {
 
-                if (period.periodDueDate().isEqual(loanRescheduleRequest.getRescheduleFromDate())
-                        || period.periodDueDate().isAfter(loanRescheduleRequest.getRescheduleFromDate()) || period.isNew()) {
+                if ((period.periodDueDate() != null) && (period.periodDueDate().isEqual(loanRescheduleRequest.getRescheduleFromDate())
+                        || period.periodDueDate().isAfter(loanRescheduleRequest.getRescheduleFromDate()) || period.isNew())) {
 
                     installmentDueDate = this.scheduledDateGenerator.generateNextRepaymentDate(installmentDueDate, loanApplicationTerms,
                             false);
@@ -806,7 +805,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                     Money feeChargesDue = Money.of(currency, period.feeChargesDue());
                     Money penaltyChargesDue = Money.of(currency, period.penaltyChargesDue());
                     
-                    if (period.periodDueDate().isEqual(loanRescheduleRequest.getRescheduleFromDate())) {
+                    if (period.periodNumber().equals(rescheduleFromInstallmentNo)) {
                         // add "loan rescheduling fee" due 
                         feeChargesDue = feeChargesDue.plus(loanReschedulingFeeChargesDue);
                         
@@ -1825,15 +1824,15 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
     /** 
      * get the "Rescheduling Fee" charges amount due if the charge is added to the loan product 
      * 
-     * @param loanProductCharges -- collection of charges attached to a loan product
+     * @param loanCharges -- collection of charges attached to a loan
      * @return None
      **/
-    private BigDecimal getLoanReschedulingFeeChargesDue(final Collection<ChargeData> loanProductChargesData) {
+    private BigDecimal getLoanReschedulingFeeChargesDue(final Collection<LoanCharge> loanCharges) {
         BigDecimal chargesAmountDue = BigDecimal.ZERO;
         
-        for (ChargeData chargeData : loanProductChargesData) {
-            if (chargeData.isLoanReschedulingFee()) {
-                chargesAmountDue = chargesAmountDue.add(chargeData.getAmount());
+        for (LoanCharge loanCharge : loanCharges) {
+            if (loanCharge.isLoanReschedulingFee()) {
+                chargesAmountDue = chargesAmountDue.add(loanCharge.amount());
             }
         }
         

@@ -229,7 +229,7 @@ public class LoanSchedulePeriodData {
         this.totalOutstandingForPeriod = totalDueForPeriod;
         this.totalActualCostOfLoanForPeriod = interestDueOnPrincipalOutstanding.add(feeChargesDueForPeriod);
 
-        if (dueDate.isBefore(new LocalDate())) {
+        if ((dueDate != null) && dueDate.isBefore(new LocalDate())) {
             this.totalOverdue = this.totalOutstandingForPeriod;
         } else {
             this.totalOverdue = null;

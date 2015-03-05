@@ -39,12 +39,10 @@ import org.mifosplatform.organisation.workingdays.domain.WorkingDaysRepositoryWr
 import org.mifosplatform.portfolio.calendar.domain.CalendarEntityType;
 import org.mifosplatform.portfolio.calendar.domain.CalendarInstance;
 import org.mifosplatform.portfolio.calendar.domain.CalendarInstanceRepository;
-import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.charge.domain.Charge;
 import org.mifosplatform.portfolio.charge.domain.ChargeCalculationType;
 import org.mifosplatform.portfolio.charge.domain.ChargePaymentMode;
 import org.mifosplatform.portfolio.charge.domain.ChargeTimeType;
-import org.mifosplatform.portfolio.charge.service.ChargeReadPlatformService;
 import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargePaidByData;
 import org.mifosplatform.portfolio.loanaccount.data.ScheduleGeneratorDTO;
@@ -53,7 +51,6 @@ import org.mifosplatform.portfolio.loanaccount.domain.DefaultLoanLifecycleStateM
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanAccountDomainService;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanChargeRepository;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanInstallmentCharge;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanLifecycleStateMachine;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
@@ -79,6 +76,7 @@ import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanResched
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.exception.LoanRescheduleRequestNotFoundException;
 import org.mifosplatform.portfolio.loanaccount.service.LoanAssembler;
 import org.mifosplatform.portfolio.loanaccount.service.LoanChargeReadPlatformService;
+import org.mifosplatform.portfolio.loanaccount.service.LoanWritePlatformService;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductMinimumRepaymentScheduleRelatedDetail;
@@ -114,8 +112,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
     private final JournalEntryWritePlatformService journalEntryWritePlatformService;
     private final LoanRepository loanRepository;
     private final LoanAssembler loanAssembler;
-    private final LoanChargeRepository loanChargeRepository;
-    private final ChargeReadPlatformService chargeReadPlatformService;
+    private final LoanWritePlatformService loanWritePlatformService;
 
     /**
      * LoanRescheduleRequestWritePlatformServiceImpl constructor
@@ -138,9 +135,8 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
             final LoanTransactionRepository loanTransactionRepository, 
             final JournalEntryWritePlatformService journalEntryWritePlatformService, 
             final LoanRepository loanRepository, 
-            final LoanAssembler loanAssembler, 
-            final LoanChargeRepository loanChargeRepository, 
-            final ChargeReadPlatformService chargeReadPlatformService) {
+            final LoanAssembler loanAssembler,  
+            final LoanWritePlatformService loanWritePlatformService) {
         this.loanRepositoryWrapper = loanRepositoryWrapper;
         this.codeValueRepositoryWrapper = codeValueRepositoryWrapper;
         this.platformSecurityContext = platformSecurityContext;
@@ -160,8 +156,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
         this.journalEntryWritePlatformService = journalEntryWritePlatformService;
         this.loanRepository = loanRepository;
         this.loanAssembler = loanAssembler;
-        this.loanChargeRepository = loanChargeRepository;
-        this.chargeReadPlatformService = chargeReadPlatformService;
+        this.loanWritePlatformService = loanWritePlatformService;
     }
 
     /**
@@ -334,15 +329,13 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                 final InterestMethod interestMethod = loan.getLoanRepaymentScheduleDetail().getInterestMethod();
                 final RoundingMode roundingMode = RoundingMode.HALF_EVEN;
                 final MathContext mathContext = new MathContext(8, roundingMode);
-                final LoanProduct loanProduct = loan.getLoanProduct();
-                final Collection<ChargeData> loanProductChargesData = this.chargeReadPlatformService.retrieveLoanProductCharges(loanProduct.getId());
-
+                
                 Collection<LoanRepaymentScheduleHistory> loanRepaymentScheduleHistoryList = this.loanScheduleHistoryWritePlatformService
                         .createLoanScheduleArchive(loan.getRepaymentScheduleInstallments(), loan, loanRescheduleRequest);
 
                 HolidayDetailDTO holidayDetailDTO = new HolidayDetailDTO(isHolidayEnabled, holidays, workingDays);
                 LoanRescheduleModel loanRescheduleModel = new DefaultLoanReschedulerFactory().reschedule(mathContext, interestMethod,
-                        loanRescheduleRequest, applicationCurrency, holidayDetailDTO, loanProductChargesData);
+                        loanRescheduleRequest, applicationCurrency, holidayDetailDTO, loan.charges());
 
                 final Collection<LoanRescheduleModelRepaymentPeriod> periods = loanRescheduleModel.getPeriods();
                 List<LoanRepaymentScheduleInstallment> repaymentScheduleInstallments = loan.getRepaymentScheduleInstallments();
@@ -620,11 +613,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                 LoanCharge loanCharge = new LoanCharge(loan, loanProductCharge, loanPrincipal, chargeAmount, 
                         chargeTimeType, chargeCalculationType, instalmentDueDate, chargePaymentMode, numberOfRepayments, BigDecimal.ZERO);
                 
-                // save and persist the loan charge
-                this.loanChargeRepository.saveAndFlush(loanCharge);
-                
-                // add the loan charge to the loan
-                loan.addLoanCharge(loanCharge);
+                this.loanWritePlatformService.addLoanCharge(loan, loanProductCharge, loanCharge);
             }
         }
     }

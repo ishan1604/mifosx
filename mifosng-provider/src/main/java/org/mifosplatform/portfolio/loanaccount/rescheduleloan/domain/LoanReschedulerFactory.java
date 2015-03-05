@@ -12,11 +12,12 @@ import org.mifosplatform.organisation.monetary.domain.ApplicationCurrency;
 import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.charge.domain.Charge;
 import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
 
 public interface LoanReschedulerFactory {
 
     public LoanRescheduleModel reschedule(final MathContext mathContext, final InterestMethod interestMethod,
             final LoanRescheduleRequest loanRescheduleRequest, final ApplicationCurrency applicationCurrency,
-            final HolidayDetailDTO holidayDetailDTO, Collection<ChargeData> loanProductChargesData);
+            final HolidayDetailDTO holidayDetailDTO, Collection<LoanCharge> loanCharges);
 }
