@@ -78,17 +78,92 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
         this.dataValidator = dataValidator;
         this.fromApiJsonHelper = fromApiJsonHelper;
     }
+    
+    private void updateOrganizationRunningBalance(final List<Map<String, Object>> listOfEntriesToBeUpdate, 
+            final Integer updateSqlBatchArraySize) {
+        String[] updateSql = new String[updateSqlBatchArraySize];
+        int i = 0;
+        
+        for (Map<String, Object> entry : listOfEntriesToBeUpdate) {
+            Long accountId = (Long) entry.get("account_id");
+            BigDecimal amount = (BigDecimal) entry.get("amount");
+            Date entryDate = (Date) entry.get("entry_date");
+            
+            String sql = "update acc_gl_journal_entry je "
+                    + "join acc_gl_account ac "
+                    + "on je.account_id = ac.id "
+                    + "set je.organization_running_balance = (if(((ac.classification_enum in (1,5) and je.type_enum = 2) "
+                    + "or (ac.classification_enum in (2,3,4) and je.type_enum = 1)), (organization_running_balance + " + amount + "), "
+                    + "(organization_running_balance - " + amount + "))), "
+                    + "is_running_balance_calculated = 1 "
+                    + "where je.account_id = " + accountId
+                    + " and je.entry_date >= '" + entryDate + "'";
+            
+            updateSql[i++] = sql;
+            
+            if(i == (updateSqlBatchArraySize - 1)){
+                
+                this.jdbcTemplate.batchUpdate(updateSql);
+                i = 0;
+                updateSql = new String[updateSqlBatchArraySize];
+            }
+        }
+        
+      this.jdbcTemplate.batchUpdate(updateSql);
+    }
+    
+    private void updateOfficeRunningBalance(final List<Map<String, Object>> listOfEntriesToBeUpdate, 
+            final Integer updateSqlBatchArraySize) {
+        String[] updateSql = new String[updateSqlBatchArraySize];
+        int i = 0;
+        
+        for (Map<String, Object> entry : listOfEntriesToBeUpdate) {
+            Long accountId = (Long) entry.get("account_id");
+            BigDecimal amount = (BigDecimal) entry.get("amount");
+            Date entryDate = (Date) entry.get("entry_date");
+            Long officeId = (Long) entry.get("office_id");
+            
+            String sql = "update acc_gl_journal_entry je "
+                    + "join acc_gl_account ac "
+                    + "on je.account_id = ac.id "
+                    + "set je.organization_running_balance = (if(((ac.classification_enum in (1,5) and je.type_enum = 2) "
+                    + "or (ac.classification_enum in (2,3,4) and je.type_enum = 1)), (organization_running_balance + " + amount + "), "
+                    + "(organization_running_balance - " + amount + "))), "
+                    + "is_running_balance_calculated = 1 "
+                    + "where je.account_id = " + accountId
+                    + " and je.entry_date >= '" + entryDate + "' "
+                    + "and je.office_id = " + officeId;
+            
+            updateSql[i++] = sql;
+            
+            if(i == (updateSqlBatchArraySize - 1)){
+                
+                this.jdbcTemplate.batchUpdate(updateSql);
+                i = 0;
+                updateSql = new String[updateSqlBatchArraySize];
+            }
+        }
+        
+      this.jdbcTemplate.batchUpdate(updateSql);
+    }
 
     @Override
     @CronTarget(jobName = JobName.ACCOUNTING_RUNNING_BALANCE_UPDATE)
     public void updateRunningBalance() {
-        String dateFinder = "select MIN(je.entry_date) as entityDate from acc_gl_journal_entry  je "
-                + "where je.is_running_balance_calculated=0 ";
+        final String entriesRequiringUpdateSql = "select * from acc_gl_journal_entry "
+                + "where is_running_balance_calculated = 0 "
+                + "order by entry_date desc";
+        final Integer updateSqlBatchArraySize = 1000;
+        
         try {
-            Date entityDate = this.jdbcTemplate.queryForObject(dateFinder, Date.class);
-            updateOrganizationRunningBalance(entityDate);
-        } catch (EmptyResultDataAccessException e) {
-            logger.debug("No results found for updation of running balance ");
+            List<Map<String, Object>> listOfEntriesToBeUpdate = jdbcTemplate.queryForList(entriesRequiringUpdateSql);
+            
+            updateOrganizationRunningBalance(listOfEntriesToBeUpdate, updateSqlBatchArraySize);
+            updateOfficeRunningBalance(listOfEntriesToBeUpdate, updateSqlBatchArraySize);
+        }
+        
+        catch (EmptyResultDataAccessException e) {
+            logger.debug("No results found for updating of the running balances:");
         }
     }
 
