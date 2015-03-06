@@ -17,12 +17,12 @@ import java.util.List;
 public class DatatabaleEntryRequiredException extends RuntimeException {
 
 
-    public DatatabaleEntryRequiredException(final String datatableName) {
+    public DatatabaleEntryRequiredException(final String datatableName,final String displayName) {
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
 
-        final String defaultMessage = "The datatable " + datatableName + " needs to be filled in before the current action can be proceeded";
-        final String messageCode = "error.msg.entry.required.in.datatable."+datatableName;
+        final String defaultMessage = "The datatable " + displayName + " needs to be filled in before the current action can be proceeded";
+        final String messageCode = "error.msg.entry.required.in.datatable."+displayName;
         final ApiParameterError error = ApiParameterError.parameterError(messageCode,
                 defaultMessage,"", 1, 0);
         dataValidationErrors.add(error);
