@@ -508,7 +508,11 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
                 throw new InvalidClientStateTransitionException("close", "is.under.transfer", errorMessage);
             }
 
-            if (client.isNotPending() && client.getActivationLocalDate().isAfter(closureDate)) {
+
+            //logger.error("is closure date:"+client.getActivationLocalDate().isAfter(closureDate));
+
+
+            if (client.isNotPending() && client.getActivationLocalDate()!=null && client.getActivationLocalDate().isAfter(closureDate)) {
                 final String errorMessage = "The client closureDate cannot be before the client ActivationDate.";
                 throw new InvalidClientStateTransitionException("close", "date.cannot.before.client.actvation.date", errorMessage,
                         closureDate, client.getActivationLocalDate());
