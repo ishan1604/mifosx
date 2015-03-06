@@ -5,21 +5,9 @@
  */
 package org.mifosplatform.infrastructure.sms.service;
 
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.net.MalformedURLException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-
 import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
-
-import net.fortuna.ical4j.model.DateTime;
-import net.fortuna.ical4j.model.Recur;
-
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.joda.time.DateTimeZone;
@@ -42,7 +30,6 @@ import org.mifosplatform.infrastructure.dataqueries.exception.ReportNotFoundExce
 import org.mifosplatform.infrastructure.dataqueries.service.GenericDataService;
 import org.mifosplatform.infrastructure.dataqueries.service.ReadReportingService;
 import org.mifosplatform.infrastructure.jobs.annotation.CronTarget;
-import org.mifosplatform.infrastructure.jobs.domain.ScheduledJobDetail;
 import org.mifosplatform.infrastructure.jobs.exception.JobExecutionException;
 import org.mifosplatform.infrastructure.jobs.service.JobName;
 import org.mifosplatform.infrastructure.jobs.service.SchedularWritePlatformService;
@@ -61,7 +48,6 @@ import org.mifosplatform.portfolio.calendar.service.CalendarUtils;
 import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.client.domain.ClientRepository;
 import org.mifosplatform.template.domain.TemplateRepository;
-import org.mifosplatform.template.exception.TemplateNotFoundException;
 import org.mifosplatform.template.service.TemplateMergeService;
 import org.mifosplatform.useradministration.domain.AppUser;
 import org.slf4j.Logger;
@@ -70,18 +56,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.filter.RequestContextFilter;
-
-
 
 import java.io.IOException;
-import java.text.ParseException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.*;
 
 @Service
 public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWritePlatformService {
@@ -368,6 +347,17 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
                 reportType, queryParams);
         final String response = this.genericDataService.generateJsonFromGenericResultsetData(results);
         resultList = new ObjectMapper().readValue(response, new TypeReference<List<HashMap<String,Object>>>(){});
+        //loop changes array date to string date
+        for(HashMap<String,Object> entry : resultList){
+            for(Map.Entry<String,Object> map: entry.entrySet()){
+                String key = map.getKey();
+                Object ob  = map.getValue();
+                if(ob instanceof ArrayList && ((ArrayList) ob).size() == 3){
+                    String changeArrayDateToStringDate =  ((ArrayList) ob).get(2).toString() +"-"+((ArrayList) ob).get(1).toString() +"-"+((ArrayList) ob).get(0).toString();
+                    entry.put(key,changeArrayDateToStringDate);
+                }
+            }
+        }
         return resultList;
     }
 
