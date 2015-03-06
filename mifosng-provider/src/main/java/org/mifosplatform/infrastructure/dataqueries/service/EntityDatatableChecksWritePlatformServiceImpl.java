@@ -100,10 +100,11 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
             for(EntityDatatableChecks t : tableRequiredBeforeClientActivation){
 
                 final String datatableName = t.getDatatable().getRegisteredTableName();
+                final String displayName = t.getDatatable().getDisplayName();
                 final Long countEntries = readWriteNonCoreDataService.countDatatableEntries(datatableName,entityId,foreignKeyColumn);
 
                 logger.info("The are "+countEntries+" entries in the table "+ datatableName);
-                if(countEntries.intValue()==0){throw new DatatabaleEntryRequiredException(datatableName);}
+                if(countEntries.intValue()==0){throw new DatatabaleEntryRequiredException(datatableName,displayName);}
             }
         }
 
