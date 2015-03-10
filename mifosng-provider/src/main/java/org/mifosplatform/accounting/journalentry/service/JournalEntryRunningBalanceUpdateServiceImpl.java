@@ -148,6 +148,7 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
 
     @Override
     @CronTarget(jobName = JobName.ACCOUNTING_RUNNING_BALANCE_UPDATE)
+    @Transactional
     public void updateRunningBalance() {
         final String entriesRequiringUpdateSql = "select * from acc_gl_journal_entry "
                 + "where is_running_balance_calculated = 0 "
