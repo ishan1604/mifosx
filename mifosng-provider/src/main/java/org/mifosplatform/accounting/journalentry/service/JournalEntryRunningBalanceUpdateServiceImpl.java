@@ -130,9 +130,9 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
             sql = "update acc_gl_journal_entry je "
                     + "join acc_gl_account ac "
                     + "on je.account_id = ac.id "
-                    + "set je.organization_running_balance = (if(((ac.classification_enum in (1,5) and je.type_enum = 2) "
-                    + "or (ac.classification_enum in (2,3,4) and je.type_enum = 1)), (organization_running_balance + " + amount + "), "
-                    + "(organization_running_balance - " + amount + "))), "
+                    + "set je.office_running_balance = (if(((ac.classification_enum in (1,5) and je.type_enum = 2) "
+                    + "or (ac.classification_enum in (2,3,4) and je.type_enum = 1)), (office_running_balance + " + amount + "), "
+                    + "(office_running_balance - " + amount + "))), "
                     + "is_running_balance_calculated = 1 "
                     + "where je.account_id = " + accountId
                     + " and je.entry_date >= '" + entryDate + "' "
