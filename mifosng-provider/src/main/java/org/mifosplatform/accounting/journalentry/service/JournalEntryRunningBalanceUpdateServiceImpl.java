@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,112 +78,18 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
         this.dataValidator = dataValidator;
         this.fromApiJsonHelper = fromApiJsonHelper;
     }
-    
-    /** 
-     * Build an organization running balance update SQL statement from the values in the ResultSet object 
-     * 
-     * @param resultSet -- ResultSet object
-     * @return update SQL statement
-     **/
-    private String getOrganizationRunningBalanceUpdateSql(final ResultSet resultSet) {
-        String sql = null;
-        
-        try {
-            final Long accountId = resultSet.getLong("account_id");
-            final BigDecimal amount = resultSet.getBigDecimal("amount");
-            final Date entryDate = resultSet.getDate("entry_date");
-            
-            sql = "update acc_gl_journal_entry je "
-                    + "join acc_gl_account ac "
-                    + "on je.account_id = ac.id "
-                    + "set je.organization_running_balance = (if(((ac.classification_enum in (1,5) and je.type_enum = 2) "
-                    + "or (ac.classification_enum in (2,3,4) and je.type_enum = 1)), (organization_running_balance + " + amount + "), "
-                    + "(organization_running_balance - " + amount + "))), "
-                    + "is_running_balance_calculated = 1 "
-                    + "where je.account_id = " + accountId
-                    + " and je.entry_date >= '" + entryDate + "'";
-        } 
-        
-        catch (SQLException e) {
-            logger.debug(e.getMessage());
-        }
-        
-        return sql;
-    }
-    
-    /** 
-     * Build an office running balance update SQL statement from the values in the ResultSet object 
-     * 
-     * @param resultSet -- ResultSet object
-     * @return update SQL statement
-     **/
-    private String getOfficeRunningBalanceUpdateSql(final ResultSet resultSet) {
-        String sql = null;
-        
-        try {
-            final Long accountId = resultSet.getLong("account_id");
-            final BigDecimal amount = resultSet.getBigDecimal("amount");
-            final Date entryDate = resultSet.getDate("entry_date");
-            final Long officeId = resultSet.getLong("office_id");
-            
-            sql = "update acc_gl_journal_entry je "
-                    + "join acc_gl_account ac "
-                    + "on je.account_id = ac.id "
-                    + "set je.office_running_balance = (if(((ac.classification_enum in (1,5) and je.type_enum = 2) "
-                    + "or (ac.classification_enum in (2,3,4) and je.type_enum = 1)), (office_running_balance + " + amount + "), "
-                    + "(office_running_balance - " + amount + "))), "
-                    + "is_running_balance_calculated = 1 "
-                    + "where je.account_id = " + accountId
-                    + " and je.entry_date >= '" + entryDate + "' "
-                    + "and je.office_id = " + officeId;
-        } 
-        
-        catch (SQLException e) {
-            logger.debug(e.getMessage());
-        }
-        
-        return sql;
-    }
 
     @Override
     @CronTarget(jobName = JobName.ACCOUNTING_RUNNING_BALANCE_UPDATE)
-    @Transactional
     public void updateRunningBalance() {
-        final String entriesRequiringUpdateSql = "select * from acc_gl_journal_entry "
-                + "where is_running_balance_calculated = 0 "
-                + "order by entry_date desc";
-        final Integer updateSqlBatchArraySize = 1000;
-        final Integer updateSqlBatchArraySizeMinusOne = updateSqlBatchArraySize - 1;
-        
-        jdbcTemplate.query(entriesRequiringUpdateSql, new RowCallbackHandler() {
-
-            @Override
-            public void processRow(ResultSet resultSet) throws SQLException {
-                String[] updateRunningBalanceSqlBatch = new String[updateSqlBatchArraySize];
-                int incrementCounter = 0;
-                
-                while (resultSet.next()) {
-                    String updateOfficeRunningBalanceSql = getOfficeRunningBalanceUpdateSql(resultSet);
-                    String updateOrganizationRunningBalanceSql = getOrganizationRunningBalanceUpdateSql(resultSet);
-                    
-                    if(incrementCounter == updateSqlBatchArraySizeMinusOne){
-                        jdbcTemplate.batchUpdate(updateRunningBalanceSqlBatch);
-                        incrementCounter = 0;
-                        updateRunningBalanceSqlBatch = new String[updateSqlBatchArraySize];
-                    }
-                    
-                    if (updateOfficeRunningBalanceSql != null && (incrementCounter < updateSqlBatchArraySizeMinusOne)) {
-                        updateRunningBalanceSqlBatch[incrementCounter++] = updateOfficeRunningBalanceSql;
-                    }
-                    
-                    if (updateOrganizationRunningBalanceSql != null &&  (incrementCounter < updateSqlBatchArraySizeMinusOne)) {
-                        updateRunningBalanceSqlBatch[incrementCounter++] = updateOrganizationRunningBalanceSql;
-                    }
-                }
-                
-                jdbcTemplate.batchUpdate(updateRunningBalanceSqlBatch);
-            }
-        });
+        String dateFinder = "select MIN(je.entry_date) as entityDate from acc_gl_journal_entry  je "
+                + "where je.is_running_balance_calculated=0 limit 0, 10000 ";
+        try {
+            Date entityDate = this.jdbcTemplate.queryForObject(dateFinder, Date.class);
+            updateOrganizationRunningBalance(entityDate);
+        } catch (EmptyResultDataAccessException e) {
+            logger.debug("No results found for updation of running balance ");
+        }
     }
 
     @Override
