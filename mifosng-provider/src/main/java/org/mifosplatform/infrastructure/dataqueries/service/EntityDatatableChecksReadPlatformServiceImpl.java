@@ -70,7 +70,7 @@ public class EntityDatatableChecksReadPlatformServiceImpl implements EntityDatat
         }
 
         public String schema() {
-            return " t.id as id, t.registered_table_name as tableName from x_registered_table t where application_table_name IN( 'm_client','m_group','m_savings_account')";
+            return " t.id as id, t.registered_table_name as tableName from x_registered_table t where application_table_name IN( 'm_client','m_group','m_savings_account','m_loan')";
         }
     }
 
