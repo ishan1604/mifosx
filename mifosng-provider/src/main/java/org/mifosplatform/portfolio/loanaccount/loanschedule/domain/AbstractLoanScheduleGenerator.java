@@ -972,6 +972,9 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                                     principalInterestForThisPeriod.interest().getAmount());
                         } else if (loanCharge.getChargeCalculation().isPercentageOfInterest()) {
                             amount = amount.add(principalInterestForThisPeriod.interest().getAmount());
+                        } else if (loanCharge.getChargeCalculation().isPercentageOfTotalOutstandingPrincipal() || 
+                                loanCharge.getChargeCalculation().isPercentageOfOriginalPrincipal()) {
+                            amount = amount.add(principalDisbursed.getAmount());
                         } else {
                             amount = amount.add(principalInterestForThisPeriod.principal().getAmount());
                         }
@@ -1024,6 +1027,9 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                                     principalInterestForThisPeriod.interest().getAmount());
                         } else if (loanCharge.getChargeCalculation().isPercentageOfInterest()) {
                             amount = amount.add(principalInterestForThisPeriod.interest().getAmount());
+                        } else if (loanCharge.getChargeCalculation().isPercentageOfTotalOutstandingPrincipal() || 
+                                loanCharge.getChargeCalculation().isPercentageOfOriginalPrincipal()) {
+                            amount = amount.add(principalDisbursed.getAmount());
                         } else {
                             amount = amount.add(principalInterestForThisPeriod.principal().getAmount());
                         }

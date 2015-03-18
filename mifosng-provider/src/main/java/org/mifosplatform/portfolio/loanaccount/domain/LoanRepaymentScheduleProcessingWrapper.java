@@ -77,7 +77,15 @@ public class LoanRepaymentScheduleProcessingWrapper {
                             amount = amount.add(period.getPrincipal(monetaryCurrency).getAmount());
                         }
                         BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
-                        cumulative = cumulative.plus(loanChargeAmt);
+                        
+                        if (loanCharge.getChargeCalculation().isPercentageOfTotalOutstandingPrincipal() || 
+                                loanCharge.getChargeCalculation().isPercentageOfOriginalPrincipal()) {
+                            cumulative = cumulative.plus(loanCharge.getInstallmentLoanCharge(period.getInstallmentNumber()).getAmount());
+                        }
+                        
+                        else {
+                            cumulative = cumulative.plus(loanChargeAmt);
+                        }
                     } else {
                         cumulative = cumulative.plus(loanCharge.amount().divide(BigDecimal.valueOf(numberOfRepayments)));
                     }
@@ -93,11 +101,21 @@ public class LoanRepaymentScheduleProcessingWrapper {
                         amount = amount.add(totalPrincipal.getAmount()).add(totalInterest.getAmount());
                     } else if (loanCharge.getChargeCalculation().isPercentageOfInterest()) {
                         amount = amount.add(totalInterest.getAmount());
+                    } else if (loanCharge.getChargeCalculation().isPercentageOfInterest()) {
+                        amount = amount.add(period.getInterestCharged(monetaryCurrency).getAmount());
                     } else {
                         amount = amount.add(totalPrincipal.getAmount());
                     }
                     BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
-                    cumulative = cumulative.plus(loanChargeAmt);
+                    
+                    if (loanCharge.getChargeCalculation().isPercentageOfTotalOutstandingPrincipal() || 
+                            loanCharge.getChargeCalculation().isPercentageOfOriginalPrincipal()) {
+                        cumulative = cumulative.plus(loanCharge.amount());
+                    }
+                    
+                    else {
+                        cumulative = cumulative.plus(loanChargeAmt);
+                    }
                 } else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)) {
                     cumulative = cumulative.plus(loanCharge.amount());
                 }
@@ -170,7 +188,16 @@ public class LoanRepaymentScheduleProcessingWrapper {
                             amount = amount.add(period.getPrincipal(currency).getAmount());
                         }
                         BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
-                        cumulative = cumulative.plus(loanChargeAmt);
+                        
+                        if (loanCharge.getChargeCalculation().isPercentageOfTotalOutstandingPrincipal() || 
+                                loanCharge.getChargeCalculation().isPercentageOfOriginalPrincipal()) {
+                            cumulative = cumulative.plus(loanCharge.getInstallmentLoanCharge(period.getInstallmentNumber()).getAmount());
+                        }
+                        
+                        else {
+                            cumulative = cumulative.plus(loanChargeAmt);
+                        }
+                        
                     } else {
                         cumulative = cumulative.plus(loanCharge.amount().divide(BigDecimal.valueOf(numberOfRepayments)));
                     }
@@ -190,7 +217,15 @@ public class LoanRepaymentScheduleProcessingWrapper {
                         amount = amount.add(totalPrincipal.getAmount());
                     }
                     BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
-                    cumulative = cumulative.plus(loanChargeAmt);
+                    
+                    if (loanCharge.getChargeCalculation().isPercentageOfTotalOutstandingPrincipal() || 
+                            loanCharge.getChargeCalculation().isPercentageOfOriginalPrincipal()) {
+                        cumulative = cumulative.plus(loanCharge.amount());
+                    }
+                    
+                    else {
+                        cumulative = cumulative.plus(loanChargeAmt);
+                    }
                 } else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)) {
                     cumulative = cumulative.plus(loanCharge.amount());
                 }

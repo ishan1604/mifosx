@@ -157,7 +157,13 @@ public class LoanCharge extends AbstractPersistable<Long> {
                 }
             break;
             case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
-            	amountPercentageAppliedTo = loan.getLoanSummary().getTotalPrincipalOutstanding();
+                if ((loan.status() != null) && loan.status().isActive()) {
+                    amountPercentageAppliedTo = loan.getLoanSummary().getTotalPrincipalOutstanding();
+                }
+                
+                else {
+                    amountPercentageAppliedTo = loan.getPrincpal().getAmount();
+                }
             break;
             case PERCENT_OF_ORIGINAL_PRINCIPAL:
             	amountPercentageAppliedTo = loan.getPrincpal().getAmount();
@@ -273,6 +279,17 @@ public class LoanCharge extends AbstractPersistable<Long> {
             case PERCENT_OF_AMOUNT:
             case PERCENT_OF_AMOUNT_AND_INTEREST:
             case PERCENT_OF_INTEREST:
+                this.percentage = chargeAmount;
+                this.amountPercentageAppliedTo = amountPercentageAppliedTo;
+                if (loanCharge.compareTo(BigDecimal.ZERO) == 0) {
+                    loanCharge = percentageOf(this.amountPercentageAppliedTo);
+                }
+                this.amount = minimumAndMaximumCap(loanCharge);
+                this.amountPaid = null;
+                this.amountOutstanding = calculateOutstanding();
+                this.amountWaived = null;
+                this.amountWrittenOff = null;
+            break;
             case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
             case PERCENT_OF_ORIGINAL_PRINCIPAL:
                 this.percentage = chargeAmount;
@@ -280,7 +297,7 @@ public class LoanCharge extends AbstractPersistable<Long> {
                 if (loanCharge.compareTo(BigDecimal.ZERO) == 0) {
                     loanCharge = percentageOf(this.amountPercentageAppliedTo);
                 }
-                this.amount = minimumAndMaximumCap(loanCharge);
+                this.amount = loanCharge;
                 this.amountPaid = null;
                 this.amountOutstanding = calculateOutstanding();
                 this.amountWaived = null;
@@ -382,6 +399,13 @@ public class LoanCharge extends AbstractPersistable<Long> {
                 case PERCENT_OF_AMOUNT:
                 case PERCENT_OF_AMOUNT_AND_INTEREST:
                 case PERCENT_OF_INTEREST:
+                    this.percentage = amount;
+                    this.amountPercentageAppliedTo = loanPrincipal;
+                    if (loanCharge.compareTo(BigDecimal.ZERO) == 0) {
+                        loanCharge = percentageOf(this.amountPercentageAppliedTo);
+                    }
+                    this.amount = minimumAndMaximumCap(loanCharge);
+                break;
                 case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
                 case PERCENT_OF_ORIGINAL_PRINCIPAL:
                     this.percentage = amount;
@@ -389,7 +413,7 @@ public class LoanCharge extends AbstractPersistable<Long> {
                     if (loanCharge.compareTo(BigDecimal.ZERO) == 0) {
                         loanCharge = percentageOf(this.amountPercentageAppliedTo);
                     }
-                    this.amount = minimumAndMaximumCap(loanCharge);
+                    this.amount = loanCharge;
                 break;
             }
             this.amountOrPercentage = amount;
@@ -415,7 +439,13 @@ public class LoanCharge extends AbstractPersistable<Long> {
                     amountPercentageAppliedTo = this.loan.getTotalInterest();
                 break;
                 case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
-                	amountPercentageAppliedTo = this.loan.getLoanSummary().getTotalPrincipalOutstanding();
+                    if ((loan.status() != null) && loan.status().isActive()) {
+                        amountPercentageAppliedTo = loan.getLoanSummary().getTotalPrincipalOutstanding();
+                    }
+                    
+                    else {
+                        amountPercentageAppliedTo = loan.getPrincpal().getAmount();
+                    }
                 break;
                 default:
                 break;
@@ -461,8 +491,6 @@ public class LoanCharge extends AbstractPersistable<Long> {
                 case PERCENT_OF_AMOUNT:
                 case PERCENT_OF_AMOUNT_AND_INTEREST:
                 case PERCENT_OF_INTEREST:
-                case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
-                case PERCENT_OF_ORIGINAL_PRINCIPAL:
                     this.percentage = newValue;
                     this.amountPercentageAppliedTo = amount;
                     BigDecimal loanCharge = BigDecimal.ZERO;
@@ -474,6 +502,21 @@ public class LoanCharge extends AbstractPersistable<Long> {
                         loanCharge = percentageOf(this.amountPercentageAppliedTo);
                     }
                     this.amount = minimumAndMaximumCap(loanCharge);
+                    this.amountOutstanding = calculateOutstanding();
+                break;
+                case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
+                case PERCENT_OF_ORIGINAL_PRINCIPAL:
+                    this.percentage = newValue;
+                    this.amountPercentageAppliedTo = amount;
+                    loanCharge = BigDecimal.ZERO;
+                    if (isInstalmentFee()) {
+                        loanCharge = this.loan.calculatePerInstallmentChargeAmount(ChargeCalculationType.fromInt(this.chargeCalculation),
+                                this.percentage);
+                    }
+                    if (loanCharge.compareTo(BigDecimal.ZERO) == 0) {
+                        loanCharge = percentageOf(this.amountPercentageAppliedTo);
+                    }
+                    this.amount = loanCharge;
                     this.amountOutstanding = calculateOutstanding();
                 break;
             }
@@ -921,5 +964,9 @@ public class LoanCharge extends AbstractPersistable<Long> {
     	if (dueDate != null) {
             this.dueDate = dueDate.toDate();
         }
+    }
+    
+    public Loan getLoan() {
+        return this.loan;
     }
 }
