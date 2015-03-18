@@ -357,6 +357,37 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                         chargePerInstallment.getRepaymentInstallment().getDueDate()))) {
             earliestUnpaidCharge = installemntCharge;
         }
+        if (earliestUnpaidCharge == null) {
+            earliestUnpaidCharge = findEarliestWaivedChargeWithOutstandingAmount(charges);
+        }
+
+        return earliestUnpaidCharge;
+    }
+    
+    private LoanCharge findEarliestWaivedChargeWithOutstandingAmount(final Set<LoanCharge> charges) {
+        LoanCharge earliestUnpaidCharge = null;
+        LoanCharge installemntCharge = null;
+        LoanInstallmentCharge chargePerInstallment = null;
+        for (final LoanCharge loanCharge : charges) {
+            if (loanCharge.isWaived() && loanCharge.hasOutstandingAmount()) {
+                if (loanCharge.isInstalmentFee()) {
+                    LoanInstallmentCharge unpaidLoanChargePerInstallment = loanCharge.getUnpaidInstallmentLoanCharge();
+                    if (chargePerInstallment == null
+                            || chargePerInstallment.getRepaymentInstallment().getDueDate()
+                                    .isAfter(unpaidLoanChargePerInstallment.getRepaymentInstallment().getDueDate())) {
+                        installemntCharge = loanCharge;
+                        chargePerInstallment = unpaidLoanChargePerInstallment;
+                    }
+                } else if (earliestUnpaidCharge == null || loanCharge.getDueLocalDate().isBefore(earliestUnpaidCharge.getDueLocalDate())) {
+                    earliestUnpaidCharge = loanCharge;
+                }
+            }
+        }
+        if (earliestUnpaidCharge == null
+                || (chargePerInstallment != null && earliestUnpaidCharge.getDueLocalDate().isAfter(
+                        chargePerInstallment.getRepaymentInstallment().getDueDate()))) {
+            earliestUnpaidCharge = installemntCharge;
+        }
 
         return earliestUnpaidCharge;
     }
