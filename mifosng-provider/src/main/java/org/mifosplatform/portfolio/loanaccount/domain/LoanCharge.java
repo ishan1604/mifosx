@@ -969,4 +969,14 @@ public class LoanCharge extends AbstractPersistable<Long> {
     public Loan getLoan() {
         return this.loan;
     }
+
+    public boolean hasOutstandingAmount() {
+        boolean hasOutstandingAmount = false;
+        
+        if (this.amountOutstanding.compareTo(BigDecimal.ZERO) == 1) {
+            hasOutstandingAmount = true;
+        }
+        
+        return hasOutstandingAmount;
+    }
 }
