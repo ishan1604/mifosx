@@ -307,7 +307,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
 
         Money amountRemaining = feeCharges;
         while (amountRemaining.isGreaterThanZero()) {
-            final LoanCharge unpaidCharge = findEarliestUnpaidChargeFromUnOrderedSet(charges);
+            final LoanCharge unpaidCharge = findEarliestUnpaidChargeFromUnOrderedSet(charges, false);
             Money feeAmount = feeCharges.zero();
             if (loanTransaction.isChargePayment()) {
                 feeAmount = feeCharges;
@@ -333,12 +333,15 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
 
     }
 
-    private LoanCharge findEarliestUnpaidChargeFromUnOrderedSet(final Set<LoanCharge> charges) {
+    private LoanCharge findEarliestUnpaidChargeFromUnOrderedSet(final Set<LoanCharge> charges, 
+            final boolean searchForWaivedChargeWithOutstandingAmount) {
         LoanCharge earliestUnpaidCharge = null;
         LoanCharge installemntCharge = null;
         LoanInstallmentCharge chargePerInstallment = null;
         for (final LoanCharge loanCharge : charges) {
-            if (loanCharge.isNotFullyPaid() && !loanCharge.isDueAtDisbursement() && (!loanCharge.isWaived() || loanCharge.isInstalmentFee())) {
+            if ((loanCharge.isNotFullyPaid() && !loanCharge.isDueAtDisbursement() && (!loanCharge.isWaived() 
+                    || loanCharge.isInstalmentFee()) && !searchForWaivedChargeWithOutstandingAmount) || 
+                    (loanCharge.isWaived() && loanCharge.hasOutstandingAmount() && searchForWaivedChargeWithOutstandingAmount)){
                 if (loanCharge.isInstalmentFee()) {
                     LoanInstallmentCharge unpaidLoanChargePerInstallment = loanCharge.getUnpaidInstallmentLoanCharge();
                     if (chargePerInstallment == null
@@ -357,36 +360,8 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                         chargePerInstallment.getRepaymentInstallment().getDueDate()))) {
             earliestUnpaidCharge = installemntCharge;
         }
-        if (earliestUnpaidCharge == null) {
-            earliestUnpaidCharge = findEarliestWaivedChargeWithOutstandingAmount(charges);
-        }
-
-        return earliestUnpaidCharge;
-    }
-    
-    private LoanCharge findEarliestWaivedChargeWithOutstandingAmount(final Set<LoanCharge> charges) {
-        LoanCharge earliestUnpaidCharge = null;
-        LoanCharge installemntCharge = null;
-        LoanInstallmentCharge chargePerInstallment = null;
-        for (final LoanCharge loanCharge : charges) {
-            if (loanCharge.isWaived() && loanCharge.hasOutstandingAmount()) {
-                if (loanCharge.isInstalmentFee()) {
-                    LoanInstallmentCharge unpaidLoanChargePerInstallment = loanCharge.getUnpaidInstallmentLoanCharge();
-                    if (chargePerInstallment == null
-                            || chargePerInstallment.getRepaymentInstallment().getDueDate()
-                                    .isAfter(unpaidLoanChargePerInstallment.getRepaymentInstallment().getDueDate())) {
-                        installemntCharge = loanCharge;
-                        chargePerInstallment = unpaidLoanChargePerInstallment;
-                    }
-                } else if (earliestUnpaidCharge == null || loanCharge.getDueLocalDate().isBefore(earliestUnpaidCharge.getDueLocalDate())) {
-                    earliestUnpaidCharge = loanCharge;
-                }
-            }
-        }
-        if (earliestUnpaidCharge == null
-                || (chargePerInstallment != null && earliestUnpaidCharge.getDueLocalDate().isAfter(
-                        chargePerInstallment.getRepaymentInstallment().getDueDate()))) {
-            earliestUnpaidCharge = installemntCharge;
+        if (earliestUnpaidCharge == null && !searchForWaivedChargeWithOutstandingAmount) {
+            return findEarliestUnpaidChargeFromUnOrderedSet(charges, true);
         }
 
         return earliestUnpaidCharge;
