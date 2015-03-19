@@ -332,6 +332,15 @@ public class LoanAccountData {
                 maximumGap, creditChecks);
     }
 
+  /**
+     * Used to produce a {@link LoanAccountData} with only collateral options
+     * for now.
+     */
+    public static LoanAccountData emptyTemplate() {
+        final Collection<CodeValueData> loanCollateralOptions = null;
+        
+        return LoanAccountData.collateralTemplate(loanCollateralOptions);
+ } 
     /**
      * Used to produce a {@link LoanAccountData} with only client information
      * defaulted.
