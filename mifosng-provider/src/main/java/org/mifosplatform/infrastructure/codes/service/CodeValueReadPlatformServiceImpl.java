@@ -58,7 +58,7 @@ public class CodeValueReadPlatformServiceImpl implements CodeValueReadPlatformSe
         this.context.authenticatedUser();
 
         final CodeValueDataMapper rm = new CodeValueDataMapper();
-        final String sql = "select " + rm.schema() + "where c.code_name like ? order by position";
+        final String sql = "select " + rm.schema() + "where c.code_name like ? and cv.is_deleted = 0 order by position";
 
         return this.jdbcTemplate.query(sql, rm, new Object[] { code });
     }
@@ -70,7 +70,7 @@ public class CodeValueReadPlatformServiceImpl implements CodeValueReadPlatformSe
         this.context.authenticatedUser();
 
         final CodeValueDataMapper rm = new CodeValueDataMapper();
-        final String sql = "select " + rm.schema() + "where cv.code_id = ? order by position";
+        final String sql = "select " + rm.schema() + "where cv.code_id = ? and cv.is_deleted = 0 order by position";
 
         return this.jdbcTemplate.query(sql, rm, new Object[] { codeId });
     }
@@ -83,7 +83,7 @@ public class CodeValueReadPlatformServiceImpl implements CodeValueReadPlatformSe
 
 			final CodeValueDataMapper rm = new CodeValueDataMapper();
 			final String sql = "select " + rm.schema()
-					+ "where cv.id = ? order by position";
+					+ "where cv.id = ? and cv.is_deleted = 0 order by position";
 
 			return this.jdbcTemplate.queryForObject(sql, rm,
 					new Object[] { codeValueId });

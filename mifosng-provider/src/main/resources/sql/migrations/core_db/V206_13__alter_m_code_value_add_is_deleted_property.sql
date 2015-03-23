@@ -1,0 +1,1 @@
+alter table m_code_value add is_deleted tinyint(1) not null default 0;
