@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -37,6 +38,7 @@ public class CodeValueWritePlatformServiceJpaRepositoryImpl implements CodeValue
     private final CodeValueRepository codeValueRepository;
     private final CodeRepository codeRepository;
     private final CodeValueCommandFromApiJsonDeserializer fromApiJsonDeserializer;
+    private CodeValue codeValueToDelete;
 
     @Autowired
     public CodeValueWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context, final CodeRepository codeRepository,
@@ -133,30 +135,22 @@ public class CodeValueWritePlatformServiceJpaRepositoryImpl implements CodeValue
     @CacheEvict(value = "code_values", allEntries = true)
     public CommandProcessingResult deleteCodeValue(final Long codeId, final Long codeValueId) {
 
-        try {
-            this.context.authenticatedUser();
+        this.context.authenticatedUser();
 
-            final Code code = this.codeRepository.findOne(codeId);
-            if (code == null) { throw new CodeNotFoundException(codeId); }
+        final Code code = this.codeRepository.findOne(codeId);
+        if (code == null) { throw new CodeNotFoundException(codeId); }
 
-            final CodeValue codeValueToDelete = this.codeValueRepositoryWrapper.findOneWithNotFoundDetection(codeValueId);
+        this.codeValueToDelete = this.codeValueRepositoryWrapper.findOneWithNotFoundDetection(codeValueId);
+        
+        // set the isDeleted property to true
+        this.codeValueToDelete.delete();
+        
+        // save and flush code value entity
+        this.codeValueRepository.saveAndFlush(this.codeValueToDelete);
 
-            final boolean removed = code.remove(codeValueToDelete);
-            if (removed) {
-                this.codeRepository.saveAndFlush(code);
-            }
-
-            return new CommandProcessingResultBuilder() //
-                    .withEntityId(codeId) //
-                    .withSubEntityId(codeValueId)//
-                    .build();
-        } catch (final DataIntegrityViolationException dve) {
-            logger.error(dve.getMessage(), dve);
-            final Throwable realCause = dve.getMostSpecificCause();
-            if (realCause.getMessage().contains("code_value")) { throw new PlatformDataIntegrityException("error.msg.codeValue.in.use",
-                    "This code value is in use", codeValueId); }
-            throw new PlatformDataIntegrityException("error.msg.code.value.unknown.data.integrity.issue",
-                    "Unknown data integrity issue with resource: " + dve.getMostSpecificCause().getMessage());
-        }
+        return new CommandProcessingResultBuilder() //
+                .withEntityId(codeId) //
+                .withSubEntityId(codeValueId)//
+                .build();
     }
 }

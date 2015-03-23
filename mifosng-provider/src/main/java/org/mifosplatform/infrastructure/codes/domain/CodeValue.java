@@ -40,6 +40,9 @@ public class CodeValue extends AbstractPersistable<Long> {
     
     @Column(name = "is_mandatory")
     private boolean isMandatory;
+    
+    @Column(name = "is_deleted")
+    private boolean isDeleted;
 
     public static CodeValue createNew(final Code code, final String label, final int position, final boolean isMandatory, 
             final String description) {
@@ -118,5 +121,21 @@ public class CodeValue extends AbstractPersistable<Long> {
 
     public CodeValueData toData() {
         return CodeValueData.instance(getId(), this.label, this.position, this.isMandatory, this.description);
+    }
+    
+    /** 
+     * set the isDeleted property to true 
+     * 
+     * @return None
+     **/
+    public void delete() {
+        this.isDeleted = true;
+    }
+    
+    /** 
+     * @return the isDeleted property (true/false) 
+     **/
+    public boolean isDeleted() {
+        return this.isDeleted;
     }
 }
