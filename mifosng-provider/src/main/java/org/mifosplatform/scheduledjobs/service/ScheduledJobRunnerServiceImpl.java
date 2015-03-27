@@ -146,8 +146,32 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         jdbcTemplate.execute("truncate table m_loan_arrears_aging");
 
         final StringBuilder updateSqlBuilder = new StringBuilder(900);
+        final String principalOverdueCalculationSql = "SUM(ifnull(mr.principal_amount, 0) - ifnull(mr.principal_completed_derived, 0) - ifnull(mr.principal_writtenoff_derived, 0))";
+        final String interestOverdueCalculationSql = "SUM(ifnull(mr.interest_amount, 0) - ifnull(mr.interest_writtenoff_derived, 0) - ifnull(mr.interest_waived_derived, 0) - "
+                + "ifnull(mr.interest_completed_derived, 0))";
+        final String feeChargesOverdueCalculationSql = "SUM(ifnull(mr.fee_charges_amount, 0) - ifnull(mr.fee_charges_writtenoff_derived, 0) - "
+                + "ifnull(mr.fee_charges_waived_derived, 0) - ifnull(mr.fee_charges_completed_derived, 0))";
+        final String penaltyChargesOverdueCalculationSql = "SUM(ifnull(mr.penalty_charges_amount, 0) - ifnull(mr.penalty_charges_writtenoff_derived, 0) - "
+                + "ifnull(mr.penalty_charges_waived_derived, 0) - ifnull(mr.penalty_charges_completed_derived, 0))";
+        
+        updateSqlBuilder.append("INSERT INTO m_loan_arrears_aging(`loan_id`,`principal_overdue_derived`,`interest_overdue_derived`,`fee_charges_overdue_derived`,");
+        updateSqlBuilder.append("`penalty_charges_overdue_derived`,`total_overdue_derived`,`overdue_since_date_derived`)");
+        updateSqlBuilder.append("select ml.id as loanId,");
+        updateSqlBuilder.append(principalOverdueCalculationSql + " as principal_overdue_derived,");
+        updateSqlBuilder.append(interestOverdueCalculationSql + " as interest_overdue_derived,");
+        updateSqlBuilder.append(feeChargesOverdueCalculationSql + " as fee_charges_overdue_derived,");
+        updateSqlBuilder.append(penaltyChargesOverdueCalculationSql + " as penalty_charges_overdue_derived,");
+        updateSqlBuilder.append(principalOverdueCalculationSql + "+" + interestOverdueCalculationSql + "+");
+        updateSqlBuilder.append(feeChargesOverdueCalculationSql + "+" + penaltyChargesOverdueCalculationSql + " as total_overdue_derived,");
+        updateSqlBuilder.append("MIN(mr.duedate) as overdue_since_date_derived ");
+        updateSqlBuilder.append("FROM m_loan ml ");
+        updateSqlBuilder.append("INNER JOIN m_loan_repayment_schedule mr on mr.loan_id = ml.id ");
+        updateSqlBuilder.append("WHERE ml.loan_status_id = 300 "); // active
+        updateSqlBuilder.append("and mr.completed_derived is false ");
+        updateSqlBuilder.append("and mr.duedate < SUBDATE(CURDATE(),INTERVAL  ifnull(ml.grace_on_arrears_ageing,0) day) ");
+        updateSqlBuilder.append("GROUP BY ml.id");
 
-        updateSqlBuilder
+        /*updateSqlBuilder
                 .append("INSERT INTO m_loan_arrears_aging(`loan_id`,`principal_overdue_derived`,`interest_overdue_derived`,`fee_charges_overdue_derived`,`penalty_charges_overdue_derived`,`total_overdue_derived`,`overdue_since_date_derived`)");
         updateSqlBuilder.append("select ml.id as loanId,");
         updateSqlBuilder
@@ -169,7 +193,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         updateSqlBuilder.append(" WHERE ml.loan_status_id = 300 "); // active
         updateSqlBuilder.append(" and mr.completed_derived is false ");
         updateSqlBuilder.append(" and mr.duedate < SUBDATE(CURDATE(),INTERVAL  ifnull(ml.grace_on_arrears_ageing,0) day) ");
-        updateSqlBuilder.append(" GROUP BY ml.id");
+        updateSqlBuilder.append(" GROUP BY ml.id");*/
 
         final int result = jdbcTemplate.update(updateSqlBuilder.toString());
 
