@@ -39,4 +39,6 @@ public interface LoanAccountDomainService {
      * @param loan
      */
     void recalculateAccruals(Loan loan);
+
+    void disableStandingInstructionsLinkedToClosedLoan(Loan loan);
 }

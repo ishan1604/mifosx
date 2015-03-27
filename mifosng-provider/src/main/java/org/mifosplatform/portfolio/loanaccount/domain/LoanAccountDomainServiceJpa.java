@@ -33,7 +33,10 @@ import org.mifosplatform.organisation.monetary.domain.Money;
 import org.mifosplatform.organisation.workingdays.domain.WorkingDays;
 import org.mifosplatform.organisation.workingdays.domain.WorkingDaysRepositoryWrapper;
 import org.mifosplatform.portfolio.account.domain.AccountTransferRepository;
+import org.mifosplatform.portfolio.account.domain.AccountTransferStandingInstruction;
 import org.mifosplatform.portfolio.account.domain.AccountTransferTransaction;
+import org.mifosplatform.portfolio.account.domain.StandingInstructionRepository;
+import org.mifosplatform.portfolio.account.domain.StandingInstructionStatus;
 import org.mifosplatform.portfolio.calendar.domain.Calendar;
 import org.mifosplatform.portfolio.calendar.domain.CalendarEntityType;
 import org.mifosplatform.portfolio.calendar.domain.CalendarInstance;
@@ -78,6 +81,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
     private final CalendarInstanceRepository calendarInstanceRepository;
     private final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository;
     private final LoanAccrualWritePlatformService accrualWritePlatformService;
+    private final StandingInstructionRepository standingInstructionRepository;
 
     @Autowired
     public LoanAccountDomainServiceJpa(final LoanAssembler loanAccountAssembler, final LoanRepository loanRepository,
@@ -90,7 +94,8 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository,
             final CalendarInstanceRepository calendarInstanceRepository,
             final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository,
-            final LoanAccrualWritePlatformService accrualWritePlatformService) {
+            final LoanAccrualWritePlatformService accrualWritePlatformService, 
+            final StandingInstructionRepository standingInstructionRepository) {
         this.loanAccountAssembler = loanAccountAssembler;
         this.loanRepository = loanRepository;
         this.loanTransactionRepository = loanTransactionRepository;
@@ -106,6 +111,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
         this.calendarInstanceRepository = calendarInstanceRepository;
         this.repaymentScheduleInstallmentRepository = repaymentScheduleInstallmentRepository;
         this.accrualWritePlatformService = accrualWritePlatformService;
+        this.standingInstructionRepository = standingInstructionRepository;
     }
 
     @Transactional
@@ -208,6 +214,10 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
         postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
 
         recalculateAccruals(loan);
+        
+        // disable all active standing orders linked to this loan if status changes to closed
+        disableStandingInstructionsLinkedToClosedLoan(loan);
+        
         builderResult.withEntityId(newRepaymentTransaction.getId()) //
                 .withOfficeId(loan.getOfficeId()) //
                 .withClientId(loan.getClientId()) //
@@ -501,4 +511,26 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
         }
     }
 
+    /** 
+     * Disable all standing instructions linked to the loan account if the status is "closed" 
+     * 
+     * @param loan -- the loan account object
+     * @return None
+     **/
+    @Override
+    @Transactional
+    public void disableStandingInstructionsLinkedToClosedLoan(final Loan loan) {
+        if ((loan != null) && (loan.status() != null) && loan.status().isClosed()) {
+            final Integer standingInstructionStatus = StandingInstructionStatus.ACTIVE.getValue();
+            final Collection<AccountTransferStandingInstruction> accountTransferStandingInstructions = this.standingInstructionRepository
+                    .findByLoanAccountAndStatus(loan, standingInstructionStatus);
+            
+            if (!accountTransferStandingInstructions.isEmpty()) {
+                for (AccountTransferStandingInstruction accountTransferStandingInstruction : accountTransferStandingInstructions) {
+                    accountTransferStandingInstruction.updateStatus(StandingInstructionStatus.DISABLED.getValue());
+                    this.standingInstructionRepository.save(accountTransferStandingInstruction);
+                }
+            }
+        }
+    }
 }
