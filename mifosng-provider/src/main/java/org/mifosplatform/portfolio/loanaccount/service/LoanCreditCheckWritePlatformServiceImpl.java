@@ -89,7 +89,7 @@ public class LoanCreditCheckWritePlatformServiceImpl implements LoanCreditCheckW
                             loanCreditCheckData.getActualResult(), severityLevelIntValue, loanCreditCheckData.getMessage(), 
                             false, loanCreditCheckData.getSqlStatement());
                     
-                    this.loanCreditCheckRepository.saveAndFlush(loanCreditCheck);
+                    this.loanCreditCheckRepository.save(loanCreditCheck);
                 }
             }
         } 
@@ -110,7 +110,7 @@ public class LoanCreditCheckWritePlatformServiceImpl implements LoanCreditCheckW
             for (LoanCreditCheck loanCreditCheck : loanCreditCheckList) {
                 loanCreditCheck.updateIsDeleted(true);
                 
-                this.loanCreditCheckRepository.saveAndFlush(loanCreditCheck);
+                this.loanCreditCheckRepository.save(loanCreditCheck);
             }
         }
     }
