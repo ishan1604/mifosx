@@ -55,14 +55,13 @@ public class ChargeReadPlatformServiceImpl implements ChargeReadPlatformService 
     public ChargeReadPlatformServiceImpl(final CurrencyReadPlatformService currencyReadPlatformService,
             final ChargeDropdownReadPlatformService chargeDropdownReadPlatformService, final RoutingDataSource dataSource,
             final DropdownReadPlatformService dropdownReadPlatformService,
-    		final MifosEntityAccessUtil mifosEntityAccessUtil, 
-    		final NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+    		final MifosEntityAccessUtil mifosEntityAccessUtil) {
         this.chargeDropdownReadPlatformService = chargeDropdownReadPlatformService;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
         this.currencyReadPlatformService = currencyReadPlatformService;
         this.dropdownReadPlatformService = dropdownReadPlatformService;
         this.mifosEntityAccessUtil = mifosEntityAccessUtil;
-        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
+        this.namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
     }
 
     @Override
