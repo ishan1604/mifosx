@@ -7,7 +7,6 @@ package org.mifosplatform.portfolio.loanaccount.service;
 
 import java.util.Collection;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.infrastructure.dataqueries.service.GenericDataService;
 import org.mifosplatform.portfolio.creditcheck.domain.CreditCheck;
@@ -47,7 +46,7 @@ public class LoanCreditCheckWritePlatformServiceImpl implements LoanCreditCheckW
     public void runLoanCreditChecks(final Loan loan) {
         final Collection<LoanCreditCheckData> loanCreditCheckDataList = this.loanCreditCheckReadPlatformService.triggerLoanCreditChecks(loan);
         
-        if (CollectionUtils.isNotEmpty(loanCreditCheckDataList)) {
+        if (loanCreditCheckDataList != null && !loanCreditCheckDataList.isEmpty()) {
             for (LoanCreditCheckData loanCreditCheckData : loanCreditCheckDataList) {
                 final EnumOptionData severityLevelEnumOptionData = loanCreditCheckData.getSeverityLevel();
                 final CreditCheckSeverityLevel severityLevel = CreditCheckSeverityLevel.fromInt(severityLevelEnumOptionData.getId().intValue());
@@ -71,7 +70,7 @@ public class LoanCreditCheckWritePlatformServiceImpl implements LoanCreditCheckW
         final Collection<LoanCreditCheckData> loanCreditCheckDataList = this.loanCreditCheckReadPlatformService.triggerLoanCreditChecks(loan);
         final LoanProduct loanProduct = loan.loanProduct();
         
-        if (CollectionUtils.isNotEmpty(loanCreditCheckDataList)) {
+        if (loanCreditCheckDataList != null && !loanCreditCheckDataList.isEmpty()) {
             for (LoanCreditCheckData loanCreditCheckData : loanCreditCheckDataList) {
                 final EnumOptionData severityLevelEnumOptionData = loanCreditCheckData.getSeverityLevel();
                 final CreditCheckSeverityLevel severityLevel = CreditCheckSeverityLevel.fromInt(severityLevelEnumOptionData.getId().intValue());
@@ -106,7 +105,7 @@ public class LoanCreditCheckWritePlatformServiceImpl implements LoanCreditCheckW
     public void deleteLoanCreditChecks(final Loan loan) {
         Collection<LoanCreditCheck> loanCreditCheckList = loan.getCreditChecks();
         
-        if (CollectionUtils.isNotEmpty(loanCreditCheckList)) {
+        if (loanCreditCheckList != null && !loanCreditCheckList.isEmpty()) {
             for (LoanCreditCheck loanCreditCheck : loanCreditCheckList) {
                 loanCreditCheck.updateIsDeleted(true);
                 
@@ -125,7 +124,7 @@ public class LoanCreditCheckWritePlatformServiceImpl implements LoanCreditCheckW
     private CreditCheck getCreditCheckFromList(final Collection<CreditCheck> creditChecks, final Long creditCheckId) {
         CreditCheck creditCheckFound = null;
         
-        if (CollectionUtils.isNotEmpty(creditChecks)) {
+        if (creditChecks != null && !creditChecks.isEmpty()) {
             for (CreditCheck creditCheck : creditChecks) {
                 if (creditCheck.getId().equals(creditCheckId)) {
                     creditCheckFound = creditCheck;

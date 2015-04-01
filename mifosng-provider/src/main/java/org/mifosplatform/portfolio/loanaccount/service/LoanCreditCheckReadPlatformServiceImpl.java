@@ -39,7 +39,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
-import org.apache.commons.collections.CollectionUtils;
 
 @Service
 public class LoanCreditCheckReadPlatformServiceImpl implements LoanCreditCheckReadPlatformService {
@@ -133,10 +132,10 @@ public class LoanCreditCheckReadPlatformServiceImpl implements LoanCreditCheckRe
     public Collection<LoanCreditCheckData> triggerLoanCreditChecks(final LoanAccountData loanAccountData) {
         final AppUser appUser = this.platformSecurityContext.authenticatedUser();
         final Long loanId = loanAccountData.getId();
-        Collection<LoanCreditCheckData> loanCreditCheckDataList = this.retrieveLoanCreditChecks(loanId);
+        Collection<LoanCreditCheckData> loanCreditCheckDataList = new ArrayList<>();
         final LoanStatusEnumData loanStatusEnumData = loanAccountData.getStatus();
         
-        if (CollectionUtils.isEmpty(loanCreditCheckDataList) && (loanStatusEnumData.isPendingApprovalOrPendingDisbursement())) {
+        if (loanStatusEnumData != null && loanStatusEnumData.isPendingApprovalOrPendingDisbursement()) {
             loanCreditCheckDataList = triggerLoanCreditChecks(loanId, loanAccountData.loanProductId(), appUser.getId());
         }
         
@@ -146,10 +145,10 @@ public class LoanCreditCheckReadPlatformServiceImpl implements LoanCreditCheckRe
     @Override
     public Collection<LoanCreditCheckData> triggerLoanCreditChecks(final Loan loan) {
         final AppUser appUser = this.platformSecurityContext.authenticatedUser();
-        Collection<LoanCreditCheckData> loanCreditCheckDataList = LoanCreditCheckData.instance(loan.getCreditChecks());
+        Collection<LoanCreditCheckData> loanCreditCheckDataList = new ArrayList<>();
         final LoanStatus loanStatus = LoanStatus.fromInt(loan.getStatus());
         
-        if (CollectionUtils.isEmpty(loanCreditCheckDataList) && (loanStatus.isPendingApprovalOrPendingDisbursement())) {
+        if (loanStatus != null && loanStatus.isPendingApprovalOrPendingDisbursement()) {
             loanCreditCheckDataList = triggerLoanCreditChecks(loan.getId(), loan.productId(), appUser.getId());
         }
         
@@ -169,7 +168,7 @@ public class LoanCreditCheckReadPlatformServiceImpl implements LoanCreditCheckRe
         final Collection<LoanCreditCheckData> loanCreditCheckDataList = new ArrayList<>();
         final Collection<CreditCheckData> creditCheckDataList = this.creditCheckReadPlatformService.retrieveLoanProductCreditChecks(loanProductId);
         
-        if (CollectionUtils.isNotEmpty(creditCheckDataList)) {
+        if (creditCheckDataList != null && !creditCheckDataList.isEmpty()) {
             for (CreditCheckData creditCheckData : creditCheckDataList) {
                 ReportData reportData = this.readReportingService.retrieveReport(creditCheckData.getStretchyReportId());
                 String creditCheckResult = null;
