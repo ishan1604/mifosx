@@ -43,4 +43,6 @@ public interface LoanAccountDomainService {
 
     void saveLoanWithDataIntegrityViolationChecks(Loan loan);
 
+    void disableStandingInstructionsLinkedToClosedLoan(Loan loan);
+
 }
