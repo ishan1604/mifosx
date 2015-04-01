@@ -176,7 +176,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     + "lp.hold_guarantee_funds as holdGuaranteeFunds, "
                     + "lpg.id as lpgId, lpg.mandatory_guarantee as mandatoryGuarantee, "
                     + "lpg.minimum_guarantee_from_own_funds as minimumGuaranteeFromOwnFunds, lpg.minimum_guarantee_from_guarantor_funds as minimumGuaranteeFromGuarantor, "
-                    + "curr.name as currencyName, curr.internationalized_name_code as currencyNameCode, curr.display_symbol as currencyDisplaySymbol, lp.external_id as externalId "
+                    + "curr.name as currencyName, curr.internationalized_name_code as currencyNameCode, curr.display_symbol as currencyDisplaySymbol, lp.external_id as externalId, "
                     + "lca.id as lcaId, lca.allow_attribute_configuration as allowAttributeConfiguration, lca.amortization as configureAmortization, lca.interest_method as configureInterestMethod, "
                     + "lca.repayment_strategy as configureRepaymentStrategy,lca.interest_calculation_period as configureInterestCalcPeriod, lca.arrears_tolerance as configureArrearsTolerance, "
                     + "lca.repay_every as configureRepaymentFrequency, lca.moratorium as configureMoratorium, lca.grace_on_arrears_aging as configureGraceOnArrearsAging "
