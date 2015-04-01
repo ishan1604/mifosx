@@ -1226,6 +1226,10 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
         }
         this.loanAccountDomainService.recalculateAccruals(loan);
+        
+        // disable all active standing instructions linked to the loan
+        this.loanAccountDomainService.disableStandingInstructionsLinkedToClosedLoan(loan);
+        
         CommandProcessingResult result = null;
         if (possibleClosingTransaction != null) {
 
@@ -1278,6 +1282,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             final Note note = Note.loanNote(loan, noteText);
             this.noteRepository.save(note);
         }
+        
+        // disable all active standing instructions linked to the loan
+        this.loanAccountDomainService.disableStandingInstructionsLinkedToClosedLoan(loan);
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //

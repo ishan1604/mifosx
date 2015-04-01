@@ -56,4 +56,6 @@ public interface LoanAccountDomainService {
 
     public ScheduleGeneratorDTO buildScheduleGeneratorDTO(final Loan loan);
 
+    void disableStandingInstructionsLinkedToClosedLoan(Loan loan);
+
 }
