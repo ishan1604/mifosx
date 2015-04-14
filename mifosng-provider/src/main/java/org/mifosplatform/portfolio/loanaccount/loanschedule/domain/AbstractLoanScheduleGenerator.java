@@ -496,6 +496,9 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                 totalFeeChargesCharged = totalFeeChargesCharged.add(feeChargesForInstallment.getAmount());
                 totalPenaltyChargesCharged = totalPenaltyChargesCharged.add(penaltyChargesForInstallment.getAmount());
                 loanScheduleModelPeriod.addLoanCharges(feeChargesForInstallment.getAmount(), penaltyChargesForInstallment.getAmount());
+                
+                // add the penalty/fee charges for the installment to the total expected repayment
+                totalRepaymentExpected = totalRepaymentExpected.add(penaltyChargesForInstallment.getAmount()).add(feeChargesForInstallment.getAmount());
             }
         }
 
