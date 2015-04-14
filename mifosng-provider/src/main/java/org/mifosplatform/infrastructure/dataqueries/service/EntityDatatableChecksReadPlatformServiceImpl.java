@@ -32,9 +32,12 @@ public class EntityDatatableChecksReadPlatformServiceImpl implements EntityDatat
     }
 
     @Override
-    public List<EntityDataTableChecksData> retrieveAll (){
+    public List<EntityDataTableChecksData> retrieveAll (final Long status){
 
-        final String sql = "select " + this.entityDataTableChecksMapper.schema();
+
+        String sql = "select " + this.entityDataTableChecksMapper.schema();
+
+        if(status !=null) sql +=" where status_enum ="+ status;
 
         return this.jdbcTemplate.query(sql, this.entityDataTableChecksMapper);
 
