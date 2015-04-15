@@ -993,7 +993,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                 } else if ((loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
                         && loanCharge.getChargeCalculation().isPercentageBased()
                         && !lastTransactionDate.isAfter(loanCharge.getDueLocalDate())) || 
-                        (loanCharge.isDisbursementPaidWithRepayment() && periodNumber == 1)) {
+                        (loanCharge.isDisbursementPaidWithRepayment() && periodNumber == 1 && loanCharge.getChargeCalculation().isPercentageBased())) {
                     BigDecimal amount = BigDecimal.ZERO;
                     if (loanCharge.getChargeCalculation().isPercentageOfAmountAndInterest()) {
                         amount = amount.add(principalDisbursed.getAmount()).add(totalInterestChargedForFullLoanTerm.getAmount());
@@ -1004,7 +1004,8 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                     }
                     BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
                     cumulative = cumulative.plus(loanChargeAmt);
-                } else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)) {
+                } else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd) || 
+                        (loanCharge.isDisbursementPaidWithRepayment() && periodNumber == 1)) {
                     cumulative = cumulative.plus(loanCharge.amount());
                 } 
             }
