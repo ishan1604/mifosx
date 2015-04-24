@@ -5,16 +5,6 @@
  */
 package org.mifosplatform.portfolio.loanaccount.service;
 
-import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.Days;
@@ -102,6 +92,17 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
@@ -1843,4 +1844,20 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                 null, null, null, false);
     }
 
+    @Override
+    public Collection<Long> fetchNPALoans() {
+        StringBuilder sqlBuilder = new StringBuilder();
+        sqlBuilder.append("SELECT loan.id ");
+        sqlBuilder.append(" from m_loan_repayment_schedule mr ");
+        sqlBuilder.append(" INNER JOIN  m_loan loan on mr.loan_id = loan.id ");
+        sqlBuilder.append(" INNER JOIN m_product_loan mpl on mpl.id = loan.product_id AND mpl.overdue_days_for_npa is not null ");
+        sqlBuilder.append(" WHERE loan.loan_status_id = ? and mr.completed_derived is false ");
+        sqlBuilder.append(" and mpl.reverse_overduedays_npa_interest is true ");
+        sqlBuilder.append(" and mr.duedate < SUBDATE(CURDATE(),INTERVAL  ifnull(mpl.overdue_days_for_npa,0) day) group by loan.id");
+        try {
+            return this.jdbcTemplate.queryForList(sqlBuilder.toString(), Long.class, new Object[] { LoanStatus.ACTIVE.getValue()});
+        } catch (final EmptyResultDataAccessException e) {
+            return null;
+        }
+    }
 }
