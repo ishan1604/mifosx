@@ -2727,4 +2727,28 @@ public class CommandWrapperBuilder {
         this.json = json;
         return this;
     }
+
+    public CommandWrapperBuilder createReportMailingJob(final String entityName) {
+        this.actionName = "CREATE";
+        this.entityName = entityName;
+        this.entityId = null;
+        this.href = "/reportmailingjobs";
+        return this;
+    }
+    
+    public CommandWrapperBuilder updateReportMailingJob(final String entityName, final Long entityId) {
+        this.actionName = "UPDATE";
+        this.entityName = entityName;
+        this.entityId = entityId;
+        this.href = "/reportmailingjobs/" + entityId;
+        return this;
+    }
+    
+    public CommandWrapperBuilder deleteReportMailingJob(final String entityName, final Long entityId) {
+        this.actionName = "DELETE";
+        this.entityName = entityName;
+        this.entityId = entityId;
+        this.href = "/reportmailingjobs/" + entityId;
+        return this;
+    }
 }
