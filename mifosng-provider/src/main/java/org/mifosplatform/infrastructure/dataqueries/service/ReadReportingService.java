@@ -5,6 +5,7 @@
  */
 package org.mifosplatform.infrastructure.dataqueries.service;
 
+import java.io.ByteArrayOutputStream;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
@@ -15,6 +16,7 @@ import javax.ws.rs.core.StreamingOutput;
 import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
 import org.mifosplatform.infrastructure.dataqueries.data.ReportData;
 import org.mifosplatform.infrastructure.dataqueries.data.ReportParameterData;
+import org.mifosplatform.useradministration.domain.AppUser;
 
 public interface ReadReportingService {
 
@@ -36,4 +38,7 @@ public interface ReadReportingService {
     Collection<ReportParameterData> getAllowedParameters();
 
     ReportData retrieveReport(final Long id);
+
+    ByteArrayOutputStream generatePentahoReportAsOutputStream(String reportName, String outputTypeParam,
+            Map<String, String> queryParams, Locale locale, AppUser runReportAsUser, StringBuilder errorLog);
 }
