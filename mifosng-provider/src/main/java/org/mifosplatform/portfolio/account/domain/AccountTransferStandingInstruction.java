@@ -328,4 +328,14 @@ public class AccountTransferStandingInstruction extends AbstractPersistable<Long
     public void updateCompletedIterations(Integer completedIterations) {
         this.completedIterations = completedIterations;
     }
+    
+    /** 
+    * delete the standing instruction 
+    * 
+    * @return None
+    **/
+    public void delete() {
+        this.status = StandingInstructionStatus.DELETED.getValue();
+        this.name = this.name + "_deleted_" + this.getId();
+    }
 }
