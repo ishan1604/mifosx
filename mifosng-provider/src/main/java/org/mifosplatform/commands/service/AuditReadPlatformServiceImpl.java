@@ -5,18 +5,9 @@
  */
 package org.mifosplatform.commands.service;
 
-import java.lang.reflect.Type;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.mifosplatform.commands.data.AuditData;
@@ -56,11 +47,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
-import net.fortuna.ical4j.model.Date;
-
-import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import java.lang.reflect.Type;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class AuditReadPlatformServiceImpl implements AuditReadPlatformService {
@@ -241,7 +236,7 @@ public class AuditReadPlatformServiceImpl implements AuditReadPlatformService {
             updatedExtraCriteria = " where aud.processing_result_enum = 2";
         }
 
-        updatedExtraCriteria += " order by aud.id";
+        updatedExtraCriteria += " group by aud.id order by aud.id";
 
         return retrieveEntries("makerchecker", updatedExtraCriteria, includeJson);
     }
