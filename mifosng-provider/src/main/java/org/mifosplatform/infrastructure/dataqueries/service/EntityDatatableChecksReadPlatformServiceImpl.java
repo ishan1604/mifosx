@@ -86,13 +86,14 @@ public class EntityDatatableChecksReadPlatformServiceImpl implements EntityDatat
             final String entity = rs.getString("entity");
             final Long status = rs.getLong("status");
             final String datatableName = rs.getString("datatableName");
+            final String displayName = rs.getString("displayName");
             final boolean systemDefined = rs.getBoolean("systemDefined");
 
-            return new EntityDataTableChecksData(id,entity,status,datatableName,systemDefined);
+            return new EntityDataTableChecksData(id,entity,status,datatableName,systemDefined,displayName);
         }
 
         public String schema() {
-            return " t.id as id,t.application_table_name as entity, t.status_enum as status, t.system_defined as systemDefined, rt.registered_table_name as datatableName from m_entity_datatable_check as t join x_registered_table rt on rt.id = t.x_registered_table_id";
+            return " rt.display_name as displayName, t.id as id,t.application_table_name as entity, t.status_enum as status, t.system_defined as systemDefined, rt.registered_table_name as datatableName from m_entity_datatable_check as t join x_registered_table rt on rt.id = t.x_registered_table_id";
         }
     }
 

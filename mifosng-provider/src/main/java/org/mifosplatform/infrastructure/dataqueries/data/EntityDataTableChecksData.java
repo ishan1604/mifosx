@@ -16,17 +16,19 @@ public class EntityDataTableChecksData implements Serializable {
     private final String entity;
     private final Long  status;
     private final String  datatableName;
+    private final String displayName;
     private final boolean systemDefined;
     private final Long order;
 
 
-     public EntityDataTableChecksData(final long id, final String entity, final long status, final String datatableName, final boolean systemDefined) {
+     public EntityDataTableChecksData(final long id, final String entity, final long status, final String datatableName, final boolean systemDefined,final String displayName) {
         this.id = id;
         this.entity =entity;
         this.status =status;
          this.datatableName = datatableName;
          this.systemDefined = systemDefined;
          this.order = id;
+         this.displayName = displayName;
     }
 
 
