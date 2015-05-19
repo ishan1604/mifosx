@@ -592,4 +592,8 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
     public void manuallyAdjustedOrReversed(){
         this.manuallyAdjustedOrReversed = true;
     }
+    
+    public PaymentDetail getPaymentDetail() {
+        return this.paymentDetail;
+    }
 }
