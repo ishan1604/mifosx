@@ -658,4 +658,9 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
         }
         return isLatest;
     }
+    
+    public PaymentDetail getPaymentDetail() {
+        return this.paymentDetail;
+    }
 }
+   
