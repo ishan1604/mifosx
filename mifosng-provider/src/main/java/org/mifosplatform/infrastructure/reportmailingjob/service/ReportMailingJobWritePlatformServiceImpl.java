@@ -235,38 +235,10 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
                         reportParams = validateStretchyReportParamMap;
                     }
                     
-                    final ByteArrayOutputStream byteArrayOutputStream = this.readReportingService.generatePentahoReportAsOutputStream(reportName, 
-                            emailAttachmentFileFormat.getValue(), reportParams, null, reportMailingJob.getRunAsUser(), errorLog);
-                    final String fileLocation = FileSystemContentRepository.MIFOSX_BASE_DIR + File.separator + "";
-                    final String fileNameWithoutExtension = fileLocation + File.separator + reportName;
-                    final Set<String> emailRecipients = this.reportMailingJobValidator.validateEmailRecipients(reportMailingJob.getEmailRecipients());
+                    // generate the pentaho report output stream, method in turn call another that sends the file to the email recipients
+                    this.generatePentahoReportOutputStream(reportMailingJob, emailAttachmentFileFormat, reportParams, reportName, errorLog);
                     
-                    // check if file directory exists, if not create directory
-                    if (!new File(fileLocation).isDirectory()) {
-                        new File(fileLocation).mkdirs();
-                    }
-                    
-                    if (errorLog.length() == 0) {
-                        final String fileName = fileNameWithoutExtension + "." + emailAttachmentFileFormat.getValue();
-                        
-                        try {
-                            final File file = new File(fileName);
-                            final FileOutputStream outputStream = new FileOutputStream(file);
-                            byteArrayOutputStream.writeTo(outputStream);
-                            
-                            for (String emailRecipient : emailRecipients) {
-                                final ReportMailingJobEmailData reportMailingJobEmailData = new ReportMailingJobEmailData(emailRecipient, 
-                                        reportMailingJob.getEmailMessage(), reportMailingJob.getEmailSubject(), file);
-                                
-                                this.reportMailingJobEmailService.sendEmailWithAttachment(reportMailingJobEmailData);
-                            }
-                            
-                        } catch (IOException e) {
-                            errorLog.append("The ReportMailingJobWritePlatformServiceImpl.executeReportMailingJobs threw an IOException "
-                                    + "exception: " + e.getMessage() + " ---------- ");
-                        }
-                    }
-                    
+                    // TODO - write a helper method to handle the generation of the pentaho report file
                     this.updateReportMailingJobAfterJobExecution(reportMailingJob, errorLog, jobStartLocalDateTime);
                 }
             }
@@ -295,6 +267,7 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
         reportMailingJob.increaseNumberOfRunsByOne();
         reportMailingJob.updatePreviousRunStatus(reportMailingJobPreviousRunStatus.getValue());
         reportMailingJob.updatePreviousRunDateTime(reportMailingJob.getNextRunDateTime());
+        reportMailingJob.updatePreviousRunErrorLog(null);
         
         // check if the job has a recurrence pattern, if not deactivate the job. The job will only run once
         if (StringUtils.isEmpty(recurrence)) {
@@ -365,5 +338,71 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
         
         throw new PlatformDataIntegrityException("error.msg.charge.unknown.data.integrity.issue",
                 "Unknown data integrity issue with resource: " + realCause.getMessage());
+    }
+    
+    /** 
+     * generate the Pentaho report output stream
+     * 
+     * @return StringBuilder object -- the error log StringBuilder object
+     **/
+    private StringBuilder generatePentahoReportOutputStream(final ReportMailingJob reportMailingJob, final ReportMailingJobEmailAttachmentFileFormat emailAttachmentFileFormat, 
+            final Map<String, String> reportParams, final String reportName, final StringBuilder errorLog) {
+        
+        try {
+            final ByteArrayOutputStream byteArrayOutputStream = this.readReportingService.generatePentahoReportAsOutputStream(reportName, 
+                    emailAttachmentFileFormat.getValue(), reportParams, null, reportMailingJob.getRunAsUser(), errorLog);
+            final String fileLocation = FileSystemContentRepository.MIFOSX_BASE_DIR + File.separator + "";
+            final String fileNameWithoutExtension = fileLocation + File.separator + reportName;
+            
+            // check if file directory exists, if not create directory
+            if (!new File(fileLocation).isDirectory()) {
+                new File(fileLocation).mkdirs();
+            }
+            
+            if (byteArrayOutputStream.size() == 0) {
+                errorLog.append("Pentaho report processing failed, empty output stream created");
+            }
+            
+            else if (errorLog.length() == 0 && (byteArrayOutputStream.size() > 0)) {
+                final String fileName = fileNameWithoutExtension + "." + emailAttachmentFileFormat.getValue();
+                
+                // send the file to email recipients
+                this.sendPentahoReportFileToEmailRecipients(reportMailingJob, fileName, byteArrayOutputStream, errorLog);
+            }
+        }
+        
+        catch (Exception e) {
+            // do nothing for now
+            errorLog.append(e);
+        }
+        
+        return errorLog;
+    }
+    
+    /** 
+     * send Pentaho report file to email recipients
+     * 
+     * @return None
+     **/
+    private void sendPentahoReportFileToEmailRecipients(final ReportMailingJob reportMailingJob, final String fileName, 
+            final ByteArrayOutputStream byteArrayOutputStream, final StringBuilder errorLog) {
+        final Set<String> emailRecipients = this.reportMailingJobValidator.validateEmailRecipients(reportMailingJob.getEmailRecipients());
+        
+        try {
+            final File file = new File(fileName);
+            final FileOutputStream outputStream = new FileOutputStream(file);
+            byteArrayOutputStream.writeTo(outputStream);
+            
+            for (String emailRecipient : emailRecipients) {
+                final ReportMailingJobEmailData reportMailingJobEmailData = new ReportMailingJobEmailData(emailRecipient, 
+                        reportMailingJob.getEmailMessage(), reportMailingJob.getEmailSubject(), file);
+                
+                this.reportMailingJobEmailService.sendEmailWithAttachment(reportMailingJobEmailData);
+            }
+            
+        } catch (IOException e) {
+            errorLog.append("The ReportMailingJobWritePlatformServiceImpl.executeReportMailingJobs threw an IOException "
+                    + "exception: " + e.getMessage() + " ---------- ");
+        }
     }
 }
