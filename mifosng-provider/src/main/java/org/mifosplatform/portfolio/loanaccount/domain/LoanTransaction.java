@@ -717,5 +717,8 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
     public Boolean isAllowTypeTransactionAtTheTimeOfLastUndo(){
     	return isDisbursement() || isAccrual() || isRepaymentAtDisbursement();
     }
-
+    
+    public PaymentDetail getPaymentDetail() {
+        return this.paymentDetail;
+    }
 }

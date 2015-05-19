@@ -623,5 +623,8 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
     public BigDecimal getAmount() {
         return this.amount;
     }
-
+    
+    public PaymentDetail getPaymentDetail() {
+        return this.paymentDetail;
+    }
 }
