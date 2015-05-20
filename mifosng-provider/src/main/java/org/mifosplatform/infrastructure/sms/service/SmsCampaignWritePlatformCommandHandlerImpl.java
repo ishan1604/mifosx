@@ -8,8 +8,10 @@ package org.mifosplatform.infrastructure.sms.service;
 import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
+
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
+import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalDateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -18,9 +20,11 @@ import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.api.JsonQuery;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
+import org.mifosplatform.infrastructure.core.domain.MifosPlatformTenant;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.mifosplatform.infrastructure.core.service.DateUtils;
+import org.mifosplatform.infrastructure.core.service.ThreadLocalContextUtil;
 import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
 import org.mifosplatform.infrastructure.dataqueries.domain.Report;
 import org.mifosplatform.infrastructure.dataqueries.domain.ReportRepository;
@@ -58,7 +62,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWritePlatformService {
@@ -223,9 +232,9 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
         final Collection<SmsCampaignData>  smsCampaignDataCollection = this.smsCampaignReadPlatformService.retrieveAllScheduleActiveCampaign();
         if(smsCampaignDataCollection != null){
             for(SmsCampaignData  smsCampaignData : smsCampaignDataCollection){
-                //tenant dateTime with regards to tenant timezone
-                org.joda.time.DateTime tenantDateNow = DateUtils.getLocalDateTimeOfTenant().toDateTime();
-                org.joda.time.DateTime nextTriggerDate = smsCampaignData.getNextTriggerDate();
+                LocalDateTime tenantDateNow = tenantDateTime();
+                LocalDateTime nextTriggerDate = smsCampaignData.getNextTriggerDate().toLocalDateTime();
+
                 logger.info("tenant time " + tenantDateNow.toString() + " trigger time "+nextTriggerDate.toString());
                 if(nextTriggerDate.isBefore(tenantDateNow)){
                     insertDirectCampaignIntoSmsOutboundTable(smsCampaignData.getParamValue(),smsCampaignData.getMessage(),smsCampaignData.getCampaignName());
@@ -243,8 +252,9 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
         LocalDateTime nextTriggerDate = smsCampaign.getNextTriggerDate();
         smsCampaign.setLastTriggerDate(nextTriggerDate.toDate());
         //calculate new trigger date and insert into next trigger date
-        final LocalDate nextDay = nextTriggerDate.plusDays(1).toLocalDate();
-        final LocalDate nextRuntime = CalendarUtils.getNextRecurringDate(smsCampaign.getRecurrence(), smsCampaign.getNextTriggerDate().toLocalDate(), nextDay) ;
+       // final LocalDate nextDay = nextTriggerDate.plusDays(1).toLocalDate();
+
+        final LocalDate nextRuntime = CalendarUtils.getNextRecurringDate(smsCampaign.getRecurrence(), smsCampaign.getNextTriggerDate().toLocalDate(),nextTriggerDate.toLocalDate()) ;
         final LocalDateTime getTime = smsCampaign.getRecurrenceStartDateTime();
         final String dateString = nextRuntime.toString() + " " + getTime.getHourOfDay()+":"+getTime.getMinuteOfHour()+":"+getTime.getSecondOfMinute();
         final DateTimeFormatter simpleDateFormat = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
@@ -280,14 +290,26 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
             insertDirectCampaignIntoSmsOutboundTable(smsCampaign.getParamValue(),smsCampaign.getMessage(),smsCampaign.getCampaignName());
         }else {
             if (smsCampaign.isSchedule()) {
-                final LocalDate nextTriggerDate = CalendarUtils.getNextRecurringDate(smsCampaign.getRecurrence(), smsCampaign.getRecurrenceStartDate(), new LocalDate());
+
+                /**
+                 * if recurrence start date is in the future calculate
+                 * next trigger date if not use recurrence start date us next trigger
+                 * date when activating
+                 */
+                LocalDate nextTriggerDate = null;
+                if(smsCampaign.getRecurrenceStartDateTime().isBefore(tenantDateTime())){
+                    nextTriggerDate = CalendarUtils.getNextRecurringDate(smsCampaign.getRecurrence(), smsCampaign.getRecurrenceStartDate(), DateUtils.getLocalDateOfTenant());
+                }else{
+                    nextTriggerDate = smsCampaign.getRecurrenceStartDate();
+                }
+                // to get time of tenant
                 final LocalDateTime getTime = smsCampaign.getRecurrenceStartDateTime();
-                /*
+
                 final String dateString = nextTriggerDate.toString() + " " + getTime.getHourOfDay()+":"+getTime.getMinuteOfHour()+":"+getTime.getSecondOfMinute();
                 final DateTimeFormatter simpleDateFormat = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
                 final LocalDateTime nextTriggerDateWithTime = LocalDateTime.parse(dateString,simpleDateFormat);
-                */
-                smsCampaign.setNextTriggerDate(getTime.toDate());
+
+                smsCampaign.setNextTriggerDate(nextTriggerDateWithTime.toDate());
                 this.smsCampaignRepository.saveAndFlush(smsCampaign);
             }
         }
@@ -436,5 +458,18 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
 
         throw new PlatformDataIntegrityException("error.msg.sms.campaign.unknown.data.integrity.issue",
                 "Unknown data integrity issue with resource: " + realCause.getMessage());
+    }
+
+    private LocalDateTime tenantDateTime(){
+        LocalDateTime today = new LocalDateTime();
+        final MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
+
+        if (tenant != null) {
+            final DateTimeZone zone = DateTimeZone.forID(tenant.getTimezoneId());
+            if (zone != null) {
+                today = new LocalDateTime(zone);
+            }
+        }
+        return  today;
     }
 }
