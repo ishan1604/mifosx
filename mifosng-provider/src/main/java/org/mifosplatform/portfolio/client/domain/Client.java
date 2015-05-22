@@ -39,7 +39,6 @@ import org.mifosplatform.infrastructure.core.data.ApiParameterError;
 import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.service.DateUtils;
-import org.mifosplatform.infrastructure.dataqueries.domain.EntityDatatableChecks;
 import org.mifosplatform.infrastructure.documentmanagement.domain.Image;
 import org.mifosplatform.infrastructure.security.service.RandomPasswordGenerator;
 import org.mifosplatform.organisation.office.domain.Office;
@@ -136,7 +135,7 @@ public final class Client extends AbstractPersistable<Long> {
 
     @ManyToOne(optional = true)
     @JoinColumn(name = "closedon_userid", nullable = true)
-    private AppUser closeddBy;
+    private AppUser closedBy;
 
     @Column(name = "submittedon_date", nullable = true)
     @Temporal(TemporalType.DATE)
@@ -702,7 +701,7 @@ public final class Client extends AbstractPersistable<Long> {
     public void close(final AppUser currentUser, final CodeValue closureReason, final Date closureDate) {
         this.closureReason = closureReason;
         this.closureDate = closureDate;
-        this.closeddBy = currentUser;
+        this.closedBy = currentUser;
         this.status = ClientStatus.CLOSED.getValue();
     }
 
