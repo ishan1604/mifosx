@@ -6,6 +6,7 @@
 package org.mifosplatform.commands.domain;
 
 import org.mifosplatform.infrastructure.accountnumberformat.service.AccountNumberFormatConstants;
+import org.mifosplatform.infrastructure.reportmailingjob.ReportMailingJobConstants;
 import org.mifosplatform.portfolio.creditcheck.CreditCheckConstants;
 import org.mifosplatform.portfolio.loanaccount.api.LoanApiConstants;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.RescheduleLoansApiConstants;
@@ -1037,4 +1038,7 @@ public class CommandWrapper {
 
     public boolean isWorkingDaysResource() {return this.entityName.equalsIgnoreCase("WORKINGDAYS");}
 
+    public boolean isReportMailingJobResource() {
+        return this.entityName.equalsIgnoreCase(ReportMailingJobConstants.REPORT_MAILING_JOB_ENTITY_NAME);
+    }
 }

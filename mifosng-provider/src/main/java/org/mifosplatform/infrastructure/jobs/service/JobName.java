@@ -26,7 +26,8 @@ public enum JobName {
     RECALCULATE_INTEREST_FOR_LOAN("Recalculate Interest For Loans"),
     SEND_MESSAGES_TO_SMS_GATEWAY("Send messages to SMS gateway"), 
     GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY("Get delivery reports from SMS gateway"),
-    UPDATE_SMS_OUTBOUND_WITH_CAMPAIGN_MESSAGE("Update Sms Outbound with campaign message");
+    UPDATE_SMS_OUTBOUND_WITH_CAMPAIGN_MESSAGE("Update Sms Outbound with campaign message"),
+    EXECUTE_REPORT_MAILING_JOBS("Execute Report Mailing Jobs");
 
     private final String name;
 

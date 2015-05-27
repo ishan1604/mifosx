@@ -486,6 +486,9 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                     if (staff != null) {
                         client.updateStaff(staff);
                     }
+                    /* for individual clients update clients table with staff id */
+                }else if(destinationGroup == null) {
+                    if(staff !=null){ client.updateStaff(staff);}
                 }
             break;
             case PROPOSAL:
