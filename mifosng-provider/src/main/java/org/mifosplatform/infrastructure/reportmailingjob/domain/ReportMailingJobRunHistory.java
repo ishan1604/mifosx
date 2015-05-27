@@ -52,7 +52,7 @@ public class ReportMailingJobRunHistory extends AbstractPersistable<Long> {
     /** 
      * ReportMailingJobRunHistory private constructor
      **/
-    private ReportMailingJobRunHistory(final ReportMailingJob reportMailingJob, final LocalDateTime startDateTime, final LocalDateTime endDateTime, final String status,
+    private ReportMailingJobRunHistory(final ReportMailingJob reportMailingJob, final DateTime startDateTime, final DateTime endDateTime, final String status,
             final String errorMessage, final String errorLog) {
         this.reportMailingJob = reportMailingJob;
         this.startDateTime = null;
@@ -77,7 +77,7 @@ public class ReportMailingJobRunHistory extends AbstractPersistable<Long> {
      * 
      * @return ReportMailingJobRunHistory object
      **/
-    public static ReportMailingJobRunHistory instance(final ReportMailingJob reportMailingJob, final LocalDateTime startDateTime, final LocalDateTime endDateTime, 
+    public static ReportMailingJobRunHistory instance(final ReportMailingJob reportMailingJob, final DateTime startDateTime, final DateTime endDateTime, 
             final String status, final String errorMessage, final String errorLog) {
         return new ReportMailingJobRunHistory(reportMailingJob, startDateTime, endDateTime, status, errorMessage, errorLog);
     }

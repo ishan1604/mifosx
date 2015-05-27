@@ -18,7 +18,6 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
-import org.joda.time.LocalDateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
@@ -215,7 +214,6 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
             // get the tenant's date as a DateTime object
             final DateTime localDateTimeOftenant = DateUtils.getLocalDateTimeOfTenant().toDateTime();
             final DateTime nextRunDateTime = reportMailingJob.getNextRunDateTime();
-            final LocalDateTime jobStartLocalDateTime = localDateTimeOftenant.toLocalDateTime();
             
             if (reportMailingJob.isActive() && reportMailingJob.isNotDeleted() && nextRunDateTime != null && nextRunDateTime.isBefore(localDateTimeOftenant)) {
                 // get the emailAttachmentFileFormat enum object
@@ -239,7 +237,7 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
                     this.generatePentahoReportOutputStream(reportMailingJob, emailAttachmentFileFormat, reportParams, reportName, errorLog);
                     
                     // TODO - write a helper method to handle the generation of the pentaho report file
-                    this.updateReportMailingJobAfterJobExecution(reportMailingJob, errorLog, jobStartLocalDateTime);
+                    this.updateReportMailingJobAfterJobExecution(reportMailingJob, errorLog, localDateTimeOftenant);
                 }
             }
         }
@@ -250,11 +248,11 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
      * 
      * @param reportMailingJob -- the report mailing job entity
      * @param errorLog -- StringBuilder object containing the error log if any
-     * @param jobStartLocalDateTime -- the start LocalDateTime of the job
+     * @param jobStartDateTime -- the start DateTime of the job
      * @return None
      **/
     private void updateReportMailingJobAfterJobExecution(final ReportMailingJob reportMailingJob, final StringBuilder errorLog, 
-            final LocalDateTime jobStartLocalDateTime) {
+            final DateTime jobStartDateTime) {
         final String recurrence = reportMailingJob.getRecurrence();
         final DateTime nextRunDateTime = reportMailingJob.getNextRunDateTime();
         ReportMailingJobPreviousRunStatus reportMailingJobPreviousRunStatus = ReportMailingJobPreviousRunStatus.SUCCESS;
@@ -296,7 +294,7 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
         this.reportMailingJobRepository.save(reportMailingJob);
         
         // create a new report mailing job run history entity
-        this.createReportMailingJobRunHistroryAfterJobExecution(reportMailingJob, errorLog, jobStartLocalDateTime, 
+        this.createReportMailingJobRunHistroryAfterJobExecution(reportMailingJob, errorLog, jobStartDateTime, 
                 reportMailingJobPreviousRunStatus.getValue());
     }
     
@@ -305,15 +303,15 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
      * 
      * @param reportMailingJob -- the report mailing job entity
      * @param errorLog -- StringBuilder object containing the error log if any
-     * @param jobStartLocalDateTime -- the start LocalDateTime of the job
+     * @param jobStartDateTime -- the start DateTime of the job
      * @param jobRunStatus -- the status of the job (success/error)
      * @return None
      **/
     private void createReportMailingJobRunHistroryAfterJobExecution(final ReportMailingJob reportMailingJob, final StringBuilder errorLog, 
-            final LocalDateTime jobStartLocalDateTime, final String jobRunStatus) {
-        final LocalDateTime jobEndLocalDateTime = DateUtils.getLocalDateTimeOfTenant();
-        final ReportMailingJobRunHistory reportMailingJobRunHistory = ReportMailingJobRunHistory.instance(reportMailingJob, jobStartLocalDateTime, 
-                jobEndLocalDateTime, jobRunStatus, null, errorLog.toString());
+            final DateTime jobStartDateTime, final String jobRunStatus) {
+        final DateTime jobEndDateTime = DateUtils.getLocalDateTimeOfTenant().toDateTime();
+        final ReportMailingJobRunHistory reportMailingJobRunHistory = ReportMailingJobRunHistory.instance(reportMailingJob, jobEndDateTime, 
+                jobStartDateTime, jobRunStatus, null, errorLog.toString());
         
         this.reportMailingJobRunHistoryRepository.save(reportMailingJobRunHistory);
     }
