@@ -5,6 +5,12 @@
  */
 package org.mifosplatform.portfolio.loanproduct.service;
 
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+
 import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.common.AccountingEnumerations;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
@@ -32,12 +38,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
 
 @Service
 public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatformService {
@@ -173,7 +173,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     + "lpr.id as lprId, lpr.product_id as productId, lpr.compound_type_enum as compoundType, lpr.reschedule_strategy_enum as rescheduleStrategy, "
                     + "lpr.rest_frequency_type_enum as restFrequencyEnum, lpr.rest_frequency_interval as restFrequencyInterval, "
                     + "lpr.rest_freqency_date as restFrequencyDate, "
-                    + "lp.hold_guarantee_funds as holdGuaranteeFunds,lp.reverse_overduedays_npa_interest as reverseOverdueDaysNpaInterest, "
+                    + "lp.hold_guarantee_funds as holdGuaranteeFunds, "
                     + "lpg.id as lpgId, lpg.mandatory_guarantee as mandatoryGuarantee, "
                     + "lpg.minimum_guarantee_from_own_funds as minimumGuaranteeFromOwnFunds, lpg.minimum_guarantee_from_guarantor_funds as minimumGuaranteeFromGuarantor, "
                     + "curr.name as currencyName, curr.internationalized_name_code as currencyNameCode, curr.display_symbol as currencyDisplaySymbol, lp.external_id as externalId, "
@@ -330,7 +330,6 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
             final boolean configureRepaymentFrequency = rs.getBoolean("configureRepaymentFrequency");
             final boolean configureMoratorium = rs.getBoolean("configureMoratorium");
             final boolean configureGraceOnArrearsAging = rs.getBoolean("configureGraceOnArrearsAging");
-            final boolean reverseOverdueDaysNPAInterest = rs.getBoolean("reverseOverdueDaysNpaInterest");
 
 
             LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
@@ -347,8 +346,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     closeDate, status, externalId, principalVariationsForBorrowerCycle, interestRateVariationsForBorrowerCycle,
                     numberOfRepaymentVariationsForBorrowerCycle, multiDisburseLoan, maxTrancheCount, outstandingLoanBalance,
                     graceOnArrearsAgeing, overdueDaysForNPA, daysInMonthType, daysInYearType, isInterestRecalculationEnabled, interestRecalculationData, 
-                    minimumDaysBetweenDisbursalAndFirstRepayment, holdGuaranteeFunds, loanProductGuaranteeData, this.creditChecks, loanProductConfigurableAttributes,
-                    reverseOverdueDaysNPAInterest);
+                    minimumDaysBetweenDisbursalAndFirstRepayment, holdGuaranteeFunds, loanProductGuaranteeData, this.creditChecks, loanProductConfigurableAttributes);
         }
 
     }

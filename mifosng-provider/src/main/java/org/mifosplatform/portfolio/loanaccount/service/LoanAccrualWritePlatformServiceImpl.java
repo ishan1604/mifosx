@@ -5,36 +5,6 @@
  */
 package org.mifosplatform.portfolio.loanaccount.service;
 
-import org.joda.time.Days;
-import org.joda.time.LocalDate;
-import org.mifosplatform.accounting.journalentry.service.JournalEntryWritePlatformService;
-import org.mifosplatform.infrastructure.core.service.DateUtils;
-import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
-import org.mifosplatform.infrastructure.jobs.annotation.CronTarget;
-import org.mifosplatform.infrastructure.jobs.exception.JobExecutionException;
-import org.mifosplatform.infrastructure.jobs.service.JobName;
-import org.mifosplatform.organisation.monetary.domain.ApplicationCurrency;
-import org.mifosplatform.organisation.monetary.domain.ApplicationCurrencyRepositoryWrapper;
-import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
-import org.mifosplatform.portfolio.loanaccount.data.LoanChargeData;
-import org.mifosplatform.portfolio.loanaccount.data.LoanInstallmentChargeData;
-import org.mifosplatform.portfolio.loanaccount.data.LoanScheduleAccrualData;
-import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionData;
-import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionEnumData;
-import org.mifosplatform.portfolio.loanaccount.domain.Loan;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionType;
-import org.mifosplatform.portfolio.loanaccount.loanschedule.data.LoanSchedulePeriodData;
-import org.mifosplatform.portfolio.loanproduct.service.LoanEnumerations;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.orm.jpa.JpaTransactionManager;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.DefaultTransactionDefinition;
-
-import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -47,6 +17,32 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.sql.DataSource;
+
+import org.joda.time.Days;
+import org.joda.time.LocalDate;
+import org.mifosplatform.accounting.journalentry.service.JournalEntryWritePlatformService;
+import org.mifosplatform.infrastructure.core.service.DateUtils;
+import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
+import org.mifosplatform.infrastructure.jobs.annotation.CronTarget;
+import org.mifosplatform.infrastructure.jobs.exception.JobExecutionException;
+import org.mifosplatform.infrastructure.jobs.service.JobName;
+import org.mifosplatform.portfolio.loanaccount.data.LoanChargeData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanInstallmentChargeData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanScheduleAccrualData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionEnumData;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionType;
+import org.mifosplatform.portfolio.loanaccount.loanschedule.data.LoanSchedulePeriodData;
+import org.mifosplatform.portfolio.loanproduct.service.LoanEnumerations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+
 @Service
 public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlatformService {
 
@@ -56,24 +52,17 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
     private final DataSource dataSource;
     private final JournalEntryWritePlatformService journalEntryWritePlatformService;
     private final JpaTransactionManager transactionManager;
-    private final LoanAssembler loanAssembler;
-    private final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository;
-
-
 
     @Autowired
     public LoanAccrualWritePlatformServiceImpl(final RoutingDataSource dataSource, final LoanReadPlatformService loanReadPlatformService,
             final JournalEntryWritePlatformService journalEntryWritePlatformService, final JpaTransactionManager transactionManager,
-            final LoanChargeReadPlatformService loanChargeReadPlatformService,final LoanAssembler loanAssembler,
-            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository) {
+            final LoanChargeReadPlatformService loanChargeReadPlatformService) {
         this.loanReadPlatformService = loanReadPlatformService;
         this.dataSource = dataSource;
         this.jdbcTemplate = new JdbcTemplate(this.dataSource);
         this.journalEntryWritePlatformService = journalEntryWritePlatformService;
         this.transactionManager = transactionManager;
         this.loanChargeReadPlatformService = loanChargeReadPlatformService;
-        this.loanAssembler = loanAssembler;
-        this.applicationCurrencyRepository = applicationCurrencyRepository;
     }
 
     @Override
@@ -542,39 +531,4 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
 
         accrualData.updateAccruableIncome(interestIncome);
     }
-
-    @Override
-    public void reverseInterestAccruedOnNPALoans() {
-        final Collection<Long> npaLoans = this.loanReadPlatformService.fetchNPALoans();
-        if(npaLoans !=null && !npaLoans.isEmpty()){
-            for(Long id: npaLoans){
-                final Loan loan  = this.loanAssembler.assembleFrom(id);
-                for(LoanTransaction transaction : loan.getLoanTransactions()){
-                    LocalDate today = DateUtils.getLocalDateOfTenant();
-                    //all loans id retrieved  of npa type meaning getOverdueDaysForNpa is not null
-                    LocalDate interestTransactionBeforeNPA= today.minusDays(loan.getLoanProduct().getOverdueDaysForNPA());
-                    if(transaction.isAccrual() && (transaction.getTransactionDate().isBefore(interestTransactionBeforeNPA))){
-                        //post journalEntries to reverse bookings
-                        final Collection<Long> existingTransactionsIds = loan.findExistingTransactionIds();
-                        final Collection<Long> existingReversedTransactionIds = loan.findExistingReversedTransactionIds();
-                        transaction.reverse();
-                        this.postJournalEntries(loan,(List)existingTransactionsIds,(List)existingReversedTransactionIds);
-                    }
-                }
-
-            }
-        }
-    }
-
-    private void postJournalEntries(final Loan loan, final List<Long> existingTransactionIds,
-                                    final List<Long> existingReversedTransactionIds) {
-
-        final MonetaryCurrency currency = loan.getCurrency();
-        final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepository.findOneWithNotFoundDetection(currency);
-        boolean isAccountTransfer = false;
-        final Map<String, Object> accountingBridgeData = loan.deriveAccountingBridgeData(applicationCurrency.toData(),
-                existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
-        this.journalEntryWritePlatformService.createJournalEntriesForLoan(accountingBridgeData);
-    }
-
 }

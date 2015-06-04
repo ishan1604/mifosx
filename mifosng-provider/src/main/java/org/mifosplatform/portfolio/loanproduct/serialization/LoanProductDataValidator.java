@@ -5,10 +5,16 @@
  */
 package org.mifosplatform.portfolio.loanproduct.serialization;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.common.AccountingConstants.LOAN_PRODUCT_ACCOUNTING_PARAMS;
@@ -22,21 +28,16 @@ import org.mifosplatform.portfolio.creditcheck.CreditCheckConstants;
 import org.mifosplatform.portfolio.loanproduct.LoanProductConstants;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
-import org.mifosplatform.portfolio.loanproduct.domain.LoanProductConfigurableAttributes;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductValueConditionType;
 import org.mifosplatform.portfolio.loanproduct.domain.RecalculationFrequencyType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProductConfigurableAttributes;
 
-import java.lang.reflect.Type;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 
 @Component
 public final class LoanProductDataValidator {
@@ -74,7 +75,7 @@ public final class LoanProductDataValidator {
             LoanProductConstants.recalculationRestFrequencyTypeParameterName, LoanProductConstants.minimumDaysBetweenDisbursalAndFirstRepayment, LoanProductConstants.mandatoryGuaranteeParamName,
             LoanProductConstants.holdGuaranteeFundsParamName, LoanProductConstants.minimumGuaranteeFromGuarantorParamName,
             LoanProductConstants.minimumGuaranteeFromOwnFundsParamName, CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME, 
-            LoanProductConstants.configurableAttributesParameterName,LoanProductConstants.reverseOverdueDaysNPAInterestParameterName));
+            LoanProductConstants.configurableAttributesParameterName));
 
     private final FromJsonHelper fromApiJsonHelper;
 
@@ -409,11 +410,6 @@ public final class LoanProductDataValidator {
                 validateBorrowerCycleVariations(element, baseDataValidator);
             }
         }
-        //is reverseOverdueDaysNPAInterest
-        final Boolean isReverseOverdueDaysNPAInterestEnabled= this.fromApiJsonHelper.extractBooleanNamed(
-                LoanProductConstants.reverseOverdueDaysNPAInterestParameterName,element);
-        baseDataValidator.reset().parameter(LoanProductConstants.reverseOverdueDaysNPAInterestParameterName).value(
-                isReverseOverdueDaysNPAInterestEnabled).notNull().isOneOfTheseValues(true,false);
 
         validateMultiDisburseLoanData(baseDataValidator, element);
         
@@ -872,11 +868,6 @@ public final class LoanProductDataValidator {
                 validateBorrowerCycleVariations(element, baseDataValidator);
             }
         }
-        //is reverseOverdueDaysNPAInterest
-        final Boolean isReverseOverdueDaysNPAInterestEnabled= this.fromApiJsonHelper.extractBooleanNamed(
-                LoanProductConstants.reverseOverdueDaysNPAInterestParameterName,element);
-        baseDataValidator.reset().parameter(LoanProductConstants.reverseOverdueDaysNPAInterestParameterName).value(
-                isReverseOverdueDaysNPAInterestEnabled).notNull().isOneOfTheseValues(true,false);
 
         validateMultiDisburseLoanData(baseDataValidator, element);
         
