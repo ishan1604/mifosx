@@ -93,6 +93,13 @@ public class DefaultLoanLifecycleStateMachine implements LoanLifecycleStateMachi
             break;
             case WRITE_OFF_OUTSTANDING_UNDO:
             break;
+            case LOAN_REFUND:
+                if (anyOfAllowedWhenComingFrom(from, LoanStatus.CLOSED_OBLIGATIONS_MET)) {
+                    newState = stateOf(LoanStatus.ACTIVE, this.allowedLoanStatuses);
+                } else {
+                    newState = from;
+                }
+            break;
             default:
             break;
         }

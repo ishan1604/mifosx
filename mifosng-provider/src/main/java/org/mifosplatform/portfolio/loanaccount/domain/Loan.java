@@ -3453,6 +3453,10 @@ public class Loan extends AbstractPersistable<Long> {
         return status().isActive();
     }
 
+    private boolean isOverpaid() {
+        return status().isOverpaid();
+    }
+    
     private boolean isAllTranchesNotDisbursed() {
         return this.loanProduct.isMultiDisburseLoan()
                 && (LoanStatus.fromInt(this.loanStatus).isActive() || LoanStatus.fromInt(this.loanStatus).isApproved())
@@ -4373,12 +4377,12 @@ public class Loan extends AbstractPersistable<Long> {
                 }
             break;
             case LOAN_REPAYMENT_OR_WAIVER:
-                if (!isOpen()) {
-                    final String defaultUserMessage = "Loan Repayment or Waiver is not allowed. Loan Account is not active.";
-                    final ApiParameterError error = ApiParameterError.generalError(
-                            "error.msg.loan.repayment.or.waiver.account.is.not.active", defaultUserMessage);
-                    dataValidationErrors.add(error);
-                }
+               // if (!isOpen() || isOverpaid() ) {
+               //     final String defaultUserMessage = "Loan Repayment or Waiver is not allowed. Loan Account is not active.";
+               //     final ApiParameterError error = ApiParameterError.generalError(
+               //             "error.msg.loan.repayment.or.waiver.account.is.not.active", defaultUserMessage);
+                //    dataValidationErrors.add(error);
+                //}
             break;
             case LOAN_REJECTED:
                 if (!isSubmittedAndPendingApproval()) {
@@ -4447,12 +4451,12 @@ public class Loan extends AbstractPersistable<Long> {
                 }
             break;
             case LOAN_REFUND:
-                if (!isOpen()) {
-                    final String defaultUserMessage = "Loan Refund is not allowed. Loan Account is not active.";
-                    final ApiParameterError error = ApiParameterError.generalError("error.msg.loan.refund.account.is.not.active",
-                            defaultUserMessage);
-                    dataValidationErrors.add(error);
-                }
+               // if (!isOpen()) {
+               //     final String defaultUserMessage = "Loan Refund is not allowed. Loan Account is not active.";
+               //     final ApiParameterError error = ApiParameterError.generalError("error.msg.loan.refund.account.is.not.active",
+               //             defaultUserMessage);
+               //     dataValidationErrors.add(error);
+               // }
             break;
             default:
             break;
@@ -5106,16 +5110,18 @@ public class Loan extends AbstractPersistable<Long> {
         // isChronologicallyLatestRefund(loanTransaction,
         // this.loanTransactions);
 
-        if (status().isOverpaid() || status().isClosed()) {
-
-            final String errorMessage = "This refund option is only for active loans ";
-            throw new InvalidLoanStateTransitionException("transaction", "is.exceeding.overpaid.amount", errorMessage, this.totalOverpaid,
-                    loanTransaction.getAmount(getCurrency()).getAmount());
-
-        } else if (this.getTotalPaidInRepayments().isZero()) {
-            final String errorMessage = "Cannot refund when no payment has been made";
-            throw new InvalidLoanStateTransitionException("transaction", "no.payment.yet.made.for.loan", errorMessage);
-        }
+        
+        
+//        if (status().isOverpaid() || status().isClosed()) {
+//
+//            final String errorMessage = "This refund option is only for active loans ";
+//            throw new InvalidLoanStateTransitionException("transaction", "is.exceeding.overpaid.amount", errorMessage, this.totalOverpaid,
+//                    loanTransaction.getAmount(getCurrency()).getAmount());
+//
+//        } else if (this.getTotalPaidInRepayments().isZero()) {
+//            final String errorMessage = "Cannot refund when no payment has been made";
+//            throw new InvalidLoanStateTransitionException("transaction", "no.payment.yet.made.for.loan", errorMessage);
+//        }
 
         if (loanTransaction.isNotZero(loanCurrency())) {
             this.loanTransactions.add(loanTransaction);
@@ -5151,6 +5157,23 @@ public class Loan extends AbstractPersistable<Long> {
         final LoanRepaymentScheduleTransactionProcessor loanRepaymentScheduleTransactionProcessor = this.transactionProcessorFactory
                 .determineProcessor(this.transactionProcessingStrategy);
 
+ 
+        if (status().isOverpaid()) {
+        
+            loanTransaction.updateLoan(this);
+
+            if (loanTransaction.isNotZero(loanCurrency())) {
+                this.loanTransactions.add(loanTransaction);
+            }
+            
+            updateLoanSummaryDerivedFields();
+
+            doPostLoanTransactionChecks(loanTransaction.getTransactionDate(), loanLifecycleStateMachine);
+
+            return changedTransactionDetail;
+        }
+
+        
         // If is a refund
         if (adjustedTransaction == null) {
             loanRepaymentScheduleTransactionProcessor.handleRefund(loanTransaction, getCurrency(), this.repaymentScheduleInstallments,

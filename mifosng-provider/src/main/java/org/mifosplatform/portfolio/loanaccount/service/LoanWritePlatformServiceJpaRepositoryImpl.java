@@ -2764,7 +2764,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         //checkRefundDateIsAfterAtLeastOneRepayment(loanId, transactionDate);
 
         final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
-        checkIfLoanIsPaidInAdvance(loanId, transactionAmount);
+        //  checkIfLoanIsPaidInAdvance(loanId, transactionAmount);
         
         final Map<String, Object> changes = new LinkedHashMap<String, Object>();
         changes.put("transactionDate", command.stringValueOfParameterNamed("transactionDate"));
