@@ -276,6 +276,9 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 							// update the status Type enum
 							smsMessage.setStatusType(statusType);
 							
+							// save the SmsMessage entity
+							this.smsMessageRepository.save(smsMessage);
+							
 							// deduct one credit from the tenant's SMS credits
 							smsCredits--;
 						}
@@ -285,6 +288,9 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 					
 					SmsConfiguration smsConfiguration = this.smsConfigurationRepository.findByName("SMS_CREDITS");
 					smsConfiguration.setValue(smsCredits.toString());
+					
+					// save the SmsConfiguration entity
+					this.smsConfigurationRepository.save(smsConfiguration);
 				}
 			}
 			
@@ -354,6 +360,9 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 						
 						// update the status Type enum
 						smsMessage.setStatusType(statusType);
+						
+						// save the SmsMessage entity
+                        this.smsMessageRepository.save(smsMessage);
 					}
 				}
 				
