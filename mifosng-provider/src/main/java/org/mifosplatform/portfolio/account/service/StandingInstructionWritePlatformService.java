@@ -5,6 +5,7 @@
  */
 package org.mifosplatform.portfolio.account.service;
 
+import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.jobs.exception.JobExecutionException;
@@ -19,4 +20,7 @@ public interface StandingInstructionWritePlatformService {
 
     CommandProcessingResult delete(Long id);
 
+    String executeStandingInstructions(LocalDate transactionDate);
+
+    CommandProcessingResult executeStandingInstructions(JsonCommand jsonCommand);
 }

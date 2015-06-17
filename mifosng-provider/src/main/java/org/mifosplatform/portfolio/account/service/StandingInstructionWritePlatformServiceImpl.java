@@ -11,17 +11,22 @@ import static org.mifosplatform.portfolio.account.AccountDetailConstants.toAccou
 import static org.mifosplatform.portfolio.account.api.StandingInstructionApiConstants.statusParamName;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
+import org.mifosplatform.infrastructure.core.data.ApiParameterError;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
+import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.AbstractPlatformServiceUnavailableException;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.infrastructure.jobs.annotation.CronTarget;
 import org.mifosplatform.infrastructure.jobs.exception.JobExecutionException;
@@ -177,10 +182,38 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
                 .with(actualChanges) //
                 .build();
     }
+    
+    @Override
+    public CommandProcessingResult executeStandingInstructions(JsonCommand jsonCommand) {
+        this.standingInstructionDataValidator.validateForExecute(jsonCommand);
+        
+        final LocalDate transactionDate = jsonCommand.localDateValueOfParameterNamed(StandingInstructionApiConstants.repaymentScheduleDueDateParamName);
+        final String errors = this.executeStandingInstructions(transactionDate);
+        
+        if(errors.length() > 0) {
+            final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+            final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).
+                    resource(StandingInstructionApiConstants.STANDING_INSTRUCTION_RESOURCE_NAME);
+            baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("execution.failed", errors);
+            
+            throw new PlatformApiDataValidationException(dataValidationErrors);
+        }
+        
+        return CommandProcessingResult.empty();
+    }
 
     @Override
     @CronTarget(jobName = JobName.EXECUTE_STANDING_INSTRUCTIONS)
     public void executeStandingInstructions() throws JobExecutionException {
+        LocalDate transactionDate = DateUtils.getLocalDateOfTenant();
+        
+        final String errors = this.executeStandingInstructions(transactionDate);
+        
+        if (errors.length() > 0) { throw new JobExecutionException(errors); }
+    }
+    
+    @Override
+    public String executeStandingInstructions(LocalDate transactionDate) {
         Collection<StandingInstructionData> instructionDatas = this.standingInstructionReadPlatformService
                 .retrieveAll(StandingInstructionStatus.ACTIVE.getValue());
         final StringBuilder sb = new StringBuilder();
@@ -188,7 +221,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
             boolean isDueForTransfer = false;
             AccountTransferRecurrenceType recurrenceType = data.recurrenceType();
             StandingInstructionType instructionType = data.instructionType();
-            LocalDate transactionDate = new LocalDate();
+            
             if (recurrenceType.isPeriodicRecurrence()) {
                 final ScheduledDateGenerator scheduledDateGenerator = new DefaultScheduledDateGenerator();
                 PeriodFrequencyType frequencyType = data.recurrenceFrequency();
@@ -217,7 +250,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
                     transactionAmount = standingInstructionDuesData.totalDueAmount();
                 }
                 if (recurrenceType.isDuesRecurrence()) {
-                    isDueForTransfer = new LocalDate().equals(standingInstructionDuesData.dueDate());
+                    isDueForTransfer = transactionDate.equals(standingInstructionDuesData.dueDate());
                 }
                 
                 if (isSavingsToLoanAccountTransfer(data.fromAccountType(), data.toAccountType())) {
@@ -263,8 +296,8 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
                 transferAmount(sb, accountTransferDTO, data.getId());
             }
         }
-        if (sb.length() > 0) { throw new JobExecutionException(sb.toString()); }
-
+        
+        return sb.toString();
     }
 
     /**
