@@ -116,7 +116,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
     
     @Override
 	public Collection<SmsData> retrieveAllPending(final Integer limit) {
-    	final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
+    	final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : "";
     	final String sql = "select " + this.smsRowMapper.schema() + " where smo.status_enum = " 
     			+ SmsMessageStatusType.PENDING.getValue() + sqlPlusLimit;
 
@@ -125,7 +125,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
 
 	@Override
 	public Collection<SmsData> retrieveAllSent(final Integer limit) {
-		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
+		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : "";
     	final String sql = "select " + this.smsRowMapper.schema() + " where smo.status_enum = " 
     			+ SmsMessageStatusType.SENT.getValue() + sqlPlusLimit;
 
@@ -134,7 +134,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
 
 	@Override
 	public List<Long> retrieveExternalIdsOfAllSent(final Integer limit) {
-		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
+		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : "";
 		final String sql = "select external_id from " + this.smsRowMapper.tableName() + " where status_enum = " 
     			+ SmsMessageStatusType.SENT.getValue() + sqlPlusLimit;
 		
@@ -143,7 +143,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
 
     @Override
     public Collection<SmsData> retrieveAllDelivered(final Integer limit) {
-        final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
+        final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : "";
         final String sql = "select " + this.smsRowMapper.schema() + " where smo.status_enum = "
                 + SmsMessageStatusType.DELIVERED.getValue() + sqlPlusLimit;
 
@@ -152,7 +152,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
 
 	@Override
 	public Collection<SmsData> retrieveAllFailed(final Integer limit) {
-		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
+		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : "";
         final String sql = "select " + this.smsRowMapper.schema() + " where smo.status_enum = "
                 + SmsMessageStatusType.FAILED.getValue() + sqlPlusLimit;
 
@@ -175,7 +175,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
             toDateString  = df.format(dateTo);
             sqlBuilder.append(" and smo.submittedon_date >= ? and smo.submittedon_date <= ? ");
         }
-        final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : null;
+        final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : "";
         if(!sqlPlusLimit.isEmpty()){
             sqlBuilder.append(sqlPlusLimit);
         }
