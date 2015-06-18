@@ -191,12 +191,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
         final String errors = this.executeStandingInstructions(transactionDate);
         
         if(errors.length() > 0) {
-            final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-            final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).
-                    resource(StandingInstructionApiConstants.STANDING_INSTRUCTION_RESOURCE_NAME);
-            baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("execution.failed", errors);
-            
-            throw new PlatformApiDataValidationException(dataValidationErrors);
+            logger.error(errors);
         }
         
         return CommandProcessingResult.empty();
