@@ -5,28 +5,6 @@
  */
 package org.mifosplatform.portfolio.savings.domain;
 
-import static org.mifosplatform.portfolio.savings.SavingsApiConstants.amountParamName;
-import static org.mifosplatform.portfolio.savings.SavingsApiConstants.dateFormatParamName;
-import static org.mifosplatform.portfolio.savings.SavingsApiConstants.dueAsOfDateParamName;
-import static org.mifosplatform.portfolio.savings.SavingsApiConstants.feeIntervalParamName;
-import static org.mifosplatform.portfolio.savings.SavingsApiConstants.feeOnMonthDayParamName;
-import static org.mifosplatform.portfolio.savings.SavingsApiConstants.localeParamName;
-
-import java.math.BigDecimal;
-import java.math.MathContext;
-import java.math.RoundingMode;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.joda.time.LocalDate;
@@ -40,6 +18,27 @@ import org.mifosplatform.portfolio.charge.domain.ChargeCalculationType;
 import org.mifosplatform.portfolio.charge.domain.ChargeTimeType;
 import org.mifosplatform.portfolio.charge.exception.SavingsAccountChargeWithoutMandatoryFieldException;
 import org.springframework.data.jpa.domain.AbstractPersistable;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.amountParamName;
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.dateFormatParamName;
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.dueAsOfDateParamName;
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.feeIntervalParamName;
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.feeOnMonthDayParamName;
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.localeParamName;
 
 /**
  * @author dv6
@@ -836,6 +835,6 @@ public class SavingsAccountCharge extends AbstractPersistable<Long> {
      * 
      */
     public boolean canOverriteSavingAccountRules() {
-        return !(this.isSavingsActivation() || this.isWithdrawalFee());
+        return !(this.isSavingsActivation() || this.isWithdrawalFee() || this.isOnSpecifiedDueDate());
     }
 }
