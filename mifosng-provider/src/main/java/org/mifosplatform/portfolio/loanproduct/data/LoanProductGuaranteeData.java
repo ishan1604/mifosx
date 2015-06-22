@@ -19,23 +19,29 @@ public class LoanProductGuaranteeData {
     private final BigDecimal minimumGuaranteeFromOwnFunds;
     @SuppressWarnings("unused")
     private final BigDecimal minimumGuaranteeFromGuarantor;
+    @SuppressWarnings("unused")
+    private final Boolean splitInterestAmongGuarantors;
 
     public static LoanProductGuaranteeData instance(final Long id, final Long productId, final BigDecimal mandatoryGuarantee,
-            final BigDecimal minimumGuaranteeFromOwnFunds, final BigDecimal minimumGuaranteeFromGuarantor) {
-        return new LoanProductGuaranteeData(id, productId, mandatoryGuarantee, minimumGuaranteeFromOwnFunds, minimumGuaranteeFromGuarantor);
+            final BigDecimal minimumGuaranteeFromOwnFunds, final BigDecimal minimumGuaranteeFromGuarantor, 
+            final Boolean splitInterestAmongGuarantors) {
+        return new LoanProductGuaranteeData(id, productId, mandatoryGuarantee, 
+                minimumGuaranteeFromOwnFunds, minimumGuaranteeFromGuarantor, 
+                splitInterestAmongGuarantors);
     }
 
     public static LoanProductGuaranteeData sensibleDefaultsForNewLoanProductCreation() {
-        return new LoanProductGuaranteeData(null, null, null, null, null);
+        return new LoanProductGuaranteeData(null, null, null, null, null, null);
     }
 
     private LoanProductGuaranteeData(final Long id, final Long productId, final BigDecimal mandatoryGuarantee,
-            final BigDecimal minimumGuaranteeFromOwnFunds, final BigDecimal minimumGuaranteeFromGuarantor) {
+            final BigDecimal minimumGuaranteeFromOwnFunds, final BigDecimal minimumGuaranteeFromGuarantor, 
+            final Boolean splitInterestAmongGuarantors) {
         this.id = id;
         this.productId = productId;
         this.mandatoryGuarantee = mandatoryGuarantee;
         this.minimumGuaranteeFromGuarantor = minimumGuaranteeFromGuarantor;
         this.minimumGuaranteeFromOwnFunds = minimumGuaranteeFromOwnFunds;
+        this.splitInterestAmongGuarantors = splitInterestAmongGuarantors;
     }
-
 }

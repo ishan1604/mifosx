@@ -6,7 +6,6 @@
 package org.mifosplatform.portfolio.loanaccount.guarantor.service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,12 +25,14 @@ import org.mifosplatform.portfolio.account.PortfolioAccountType;
 import org.mifosplatform.portfolio.account.data.AccountTransferDTO;
 import org.mifosplatform.portfolio.account.domain.AccountTransferDetails;
 import org.mifosplatform.portfolio.account.domain.AccountTransferType;
+import org.mifosplatform.portfolio.account.service.AccountTransfersReadPlatformService;
 import org.mifosplatform.portfolio.account.service.AccountTransfersWritePlatformService;
 import org.mifosplatform.portfolio.common.BusinessEventNotificationConstants.BUSINESS_ENTITY;
 import org.mifosplatform.portfolio.common.BusinessEventNotificationConstants.BUSINESS_EVENTS;
 import org.mifosplatform.portfolio.common.service.BusinessEventListner;
 import org.mifosplatform.portfolio.common.service.BusinessEventNotifierService;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanStatus;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
 import org.mifosplatform.portfolio.loanaccount.guarantor.GuarantorConstants;
 import org.mifosplatform.portfolio.loanaccount.guarantor.domain.Guarantor;
@@ -43,9 +44,15 @@ import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorReposit
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductGuaranteeDetails;
 import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
+import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetailRepository;
+import org.mifosplatform.portfolio.paymenttype.domain.PaymentType;
+import org.mifosplatform.portfolio.paymenttype.domain.PaymentTypeRepository;
 import org.mifosplatform.portfolio.savings.domain.DepositAccountOnHoldTransaction;
 import org.mifosplatform.portfolio.savings.domain.DepositAccountOnHoldTransactionRepository;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountDomainService;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransactionSummaryWrapper;
+import org.mifosplatform.portfolio.savings.domain.SavingsHelper;
 import org.mifosplatform.portfolio.savings.exception.InsufficientAccountBalanceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -60,7 +67,12 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
     private final BusinessEventNotifierService businessEventNotifierService;
     private final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository;
     private final Map<Long, Long> releaseLoanIds = new HashMap<>(2);
-    
+    private final SavingsAccountDomainService savingsAccountDomainService;
+    private final SavingsAccountTransactionSummaryWrapper savingsAccountTransactionSummaryWrapper;
+    private final SavingsHelper savingsHelper;
+    private final AccountTransfersReadPlatformService accountTransfersReadPlatformService;
+    private final PaymentDetailRepository paymentDetailRepository;
+    private final PaymentTypeRepository paymentTypeRepository;
 
     @Autowired
     public GuarantorDomainServiceImpl(final GuarantorRepository guarantorRepository,
@@ -68,13 +80,24 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
             final GuarantorFundingTransactionRepository guarantorFundingTransactionRepository,
             final AccountTransfersWritePlatformService accountTransfersWritePlatformService,
             final BusinessEventNotifierService businessEventNotifierService,
-            final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository) {
+            final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository, 
+            final SavingsAccountDomainService savingsAccountDomainService, 
+            final SavingsAccountTransactionSummaryWrapper savingsAccountTransactionSummaryWrapper, 
+            final AccountTransfersReadPlatformService accountTransfersReadPlatformService,
+            final PaymentDetailRepository paymentDetailRepository, 
+            final PaymentTypeRepository paymentTypeRepository) {
         this.guarantorRepository = guarantorRepository;
         this.guarantorFundingRepository = guarantorFundingRepository;
         this.guarantorFundingTransactionRepository = guarantorFundingTransactionRepository;
         this.accountTransfersWritePlatformService = accountTransfersWritePlatformService;
         this.businessEventNotifierService = businessEventNotifierService;
         this.depositAccountOnHoldTransactionRepository = depositAccountOnHoldTransactionRepository;
+        this.savingsAccountDomainService = savingsAccountDomainService;
+        this.savingsAccountTransactionSummaryWrapper = savingsAccountTransactionSummaryWrapper;
+        this.accountTransfersReadPlatformService = accountTransfersReadPlatformService;
+        this.savingsHelper = new SavingsHelper(this.accountTransfersReadPlatformService);
+        this.paymentDetailRepository = paymentDetailRepository;
+        this.paymentTypeRepository = paymentTypeRepository;
     }
 
     @PostConstruct
@@ -91,6 +114,8 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
         this.businessEventNotifierService.addBusinessEventPostListners(BUSINESS_EVENTS.LOAN_WRITTEN_OFF, new ReleaseAllFunds());
         this.businessEventNotifierService.addBusinessEventPostListners(BUSINESS_EVENTS.LOAN_UNDO_WRITTEN_OFF,
                 new ReverseFundsOnBusinessEvent());
+        this.businessEventNotifierService.addBusinessEventPostListners(BUSINESS_EVENTS.LOAN_MAKE_REPAYMENT,
+                new SplitInterestIncomeOnBusinessEvent());
     }
 
     @Override
@@ -500,6 +525,56 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
             this.guarantorFundingTransactionRepository.save(fundingTransactions);
         }
     }
+    
+    /** 
+     * Split fully paid loan interest among the guarantors of the loan
+     * 
+     * @param loanTransaction -- the make repayment loan transaction object
+     * @return None
+     **/
+    private void splitIncomeInterestAmongGuarantors(final LoanTransaction loanTransaction) {
+        final Loan loan = (loanTransaction != null) ? loanTransaction.getLoan() : null;
+        final LoanProduct loanProduct = (loan != null) ? loan.getLoanProduct() : null;
+        final LoanProductGuaranteeDetails loanProductGuaranteeDetails = (loanProduct != null) ? loanProduct.getLoanProductGuaranteeDetails() : null;
+        final LoanStatus loanStatus = (loan != null) ? LoanStatus.fromInt(loan.getStatus()) : null;
+        
+        // only proceed if the splitInterestAmongGuarantors property is set to 1 and the loan status is 600
+        if ((loanProductGuaranteeDetails != null) && (loanStatus != null) && loanProductGuaranteeDetails.splitInterestAmongGuarantors() && loanStatus.isClosedObligationsMet()) {
+            final List<Guarantor> guarantors = this.guarantorRepository.findByLoan(loan);
+            
+            for (Guarantor guarantor : guarantors) {
+                if (guarantor.isExistingCustomer()) {
+                    final List<GuarantorFundingDetails> guarantorFundingDetails = guarantor.getGuarantorFundDetails();
+                    
+                    for (GuarantorFundingDetails guarantorFundingDetail : guarantorFundingDetails) {
+                        final SavingsAccount savingsAccount = guarantorFundingDetail.getLinkedSavingsAccount();
+                        final BigDecimal shareOfLoanInterestIncome = guarantorFundingDetail.calculateShareOfLoanInterestIncome(loan);
+                        
+                        if (shareOfLoanInterestIncome.compareTo(BigDecimal.ZERO) == 1 && (savingsAccount != null)) {
+                            final LocalDate transactionDate = LocalDate.now();
+                            final DateTimeFormatter fmt = null;
+                           // final PaymentDetail paymentDetail = null;
+                            final boolean isAccountTransfer = false;
+                            final boolean isRegularTransaction = true;
+                            
+                            // inject helper classes to savings account class
+                            savingsAccount.setHelpers(this.savingsAccountTransactionSummaryWrapper, this.savingsHelper);
+
+                            /*hard coded for temporal fix to add reference. code value inserted in backend db */
+                            final String reference = "Interest from Guaranteed Loan";
+                            final PaymentType paymentType = this.paymentTypeRepository.findByName("Interest from Guaranteed Loan");
+                            final PaymentDetail paymentDetail =  PaymentDetail.generatePaymentDetailWithReference(paymentType, reference);
+                            PaymentDetail newPaymentTypeToSave = paymentDetailRepository.save(paymentDetail);
+                            
+                            // call method to handle savings account deposit
+                            this.savingsAccountDomainService.handleDeposit(savingsAccount, fmt, transactionDate,
+                                    shareOfLoanInterestIncome, newPaymentTypeToSave, isAccountTransfer, isRegularTransaction);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     private class ValidateOnBusinessEvent implements BusinessEventListner {
 
@@ -636,4 +711,29 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
         }
     }
 
+    /** 
+     * Listens for "BUSINESS_EVENTS.LOAN_MAKE_REPAYMENT" events and calls private method that will split interest income amongs
+     * guarantors if the latest repayment pays off the loan
+     **/
+    private class SplitInterestIncomeOnBusinessEvent implements BusinessEventListner {
+
+        @Override
+        public void businessEventToBeExecuted(Map<BUSINESS_ENTITY, Object> businessEventEntity) { }
+
+        @Override
+        public void businessEventWasExecuted(Map<BUSINESS_ENTITY, Object> businessEventEntity) {
+            Object entity = businessEventEntity.get(BUSINESS_ENTITY.LOAN_TRANSACTION);
+            if (entity instanceof LoanTransaction) {
+                LoanTransaction loanTransaction = (LoanTransaction) entity;
+                Loan loan = (loanTransaction != null) ? loanTransaction.getLoan() : null;
+                LoanProduct loanProduct = (loan != null) ? loan.getLoanProduct() : null;
+                LoanProductGuaranteeDetails loanProductGuaranteeDetails = (loanProduct != null) ? 
+                        loanProduct.getLoanProductGuaranteeDetails() : null;
+                
+                if (loanProductGuaranteeDetails != null && loanProductGuaranteeDetails.splitInterestAmongGuarantors()) {
+                    splitIncomeInterestAmongGuarantors(loanTransaction);
+                }
+            }
+        }
+    }
 }

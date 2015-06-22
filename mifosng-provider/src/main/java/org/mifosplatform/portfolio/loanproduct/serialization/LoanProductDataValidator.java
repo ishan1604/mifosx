@@ -92,7 +92,8 @@ public final class LoanProductDataValidator {
             LoanProductConstants.installmentAmountInMultiplesOfParamName,
             LoanProductConstants.preClosureInterestCalculationStrategyParamName, LoanProductConstants.allowAttributeOverridesParamName,
             LoanProductConstants.allowVariableInstallmentsParamName, LoanProductConstants.minimumGapBetweenInstallments,
-            LoanProductConstants.maximumGapBetweenInstallments, CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME));
+            LoanProductConstants.maximumGapBetweenInstallments, CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME, 
+            LoanProductConstants.splitInterestAmongGuarantorsParamName));
 
     private final FromJsonHelper fromApiJsonHelper;
 
@@ -1893,10 +1894,13 @@ public final class LoanProductDataValidator {
         BigDecimal mandatoryGuarantee = BigDecimal.ZERO;
         BigDecimal minimumGuaranteeFromOwnFunds = BigDecimal.ZERO;
         BigDecimal minimumGuaranteeFromGuarantor = BigDecimal.ZERO;
+        Boolean splitInterestAmongGuarantors = null;
+        
         if (loanProduct != null) {
             mandatoryGuarantee = loanProduct.getLoanProductGuaranteeDetails().getMandatoryGuarantee();
             minimumGuaranteeFromOwnFunds = loanProduct.getLoanProductGuaranteeDetails().getMinimumGuaranteeFromOwnFunds();
             minimumGuaranteeFromGuarantor = loanProduct.getLoanProductGuaranteeDetails().getMinimumGuaranteeFromGuarantor();
+            splitInterestAmongGuarantors = loanProduct.getLoanProductGuaranteeDetails().splitInterestAmongGuarantors();
         }
 
         if (loanProduct == null || this.fromApiJsonHelper.parameterExists(LoanProductConstants.mandatoryGuaranteeParamName, element)) {
@@ -1924,6 +1928,14 @@ public final class LoanProductDataValidator {
             if (minimumGuaranteeFromOwnFunds == null) {
                 minimumGuaranteeFromOwnFunds = BigDecimal.ZERO;
             }
+        }
+        
+        if(loanProduct == null
+                || this.fromApiJsonHelper.parameterExists(LoanProductConstants.splitInterestAmongGuarantorsParamName, element)){
+            splitInterestAmongGuarantors = this.fromApiJsonHelper.extractBooleanNamed(
+                    LoanProductConstants.splitInterestAmongGuarantorsParamName, element);
+            baseDataValidator.reset().parameter(LoanProductConstants.splitInterestAmongGuarantorsParamName)
+                    .value(splitInterestAmongGuarantors).notNull().isOneOfTheseValues(true, false);
         }
 
         if (mandatoryGuarantee.compareTo(minimumGuaranteeFromOwnFunds.add(minimumGuaranteeFromGuarantor)) == -1) {

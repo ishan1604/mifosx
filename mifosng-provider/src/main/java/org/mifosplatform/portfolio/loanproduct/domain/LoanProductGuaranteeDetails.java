@@ -40,6 +40,9 @@ public class LoanProductGuaranteeDetails extends AbstractPersistable<Long> {
 
     @Column(name = "minimum_guarantee_from_guarantor_funds", scale = 6, precision = 19, nullable = false)
     private BigDecimal minimumGuaranteeFromGuarantor;
+    
+    @Column(name = "split_interest_among_guarantors", nullable = false)
+    private boolean splitInterestAmongGuarantors;
 
     protected LoanProductGuaranteeDetails() {
         //
@@ -52,15 +55,20 @@ public class LoanProductGuaranteeDetails extends AbstractPersistable<Long> {
                 .bigDecimalValueOfParameterNamed(LoanProductConstants.minimumGuaranteeFromGuarantorParamName);
         final BigDecimal minimumGuaranteeFromOwnFunds = command
                 .bigDecimalValueOfParameterNamed(LoanProductConstants.minimumGuaranteeFromOwnFundsParamName);
+        
+        final boolean splitInterestAmongGuarantors = command.
+                booleanPrimitiveValueOfParameterNamed(LoanProductConstants.splitInterestAmongGuarantorsParamName);
 
-        return new LoanProductGuaranteeDetails(mandatoryGuarantee, minimumGuaranteeFromOwnFunds, minimumGuaranteeFromGuarantor);
+        return new LoanProductGuaranteeDetails(mandatoryGuarantee, minimumGuaranteeFromOwnFunds, minimumGuaranteeFromGuarantor, 
+                splitInterestAmongGuarantors);
     }
 
     private LoanProductGuaranteeDetails(final BigDecimal mandatoryGuarantee, final BigDecimal minimumGuaranteeFromOwnFunds,
-            final BigDecimal minimumGuaranteeFromGuarantor) {
+            final BigDecimal minimumGuaranteeFromGuarantor, final boolean splitInterestAmongGuarantors) {
         this.mandatoryGuarantee = mandatoryGuarantee;
         this.minimumGuaranteeFromGuarantor = minimumGuaranteeFromGuarantor;
         this.minimumGuaranteeFromOwnFunds = minimumGuaranteeFromOwnFunds;
+        this.splitInterestAmongGuarantors = splitInterestAmongGuarantors;
     }
 
     public void updateProduct(final LoanProduct loanProduct) {
@@ -90,6 +98,12 @@ public class LoanProductGuaranteeDetails extends AbstractPersistable<Long> {
             this.minimumGuaranteeFromOwnFunds = newValue;
         }
 
+        if(command.isChangeInBooleanParameterNamed(LoanProductConstants.splitInterestAmongGuarantorsParamName, 
+                this.splitInterestAmongGuarantors)) {
+            final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(LoanProductConstants.splitInterestAmongGuarantorsParamName);
+            actualChanges.put(LoanProductConstants.splitInterestAmongGuarantorsParamName, newValue);
+            this.splitInterestAmongGuarantors = newValue;
+        }
     }
 
     public BigDecimal getMandatoryGuarantee() {
@@ -104,4 +118,7 @@ public class LoanProductGuaranteeDetails extends AbstractPersistable<Long> {
         return this.minimumGuaranteeFromGuarantor;
     }
 
+    public boolean splitInterestAmongGuarantors() {
+        return this.splitInterestAmongGuarantors;
+    }
 }

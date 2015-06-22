@@ -5,14 +5,6 @@
  */
 package org.mifosplatform.portfolio.paymentdetail.domain;
 
-import java.util.Map;
-
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
-
 import org.apache.commons.lang.StringUtils;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.portfolio.paymentdetail.PaymentDetailConstants;
@@ -20,6 +12,14 @@ import org.mifosplatform.portfolio.paymentdetail.data.PaymentDetailData;
 import org.mifosplatform.portfolio.paymenttype.data.PaymentTypeData;
 import org.mifosplatform.portfolio.paymenttype.domain.PaymentType;
 import org.springframework.data.jpa.domain.AbstractPersistable;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+
+import java.util.Map;
 
 @Entity
 @Table(name = "m_payment_detail")
@@ -97,9 +97,17 @@ public final class PaymentDetail extends AbstractPersistable<Long> {
                 this.routingCode, this.receiptNumber, this.bankNumber);
         return paymentDetailData;
     }
+    
+    public PaymentDetail(final PaymentType paymentType, final String receiptNumber) {
+        this.paymentType = paymentType;
+        this.receiptNumber = receiptNumber;
+    }
 
     public PaymentType getPaymentType() {
         return this.paymentType;
     }
-
+    
+    public static PaymentDetail generatePaymentDetailWithReference(final PaymentType paymentType, final String reference){
+        return new PaymentDetail(paymentType, reference);
+    }
 }

@@ -6,6 +6,8 @@
 package org.mifosplatform.portfolio.loanaccount.guarantor.domain;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -128,5 +130,28 @@ public class GuarantorFundingDetails extends AbstractPersistable<Long> {
         for (GuarantorFundingTransaction fundingTransaction : this.guarantorFundingTransactions) {
             fundingTransaction.reverseTransaction();
         }
+    }
+    
+    /** 
+     * calculate the guarantor's share of the loan interest income 
+     * 
+     * @param loan -- the Loan entity
+     * @return BigDecimal - guarantor's share of the loan interest
+     **/
+    public BigDecimal calculateShareOfLoanInterestIncome(final Loan loan) {
+        BigDecimal shareOfInterestIncome = BigDecimal.ZERO;
+        
+        if (loan != null) {
+            final BigDecimal principalAmount = loan.getPrincpal().getAmount();
+            final BigDecimal InterestAmount = loan.getTotalInterest();
+            final BigDecimal percent = new BigDecimal(100);
+            final RoundingMode roundingMode = RoundingMode.HALF_EVEN;
+            final MathContext mathContext = new MathContext(8, roundingMode);
+            
+            BigDecimal percentageGuanranteed = this.amount.multiply(percent).divide(principalAmount, mathContext);
+            shareOfInterestIncome = percentageGuanranteed.divide(percent, mathContext).multiply(InterestAmount);
+        }
+        
+        return shareOfInterestIncome;
     }
 }

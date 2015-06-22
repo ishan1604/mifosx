@@ -195,7 +195,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     + "lpr.compounding_freqency_date as compoundingFrequencyDate,  "
                     + "lp.hold_guarantee_funds as holdGuaranteeFunds, "
                     + "lp.principal_threshold_for_last_installment as principalThresholdForLastInstallment, "
-                    + "lpg.id as lpgId, lpg.mandatory_guarantee as mandatoryGuarantee, "
+                    + "lpg.id as lpgId, lpg.mandatory_guarantee as mandatoryGuarantee, lpg.split_interest_among_guarantors as splitInterestAmongGuarantors, "
                     + "lpg.minimum_guarantee_from_own_funds as minimumGuaranteeFromOwnFunds, lpg.minimum_guarantee_from_guarantor_funds as minimumGuaranteeFromGuarantor, "
                     + "lp.account_moves_out_of_npa_only_on_arrears_completion as accountMovesOutOfNPAOnlyOnArrearsCompletion, "
                     + "curr.name as currencyName, curr.internationalized_name_code as currencyNameCode, curr.display_symbol as currencyDisplaySymbol, lp.external_id as externalId, "
@@ -396,8 +396,10 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                 final BigDecimal mandatoryGuarantee = rs.getBigDecimal("mandatoryGuarantee");
                 final BigDecimal minimumGuaranteeFromOwnFunds = rs.getBigDecimal("minimumGuaranteeFromOwnFunds");
                 final BigDecimal minimumGuaranteeFromGuarantor = rs.getBigDecimal("minimumGuaranteeFromGuarantor");
+                final boolean splitInterestAmongGuarantors = rs.getBoolean("splitInterestAmongGuarantors");
+                
                 loanProductGuaranteeData = LoanProductGuaranteeData.instance(lpgId, id, mandatoryGuarantee, minimumGuaranteeFromOwnFunds,
-                        minimumGuaranteeFromGuarantor);
+                        minimumGuaranteeFromGuarantor, splitInterestAmongGuarantors);
             }
 
             final BigDecimal principalThresholdForLastInstallment = rs.getBigDecimal("principalThresholdForLastInstallment");
