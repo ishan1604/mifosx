@@ -117,5 +117,8 @@ public class LoanProductGuaranteeDetails extends AbstractPersistable<Long> {
         return this.minimumGuaranteeFromGuarantor;
     }
 
-    public boolean splitInterestAmongGuarantors() { return this.splitInterestAmongGuarantors; }
+
+    public boolean splitInterestAmongGuarantors() {
+        return this.splitInterestAmongGuarantors;
+    }
 }
