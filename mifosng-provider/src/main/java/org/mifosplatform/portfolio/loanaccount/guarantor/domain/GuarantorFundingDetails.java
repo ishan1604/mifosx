@@ -129,4 +129,24 @@ public class GuarantorFundingDetails extends AbstractPersistable<Long> {
             fundingTransaction.reverseTransaction();
         }
     }
+    
+    /** 
+     * calculate the guarantor's share of the loan interest income 
+     * 
+     * @param loan -- the Loan entity
+     * @return BigDecimal - guarantor's share of the loan interest
+     **/
+    public BigDecimal calculateShareOfLoanInterestIncome(final Loan loan) {
+        BigDecimal shareOfInterestIncome = BigDecimal.ZERO;
+        
+        if (loan != null) {
+            final BigDecimal principalAmount = loan.getPrincpal().getAmount();
+            final BigDecimal InterestAmount = loan.getTotalInterest();
+            final BigDecimal percent = new BigDecimal(100);
+            BigDecimal percentageGuanranteed = this.amount.multiply(percent).divide(principalAmount);
+            shareOfInterestIncome = percentageGuanranteed.divide(percent).multiply(InterestAmount);
+        }
+        
+        return shareOfInterestIncome;
+    }
 }

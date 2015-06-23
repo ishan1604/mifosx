@@ -5,16 +5,10 @@
  */
 package org.mifosplatform.portfolio.loanproduct.serialization;
 
-import java.lang.reflect.Type;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.common.AccountingConstants.LOAN_PRODUCT_ACCOUNTING_PARAMS;
@@ -28,16 +22,21 @@ import org.mifosplatform.portfolio.creditcheck.CreditCheckConstants;
 import org.mifosplatform.portfolio.loanproduct.LoanProductConstants;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProductConfigurableAttributes;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductValueConditionType;
 import org.mifosplatform.portfolio.loanproduct.domain.RecalculationFrequencyType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.mifosplatform.portfolio.loanproduct.domain.LoanProductConfigurableAttributes;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 @Component
 public final class LoanProductDataValidator {
@@ -1356,16 +1355,36 @@ public final class LoanProductDataValidator {
 
     }
 
+    /**
+     *
+     * @param element
+     * @param baseDataValidator
+     * @param loanProduct
+     *  final Boolean isInterestRecalculationEnabled = this.fromApiJsonHelper.extractBooleanNamed(
+    LoanProductConstants.isInterestRecalculationEnabledParameterName, element);
+    baseDataValidator.reset().parameter(LoanProductConstants.isInterestRecalculationEnabledParameterName)
+    .value(isInterestRecalculationEnabled).notNull().isOneOfTheseValues(true, false);
+
+    if (isInterestRecalculationEnabled != null) {
+    if (isInterestRecalculationEnabled.booleanValue()) {
+    validateInterestRecalculationParams(element, baseDataValidator, null);
+    }
+    }
+     */
+
     private void validateGuaranteeParams(final JsonElement element, final DataValidatorBuilder baseDataValidator,
             final LoanProduct loanProduct) {
         BigDecimal mandatoryGuarantee = BigDecimal.ZERO;
         BigDecimal minimumGuaranteeFromOwnFunds = BigDecimal.ZERO;
         BigDecimal minimumGuaranteeFromGuarantor = BigDecimal.ZERO;
+        Boolean splitInterestAmongGuarantors = null;
         if (loanProduct != null) {
             mandatoryGuarantee = loanProduct.getLoanProductGuaranteeDetails().getMandatoryGuarantee();
             minimumGuaranteeFromOwnFunds = loanProduct.getLoanProductGuaranteeDetails().getMinimumGuaranteeFromOwnFunds();
             minimumGuaranteeFromGuarantor = loanProduct.getLoanProductGuaranteeDetails().getMinimumGuaranteeFromGuarantor();
+            splitInterestAmongGuarantors = loanProduct.getLoanProductGuaranteeDetails().splitInterestAmongGuarantors();
         }
+
 
         if (loanProduct == null || this.fromApiJsonHelper.parameterExists(LoanProductConstants.mandatoryGuaranteeParamName, element)) {
             mandatoryGuarantee = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed(LoanProductConstants.mandatoryGuaranteeParamName,
@@ -1392,6 +1411,13 @@ public final class LoanProductDataValidator {
             if (minimumGuaranteeFromOwnFunds == null) {
                 minimumGuaranteeFromOwnFunds = BigDecimal.ZERO;
             }
+        }
+
+        if(loanProduct == null
+                || this.fromApiJsonHelper.parameterExists(LoanProductConstants.splitInterestAmongGuarantorsParamName,element)){
+            splitInterestAmongGuarantors = this.fromApiJsonHelper.extractBooleanNamed(LoanProductConstants.splitInterestAmongGuarantorsParamName,element);
+            baseDataValidator.reset().parameter(LoanProductConstants.splitInterestAmongGuarantorsParamName)
+                    .value(splitInterestAmongGuarantors).notNull().isOneOfTheseValues(true, false);
         }
 
         if (mandatoryGuarantee.compareTo(minimumGuaranteeFromOwnFunds.add(minimumGuaranteeFromGuarantor)) == -1) {

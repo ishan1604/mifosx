@@ -1,0 +1,1 @@
+alter table m_product_loan_guarantee_details add split_interest_among_guarantors tinyint(1) not null default 0;
