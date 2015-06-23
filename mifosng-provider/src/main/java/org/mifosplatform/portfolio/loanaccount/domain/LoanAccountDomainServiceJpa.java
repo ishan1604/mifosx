@@ -582,7 +582,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
         final ChangedTransactionDetail changedTransactionDetail = loan.makeRefundForActiveLoan(newRefundTransaction,
                 defaultLoanLifecycleStateMachine(), existingTransactionIds, existingReversedTransactionIds, allowTransactionsOnHoliday,
                 holidays, workingDays, allowTransactionsOnNonWorkingDay);
-
+        
         this.loanTransactionRepository.save(newRefundTransaction);
         this.loanRepository.save(loan);
 
