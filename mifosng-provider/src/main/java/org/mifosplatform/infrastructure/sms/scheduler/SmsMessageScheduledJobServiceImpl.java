@@ -276,6 +276,9 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 							// update the status Type enum
 							smsMessage.setStatusType(statusType);
 							
+							// save the SmsMessage entity
+							this.smsMessageRepository.save(smsMessage);
+							
 							// deduct one credit from the tenant's SMS credits
 							smsCredits--;
 						}
@@ -285,6 +288,9 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 					
 					SmsConfiguration smsConfiguration = this.smsConfigurationRepository.findByName("SMS_CREDITS");
 					smsConfiguration.setValue(smsCredits.toString());
+					
+					// save the SmsConfiguration entity
+					this.smsConfigurationRepository.save(smsConfiguration);
 				}
 			}
 			
@@ -310,7 +316,7 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 		MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
 		
 		try{
-			List<Long> smsMessageExternalIds = this.smsReadPlatformService.retrieveExternalIdsOfAllSent(smsSqlLimit);
+			List<Long> smsMessageExternalIds = this.smsReadPlatformService.retrieveExternalIdsOfAllSent(0);
 			SmsMessageApiReportResourceData smsMessageApiReportResourceData = 
 					SmsMessageApiReportResourceData.instance(smsMessageExternalIds, tenant.getTenantIdentifier());
 			
@@ -334,6 +340,7 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 					if(!smsMessageDeliveryReportData.getHasError() && (deliveryStatus != 100 && deliveryStatus != 200)) {
 						SmsMessage smsMessage = this.smsMessageRepository.findOne(smsMessageDeliveryReportData.getId());
 						Integer statusType = smsMessage.getStatusType();
+						boolean statusChanged = false;
 						
 						switch(deliveryStatus) {
 							case 0:
@@ -352,8 +359,17 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 								break;
 						}
 						
+						statusChanged = !statusType.equals(smsMessage.getStatusType());
+						
 						// update the status Type enum
 						smsMessage.setStatusType(statusType);
+						
+						// save the SmsMessage entity
+                        this.smsMessageRepository.save(smsMessage);
+                        
+                        if (statusChanged) {
+                            logger.info("Status of SMS message id: " + smsMessage.getId() + " successfully changed to " + statusType);
+                        }
 					}
 				}
 				

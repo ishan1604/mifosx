@@ -93,11 +93,18 @@ public class StandingInstructionApiResource {
     @POST
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public String create(final String apiRequestBodyAsJson) {
-
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().createStandingInstruction().withJson(apiRequestBodyAsJson)
-                .build();
-
+    public String create(final String apiRequestBodyAsJson, @QueryParam("command") final String commandParam) {
+        CommandWrapper commandRequest = null;
+        
+        if (is(commandParam, "execute")) {
+            commandRequest = new CommandWrapperBuilder().executeStandingInstructions(StandingInstructionApiConstants.STANDING_INSTRUCTION_RESOURCE_NAME).
+                    withJson(apiRequestBodyAsJson).build();
+        }
+        
+        else {
+            commandRequest = new CommandWrapperBuilder().createStandingInstruction().withJson(apiRequestBodyAsJson).build();
+        }
+        
         final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
 
         return this.toApiJsonSerializer.serialize(result);

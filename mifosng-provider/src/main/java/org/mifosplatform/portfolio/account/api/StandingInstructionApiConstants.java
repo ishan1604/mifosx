@@ -28,6 +28,7 @@ public class StandingInstructionApiConstants {
     public static final String recurrenceOnMonthDayParamName = "recurrenceOnMonthDay";
     public static final String monthDayFormatParamName = "monthDayFormat";
     public static final String maximumIterationsParamName = "maximumIterations";
+    public static final String repaymentScheduleDueDateParamName = "repaymentScheduleDueDate";
 
     public static final Set<String> CREATE_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(
             AccountDetailConstants.localeParamName, AccountDetailConstants.dateFormatParamName,

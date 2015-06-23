@@ -40,6 +40,7 @@ import org.mifosplatform.infrastructure.core.exception.InvalidJsonException;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.mifosplatform.portfolio.account.PortfolioAccountType;
+import org.mifosplatform.portfolio.account.api.StandingInstructionApiConstants;
 import org.mifosplatform.portfolio.account.domain.AccountTransferRecurrenceType;
 import org.mifosplatform.portfolio.account.domain.AccountTransferType;
 import org.mifosplatform.portfolio.account.domain.StandingInstructionType;
@@ -228,6 +229,22 @@ public class StandingInstructionDataValidator {
             baseDataValidator.reset().parameter(nameParamName).value(name).notNull();
         }
 
+        throwExceptionIfValidationWarningsExist(dataValidationErrors);
+    }
+    
+    public void validateForExecute(final JsonCommand jsonCommand) {
+        final String json = jsonCommand.json();
+        
+        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        
+        final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
+                .resource(StandingInstructionApiConstants.STANDING_INSTRUCTION_RESOURCE_NAME);
+        
+        LocalDate transactionDate = jsonCommand.localDateValueOfParameterNamed(StandingInstructionApiConstants.repaymentScheduleDueDateParamName);
+        baseDataValidator.reset().parameter(StandingInstructionApiConstants.repaymentScheduleDueDateParamName).value(transactionDate).notNull().
+                validateDateBefore(LocalDate.now());
+        
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
     }
 

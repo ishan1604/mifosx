@@ -2439,4 +2439,11 @@ public class CommandWrapperBuilder {
         this.href = "/reportmailingjobs/" + entityId;
         return this;
     }
+    
+    public CommandWrapperBuilder executeStandingInstructions(final String entityName) {
+        this.actionName = "EXECUTE";
+        this.entityName = entityName;
+        this.href = "/reportmailingjobs";
+        return this;
+    }
 }
