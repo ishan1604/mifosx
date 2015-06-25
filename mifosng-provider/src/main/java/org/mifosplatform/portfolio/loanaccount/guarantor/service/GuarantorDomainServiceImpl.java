@@ -676,7 +676,12 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
         public void businessEventWasExecuted(AbstractPersistable<Long> businessEventEntity) {
             if (businessEventEntity instanceof LoanTransaction) {
                 LoanTransaction loanTransaction = (LoanTransaction) businessEventEntity;
-                splitIncomeInterestAmongGuarantors(loanTransaction);
+                if(loanTransaction.getLoan().getLoanProduct().isHoldGuaranteeFundsEnabled()){
+                    if(loanTransaction.getLoan().getLoanProduct().getLoanProductGuaranteeDetails().splitInterestAmongGuarantors())
+                    {
+                        splitIncomeInterestAmongGuarantors(loanTransaction);
+                    }
+                }
             }
         }
     }
