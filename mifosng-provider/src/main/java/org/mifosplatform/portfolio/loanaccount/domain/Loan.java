@@ -2660,19 +2660,10 @@ public class Loan extends AbstractPersistable<Long> {
         existingTransactionIds.addAll(findExistingTransactionIds());
         existingReversedTransactionIds.addAll(findExistingReversedTransactionIds());
 
-        if (status().isOverpaid()) {
-            if (this.totalOverpaid.compareTo(loanTransaction.getAmount(getCurrency()).getAmount()) == -1) {
-                final String errorMessage = "The refund amount must be less than or equal to overpaid amount ";
-                throw new InvalidLoanStateTransitionException("transaction", "is.exceeding.overpaid.amount", errorMessage,
-                        this.totalOverpaid, loanTransaction.getAmount(getCurrency()).getAmount());
-            } else if (!isAfterLatRepayment(loanTransaction, this.loanTransactions)) {
-                final String errorMessage = "Transfer funds is allowed only after last repayment date";
-                throw new InvalidLoanStateTransitionException("transaction", "is.not.after.repayment.date", errorMessage);
+        if (!status().isOverpaid()) {
+                final String errorMessage = "Transfer funds is allowed only for loan accounts with overpaid status ";
+                throw new InvalidLoanStateTransitionException("transaction", "is.not.a.overpaid.loan", errorMessage);
             }
-        } else {
-            final String errorMessage = "Transfer funds is allowed only for loan accounts with overpaid status ";
-            throw new InvalidLoanStateTransitionException("transaction", "is.not.a.overpaid.loan", errorMessage);
-        }
         loanTransaction.updateLoan(this);
 
         if (loanTransaction.isNotZero(loanCurrency())) {
@@ -5074,7 +5065,7 @@ public class Loan extends AbstractPersistable<Long> {
         validateAccountStatus(LoanEvent.LOAN_REFUND);
         validateActivityNotBeforeClientOrGroupTransferDate(LoanEvent.LOAN_REFUND, loanTransaction.getTransactionDate());
 
-        validateRefundDateIsAfterLastRepayment(loanTransaction.getTransactionDate());
+        // validateRefundDateIsAfterLastRepayment(loanTransaction.getTransactionDate());
 
         validateRepaymentDateIsOnHoliday(loanTransaction.getTransactionDate(), allowTransactionsOnHoliday, holidays);
         validateRepaymentDateIsOnNonWorkingDay(loanTransaction.getTransactionDate(), workingDays, allowTransactionsOnNonWorkingDay);
