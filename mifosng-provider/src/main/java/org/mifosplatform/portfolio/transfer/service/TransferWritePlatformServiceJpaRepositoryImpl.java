@@ -811,7 +811,8 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                 if(loan.isDisbursed() && !loan.isClosed()){
                     Integer transactionEnumType= 13;
                     for(LoanTransaction loanTransaction: this.loanTransactionRepository.transactionsAfterClientTransfer(loan.getId(),transactionEnumType)){
-                        if(!loanTransaction.isReversed()) {   //means active transactions exist after transfer
+                        final LoanTransaction lastApprovedClientTransfer = this.loanTransactionRepository.lastApprovedTransfer(loan.getId());
+                        if(!loanTransaction.isReversed() && loanTransaction.getTransactionDate().isAfter(lastApprovedClientTransfer.getTransactionDate())) {   //means active transactions exist after transfer
                             hasPaymentTransactionHappenedAfterTransfer = true;
                             break;
                         }
@@ -823,7 +824,8 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
             for(final SavingsAccount savingsAccount: this.savingsAccountRepository.findSavingAccountByClientId(clientId)){
                 if(!savingsAccount.isClosed()){
                     for(SavingsAccountTransaction savingsAccountTransaction: this.savingsAccountTransactionRepository.transactionsAfterClientTransfer(savingsAccount.getId(),13)){
-                        if(!savingsAccountTransaction.isReversed()){
+                        final SavingsAccountTransaction lastApprovedClientTransfer = this.savingsAccountTransactionRepository.lastApprovedTransfer(savingsAccount.getId());
+                        if(!savingsAccountTransaction.isReversed() && savingsAccountTransaction.transactionLocalDate().isAfter(lastApprovedClientTransfer.transactionLocalDate())){
                             hasPaymentTransactionHappenedAfterTransfer = true;
                             break;
                         }
