@@ -11,18 +11,14 @@ import static org.mifosplatform.portfolio.account.AccountDetailConstants.toAccou
 import static org.mifosplatform.portfolio.account.api.StandingInstructionApiConstants.statusParamName;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
-import org.mifosplatform.infrastructure.core.data.ApiParameterError;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
-import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.AbstractPlatformServiceUnavailableException;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
@@ -210,7 +206,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
     @Override
     public String executeStandingInstructions(LocalDate transactionDate) {
         Collection<StandingInstructionData> instructionDatas = this.standingInstructionReadPlatformService
-                .retrieveAll(StandingInstructionStatus.ACTIVE.getValue());
+                .retrieveAll(StandingInstructionStatus.ACTIVE.getValue(), transactionDate);
         final StringBuilder sb = new StringBuilder();
         for (StandingInstructionData data : instructionDatas) {
             boolean isDueForTransfer = false;
@@ -240,7 +236,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
             if (data.toAccountType().isLoanAccount()
                     && (recurrenceType.isDuesRecurrence() || (isDueForTransfer && instructionType.isDuesAmoutTransfer()))) {
                 StandingInstructionDuesData standingInstructionDuesData = this.standingInstructionReadPlatformService
-                        .retriveLoanDuesData(data.toAccount().accountId());
+                        .retriveLoanDuesData(data.toAccount().accountId(), transactionDate);
                 if (data.instructionType().isDuesAmoutTransfer()) {
                     transactionAmount = standingInstructionDuesData.totalDueAmount();
                 }
