@@ -5,17 +5,6 @@
  */
 package org.mifosplatform.portfolio.loanaccount.guarantor.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import javax.annotation.PostConstruct;
-
 import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormatter;
 import org.mifosplatform.infrastructure.core.data.ApiParameterError;
@@ -53,6 +42,16 @@ import org.mifosplatform.portfolio.savings.exception.InsufficientAccountBalanceE
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class GuarantorDomainServiceImpl implements GuarantorDomainService {
@@ -677,7 +676,12 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
         public void businessEventWasExecuted(AbstractPersistable<Long> businessEventEntity) {
             if (businessEventEntity instanceof LoanTransaction) {
                 LoanTransaction loanTransaction = (LoanTransaction) businessEventEntity;
-                splitIncomeInterestAmongGuarantors(loanTransaction);
+                if(loanTransaction.getLoan().getLoanProduct().isHoldGuaranteeFundsEnabled()){
+                    if(loanTransaction.getLoan().getLoanProduct().getLoanProductGuaranteeDetails().splitInterestAmongGuarantors())
+                    {
+                        splitIncomeInterestAmongGuarantors(loanTransaction);
+                    }
+                }
             }
         }
     }

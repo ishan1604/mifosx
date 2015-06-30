@@ -7,6 +7,7 @@ package org.mifosplatform.portfolio.account.service;
 
 import java.util.Collection;
 
+import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.service.Page;
 import org.mifosplatform.portfolio.account.data.StandingInstructionDTO;
 import org.mifosplatform.portfolio.account.data.StandingInstructionData;
@@ -21,8 +22,8 @@ public interface StandingInstructionReadPlatformService {
 
     StandingInstructionData retrieveOne(Long instructionId);
 
-    Collection<StandingInstructionData> retrieveAll(Integer status);
+    Collection<StandingInstructionData> retrieveAll(Integer status, LocalDate dueDate);
 
-    StandingInstructionDuesData retriveLoanDuesData(Long loanId);
+    StandingInstructionDuesData retriveLoanDuesData(Long loanId, LocalDate dueDate);
 
 }

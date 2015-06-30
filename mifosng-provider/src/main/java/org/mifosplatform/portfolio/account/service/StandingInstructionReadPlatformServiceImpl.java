@@ -316,15 +316,16 @@ public class StandingInstructionReadPlatformServiceImpl implements StandingInstr
     }
 
     @Override
-    public Collection<StandingInstructionData> retrieveAll(final Integer status) {
+    public Collection<StandingInstructionData> retrieveAll(final Integer status, final LocalDate dueDate) {
         final StringBuilder sqlBuilder = new StringBuilder(200);
+        final String currentDate = (dueDate != null) ? dueDate.toString() : "CURRENT_DATE()";
         sqlBuilder.append("select ");
         sqlBuilder.append(this.standingInstructionMapper.schema());
         sqlBuilder
-                .append(" where atsi.status=? and CURRENT_DATE() >= atsi.valid_from and (atsi.valid_till IS NULL or CURRENT_DATE() < atsi.valid_till) ")
-                .append(" and  (atsi.last_run_date <> CURRENT_DATE() or atsi.last_run_date IS NULL)")
+                .append(" where atsi.status=? and ? >= atsi.valid_from and (atsi.valid_till IS NULL or ? < atsi.valid_till) ")
+                .append(" and (atsi.last_run_date <> ? or atsi.last_run_date IS NULL)")
                 .append(" ORDER BY atsi.priority DESC");
-        return this.jdbcTemplate.query(sqlBuilder.toString(), this.standingInstructionMapper, status);
+        return this.jdbcTemplate.query(sqlBuilder.toString(), this.standingInstructionMapper, status, currentDate, currentDate, currentDate);
     }
 
     @Override
@@ -340,10 +341,11 @@ public class StandingInstructionReadPlatformServiceImpl implements StandingInstr
     }
 
     @Override
-    public StandingInstructionDuesData retriveLoanDuesData(final Long loanId) {
+    public StandingInstructionDuesData retriveLoanDuesData(final Long loanId, final LocalDate dueDate) {
+        final String currentDate = (dueDate != null) ? dueDate.toString() : "CURRENT_DATE()";
         final StandingInstructionLoanDuesMapper rm = new StandingInstructionLoanDuesMapper();
-        final String sql = "select " + rm.schema() + " where ml.id= ? and ls.duedate <= CURRENT_DATE() and ls.completed_derived <> 1";
-        return this.jdbcTemplate.queryForObject(sql, rm, new Object[] { loanId });
+        final String sql = "select " + rm.schema() + " where ml.id= ? and ls.duedate <= ? and ls.completed_derived <> 1";
+        return this.jdbcTemplate.queryForObject(sql, rm, new Object[] { loanId, currentDate });
     }
 
     private static final class StandingInstructionMapper implements RowMapper<StandingInstructionData> {

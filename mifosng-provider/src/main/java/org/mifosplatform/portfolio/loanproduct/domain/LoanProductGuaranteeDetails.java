@@ -5,18 +5,17 @@
  */
 package org.mifosplatform.portfolio.loanproduct.domain;
 
-import java.math.BigDecimal;
-import java.util.Map;
+import org.mifosplatform.infrastructure.core.api.JsonCommand;
+import org.mifosplatform.portfolio.loanproduct.LoanProductConstants;
+import org.springframework.data.jpa.domain.AbstractPersistable;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
-
-import org.mifosplatform.infrastructure.core.api.JsonCommand;
-import org.mifosplatform.portfolio.loanproduct.LoanProductConstants;
-import org.springframework.data.jpa.domain.AbstractPersistable;
+import java.math.BigDecimal;
+import java.util.Map;
 
 /**
  * Entity for capturing interest recalculation settings
@@ -98,6 +97,12 @@ public class LoanProductGuaranteeDetails extends AbstractPersistable<Long> {
             this.minimumGuaranteeFromOwnFunds = newValue;
         }
 
+        if(command.isChangeInBooleanParameterNamed(LoanProductConstants.splitInterestAmongGuarantorsParamName,this.splitInterestAmongGuarantors)){
+            final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(LoanProductConstants.splitInterestAmongGuarantorsParamName);
+            actualChanges.put(LoanProductConstants.splitInterestAmongGuarantorsParamName,newValue);
+            this.splitInterestAmongGuarantors = newValue;
+        }
+
     }
 
     public BigDecimal getMandatoryGuarantee() {
@@ -111,6 +116,7 @@ public class LoanProductGuaranteeDetails extends AbstractPersistable<Long> {
     public BigDecimal getMinimumGuaranteeFromGuarantor() {
         return this.minimumGuaranteeFromGuarantor;
     }
+
 
     public boolean splitInterestAmongGuarantors() {
         return this.splitInterestAmongGuarantors;

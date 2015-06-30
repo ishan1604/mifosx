@@ -833,15 +833,45 @@ public class Loan extends AbstractPersistable<Long> {
         BigDecimal amount = BigDecimal.ZERO;
         switch (loanCharge.getChargeCalculation()) {
             case PERCENT_OF_AMOUNT:
+                amount = getPrincpal().getAmount();
+                
+                if (loanCharge.isSpecifiedDueDate()) {
+                    final LocalDate dueDate = loanCharge.getDueLocalDate();
+                    final LoanRepaymentScheduleInstallment installment = this.getInstallmentDueOndate(dueDate);
+                    
+                    if (installment != null) {
+                        amount = installment.getPrincipal(getCurrency()).getAmount();
+                    }
+                }
+                break;
             case PERCENT_OF_ORIGINAL_PRINCIPAL:
                 amount = getPrincpal().getAmount();
             break;
             case PERCENT_OF_AMOUNT_AND_INTEREST:
                 final BigDecimal totalInterestCharged = getTotalInterest();
                 amount = getPrincpal().getAmount().add(totalInterestCharged);
+                
+                if (loanCharge.isSpecifiedDueDate()) {
+                    final LocalDate dueDate = loanCharge.getDueLocalDate();
+                    final LoanRepaymentScheduleInstallment installment = this.getInstallmentDueOndate(dueDate);
+                    
+                    if (installment != null) {
+                        final BigDecimal interestCharged = installment.getInterestCharged(getCurrency()).getAmount();
+                        amount = installment.getPrincipal(getCurrency()).getAmount().add(interestCharged);
+                    }
+                }
             break;
             case PERCENT_OF_INTEREST:
                 amount = getTotalInterest();
+                
+                if (loanCharge.isSpecifiedDueDate()) {
+                    final LocalDate dueDate = loanCharge.getDueLocalDate();
+                    final LoanRepaymentScheduleInstallment installment = this.getInstallmentDueOndate(dueDate);
+                    
+                    if (installment != null) {
+                        amount = installment.getInterestCharged(getCurrency()).getAmount();
+                    }
+                }
             break;
             case PERCENT_OF_TOTAL_OUTSTANDING_PRINCIPAL:
                 if (this.isOpen() && (this.summary != null)) {
@@ -5208,5 +5238,28 @@ public class Loan extends AbstractPersistable<Long> {
     
     public LoanProduct getLoanProduct() {
         return this.loanProduct;
+    }
+    
+    /** 
+     * get a {@link LoanRepaymentScheduleInstallment} object by due date
+     * 
+     * @param dueDate -- installment due date
+     * @return LoanRepaymentScheduleInstallment object
+     **/
+    public LoanRepaymentScheduleInstallment getInstallmentDueOndate(final LocalDate dueDate) {
+        LoanRepaymentScheduleInstallment installment = null;
+        
+        if (dueDate != null) {
+            for (LoanRepaymentScheduleInstallment scheduleInstallment : this.repaymentScheduleInstallments) {
+                LocalDate installmentDueDate = scheduleInstallment.getDueDate();
+                
+                if (installmentDueDate != null && installmentDueDate.isEqual(dueDate)) {
+                    installment = scheduleInstallment;
+                    break;
+                }
+            }
+        }
+        
+        return installment;
     }
 }

@@ -58,7 +58,7 @@ public class LoanRepaymentScheduleProcessingWrapper {
 
     private Money cumulativeFeeChargesDueWithin(final LocalDate periodStart, final LocalDate periodEnd, final Set<LoanCharge> loanCharges,
             final MonetaryCurrency monetaryCurrency, LoanRepaymentScheduleInstallment period, int numberOfRepayments,
-            final Money totalPrincipal, final Money totalInterest, boolean isInstallmentChargeApplicable,
+            Money totalPrincipal, Money totalInterest, boolean isInstallmentChargeApplicable,
             final LocalDate lastTransactionDate) {
 
         Money cumulative = Money.zero(monetaryCurrency);
@@ -97,6 +97,15 @@ public class LoanRepaymentScheduleProcessingWrapper {
                         && loanCharge.getChargeCalculation().isPercentageBased()
                         && !lastTransactionDate.isAfter(loanCharge.getDueLocalDate())) {
                     BigDecimal amount = BigDecimal.ZERO;
+                    
+                    // specified due date charges are usually attached to loan installments, therefore:
+                    // totalPrincipal = the loan installment principal
+                    // totalInterest = the loan installment interest
+                    if (loanCharge.isSpecifiedDueDate()) {
+                        totalPrincipal = period.getPrincipal(monetaryCurrency);
+                        totalInterest = period.getInterestCharged(monetaryCurrency);
+                    }
+                    
                     if (loanCharge.getChargeCalculation().isPercentageOfAmountAndInterest()) {
                         amount = amount.add(totalPrincipal.getAmount()).add(totalInterest.getAmount());
                     } else if (loanCharge.getChargeCalculation().isPercentageOfInterest()) {
@@ -169,7 +178,7 @@ public class LoanRepaymentScheduleProcessingWrapper {
 
     private Money cumulativePenaltyChargesDueWithin(final LocalDate periodStart, final LocalDate periodEnd,
             final Set<LoanCharge> loanCharges, final MonetaryCurrency currency, LoanRepaymentScheduleInstallment period,
-            int numberOfRepayments, final Money totalPrincipal, final Money totalInterest, boolean isInstallmentChargeApplicable,
+            int numberOfRepayments, Money totalPrincipal, Money totalInterest, boolean isInstallmentChargeApplicable,
             final LocalDate lastTransactionDate) {
 
         Money cumulative = Money.zero(currency);
@@ -209,6 +218,15 @@ public class LoanRepaymentScheduleProcessingWrapper {
                         && loanCharge.getChargeCalculation().isPercentageBased()
                         && !lastTransactionDate.isAfter(loanCharge.getDueLocalDate())) {
                     BigDecimal amount = BigDecimal.ZERO;
+                    
+                    // specified due date charges are usually attached to loan installments, therefore:
+                    // totalPrincipal = the loan installment principal
+                    // totalInterest = the loan installment interest
+                    if (loanCharge.isSpecifiedDueDate()) {
+                        totalPrincipal = period.getPrincipal(currency);
+                        totalInterest = period.getInterestCharged(currency);
+                    }
+                    
                     if (loanCharge.getChargeCalculation().isPercentageOfAmountAndInterest()) {
                         amount = amount.add(totalPrincipal.getAmount()).add(totalInterest.getAmount());
                     } else if (loanCharge.getChargeCalculation().isPercentageOfInterest()) {

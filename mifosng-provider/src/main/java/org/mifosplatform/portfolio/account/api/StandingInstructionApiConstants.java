@@ -49,5 +49,7 @@ public class StandingInstructionApiConstants {
     public static final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList(AccountDetailConstants.idParamName,
             nameParamName, priorityParamName, instructionTypeParamName, statusParamName, AccountDetailConstants.transferTypeParamName,
             validFromParamName, validTillParamName));
+    
+    public static final String EXECUTE_STANDINGINSTRUCTION = "EXECUTE_STANDINGINSTRUCTION";
 
 }
