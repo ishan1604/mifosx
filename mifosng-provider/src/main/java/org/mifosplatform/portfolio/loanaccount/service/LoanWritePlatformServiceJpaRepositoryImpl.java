@@ -5,18 +5,7 @@
  */
 package org.mifosplatform.portfolio.loanaccount.service;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.gson.JsonElement;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormat;
@@ -161,7 +150,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import com.google.gson.JsonElement;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatformService {
@@ -1862,7 +1861,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 DateUtils.getLocalDateTimeOfTenant(), currentUser);
         loan.getLoanTransactions().add(newTransferAcceptanceTransaction);
 
-        if (loan.getTotalOverpaid() != null) {
+        if (loan.getTotalOverpaid() != null && loan.getTotalOverpaid().compareTo(BigDecimal.ZERO) == 1) {
             loan.setLoanStatus(LoanStatus.OVERPAID.getValue());
         } else {
             loan.setLoanStatus(LoanStatus.ACTIVE.getValue());

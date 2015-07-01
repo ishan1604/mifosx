@@ -1,0 +1,1 @@
+update m_loan set total_overpaid_derived = 0, loan_status_id = 300 where loan_status_id = 700 and principal_outstanding_derived != 0;
