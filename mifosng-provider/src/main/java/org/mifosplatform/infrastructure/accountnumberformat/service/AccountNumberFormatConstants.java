@@ -5,11 +5,11 @@
  */
 package org.mifosplatform.infrastructure.accountnumberformat.service;
 
+import org.mifosplatform.infrastructure.accountnumberformat.data.AccountNumberFormatData;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-
-import org.mifosplatform.infrastructure.accountnumberformat.data.AccountNumberFormatData;
 
 public class AccountNumberFormatConstants {
 
@@ -27,6 +27,7 @@ public class AccountNumberFormatConstants {
     public static final String idParamName = "id";
     public static final String accountTypeParamName = "accountType";
     public static final String prefixTypeParamName = "prefixType";
+    public static final String customPrefixTypeParamName = "customPrefixType";
 
     // response parameters
 
@@ -37,9 +38,9 @@ public class AccountNumberFormatConstants {
     public static final String prefixTypeOptionsParamName = "prefixTypeOptions";
 
     public static final Set<String> ACCOUNT_NUMBER_FORMAT_CREATE_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(
-            accountTypeParamName, prefixTypeParamName));
+            accountTypeParamName, prefixTypeParamName,customPrefixTypeParamName));
 
-    public static final Set<String> ACCOUNT_NUMBER_FORMAT_UPDATE_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(prefixTypeParamName));
+    public static final Set<String> ACCOUNT_NUMBER_FORMAT_UPDATE_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(prefixTypeParamName,customPrefixTypeParamName));
 
     /**
      * These parameters will match the class level parameters of
@@ -57,5 +58,10 @@ public class AccountNumberFormatConstants {
     public static final String ACCOUNT_TYPE_ENUM_COLUMN_NAME = "account_type_enum";
     public static final String PREFIX_TYPE_ENUM_COLUMN_NAME = "prefix_type_enum";
     public static final String ACCOUNT_TYPE_UNIQUE_CONSTRAINT_NAME = "account_type_enum";
+
+    public static final String CUSTOM_ACCOUNT_PREFIX = "custom_account_prefix";
+
+    public static final String ZERO_PADDING= "zero_padding";
+    public static final String CUSTOM_PATTERN = "custom_pattern";
 
 }

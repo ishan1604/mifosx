@@ -5,16 +5,19 @@
  */
 package org.mifosplatform.portfolio.client.domain;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.commons.lang3.StringUtils;
 import org.mifosplatform.infrastructure.accountnumberformat.domain.AccountNumberFormat;
 import org.mifosplatform.infrastructure.accountnumberformat.domain.AccountNumberFormatEnumerations.AccountNumberPrefixType;
+import org.mifosplatform.infrastructure.accountnumberformat.domain.CustomAccountNumberFormat;
+import org.mifosplatform.infrastructure.accountnumberformat.domain.CustomAccountType;
 import org.mifosplatform.infrastructure.codes.domain.CodeValue;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Example {@link AccountNumberGenerator} for clients that takes an entities
@@ -49,6 +52,30 @@ public class AccountNumberGenerator {
         propertyMap.put(OFFICE_NAME, loan.getOffice().getName());
         propertyMap.put(LOAN_PRODUCT_SHORT_NAME, loan.loanProduct().getShortName());
         return generateAccountNumber(propertyMap, accountNumberFormat);
+    }
+
+    public String generateCustom(Loan loan,String customPattern){
+        Map<String,String> customMap = new HashMap<>();
+        customMap.put(ID,loan.getId().toString());
+        customMap.put(CustomAccountType.OFFICE_ID.toString(),loan.getClient().getOffice().getId().toString());
+        customMap.put(CustomAccountType.OFFICE_EXTERNAL_ID.toString(),loan.getClient().getOffice().getExternalId());
+        customMap.put(CustomAccountType.LOAN_PRODUCT.toString(),loan.getLoanProduct().getId().toString());
+        customMap.put(CustomAccountType.LOAN_PRODUCT_SHORT_NAME.toString(),loan.getLoanProduct().getShortName());
+        customMap.put(CustomAccountType.STAFF_ID.toString(),loan.getLoanOfficer().getId().toString());
+        customMap.put(CustomAccountType.CLIENT_ID.toString(),loan.getClient().getId().toString());
+        return null;
+    }
+    private List<?> formatPattern(Loan loan, String customPattern){
+        List<CustomAccountType> customAccountTypes =  null;
+        if(customPattern.contains("-")){
+            final Object split[] = customPattern.split("-");
+            for(int i=0; i<split.length; i++){
+                int n = (int)split[i];
+                CustomAccountType c = CustomAccountType.fromInt(n);
+                customAccountTypes.add(c);
+            }
+        }
+        return customAccountTypes;
     }
 
     public String generate(SavingsAccount savingsAccount, AccountNumberFormat accountNumberFormat) {
@@ -89,5 +116,11 @@ public class AccountNumberGenerator {
         }
         return accountNumber;
     }
+
+    private String generateCustomNumber(Map<String, String> propertyMap,CustomAccountNumberFormat customAccountNumberFormat){
+        return null;
+    }
+
+
 
 }
