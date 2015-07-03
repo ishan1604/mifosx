@@ -74,7 +74,8 @@ public final class LoanProductDataValidator {
             LoanProductConstants.recalculationRestFrequencyTypeParameterName, LoanProductConstants.minimumDaysBetweenDisbursalAndFirstRepayment, LoanProductConstants.mandatoryGuaranteeParamName,
             LoanProductConstants.holdGuaranteeFundsParamName, LoanProductConstants.minimumGuaranteeFromGuarantorParamName,
             LoanProductConstants.minimumGuaranteeFromOwnFundsParamName, CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME, 
-            LoanProductConstants.configurableAttributesParameterName));
+            LoanProductConstants.configurableAttributesParameterName,
+            LoanProductConstants.splitInterestAmongGuarantorsParamName));
 
     private final FromJsonHelper fromApiJsonHelper;
 
