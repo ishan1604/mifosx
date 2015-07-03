@@ -5,14 +5,27 @@
  */
 package org.mifosplatform.portfolio.group.domain;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import org.apache.commons.lang.ObjectUtils;
+import org.apache.commons.lang.StringUtils;
+import org.joda.time.LocalDate;
+import org.mifosplatform.infrastructure.codes.domain.CodeValue;
+import org.mifosplatform.infrastructure.core.api.JsonCommand;
+import org.mifosplatform.infrastructure.core.data.ApiParameterError;
+import org.mifosplatform.infrastructure.core.exception.GeneralPlatformDomainRuleException;
+import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
+import org.mifosplatform.infrastructure.core.service.DateUtils;
+import org.mifosplatform.infrastructure.security.service.RandomPasswordGenerator;
+import org.mifosplatform.organisation.office.domain.Office;
+import org.mifosplatform.organisation.staff.domain.Staff;
+import org.mifosplatform.portfolio.client.domain.Client;
+import org.mifosplatform.portfolio.group.api.GroupingTypesApiConstants;
+import org.mifosplatform.portfolio.group.exception.ClientExistInGroupException;
+import org.mifosplatform.portfolio.group.exception.ClientNotInGroupException;
+import org.mifosplatform.portfolio.group.exception.GroupExistsInCenterException;
+import org.mifosplatform.portfolio.group.exception.GroupNotExistsInCenterException;
+import org.mifosplatform.portfolio.group.exception.InvalidGroupStateTransitionException;
+import org.mifosplatform.useradministration.domain.AppUser;
+import org.springframework.data.jpa.domain.AbstractPersistable;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -25,27 +38,15 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-
-import org.apache.commons.lang.ObjectUtils;
-import org.apache.commons.lang.StringUtils;
-import org.joda.time.LocalDate;
-import org.mifosplatform.infrastructure.codes.domain.CodeValue;
-import org.mifosplatform.infrastructure.core.api.JsonCommand;
-import org.mifosplatform.infrastructure.core.data.ApiParameterError;
-import org.mifosplatform.infrastructure.core.exception.GeneralPlatformDomainRuleException;
-import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
-import org.mifosplatform.infrastructure.core.service.DateUtils;
-import org.mifosplatform.organisation.office.domain.Office;
-import org.mifosplatform.organisation.staff.domain.Staff;
-import org.mifosplatform.portfolio.client.domain.Client;
-import org.mifosplatform.portfolio.group.api.GroupingTypesApiConstants;
-import org.mifosplatform.portfolio.group.exception.ClientExistInGroupException;
-import org.mifosplatform.portfolio.group.exception.ClientNotInGroupException;
-import org.mifosplatform.portfolio.group.exception.GroupExistsInCenterException;
-import org.mifosplatform.portfolio.group.exception.GroupNotExistsInCenterException;
-import org.mifosplatform.portfolio.group.exception.InvalidGroupStateTransitionException;
-import org.mifosplatform.useradministration.domain.AppUser;
-import org.springframework.data.jpa.domain.AbstractPersistable;
+import javax.persistence.Transient;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Entity
 @Table(name = "m_group")
@@ -93,6 +94,9 @@ public final class Group extends AbstractPersistable<Long> {
     @OneToMany(fetch = FetchType.EAGER)
     @JoinColumn(name = "parent_id")
     private final List<Group> groupMembers = new LinkedList<>();
+
+    @Transient
+    private boolean accountNumberRequiresAutoGeneration = false;
 
     @ManyToMany
     @JoinTable(name = "m_group_client", joinColumns = @JoinColumn(name = "group_id"), inverseJoinColumns = @JoinColumn(name = "client_id"))
@@ -165,7 +169,8 @@ public final class Group extends AbstractPersistable<Long> {
         if (StringUtils.isNotBlank(externalId)) {
             this.externalId = externalId.trim();
         } else {
-            this.externalId = null;
+            this.externalId = new RandomPasswordGenerator(19).generate();
+            this.accountNumberRequiresAutoGeneration = true;
         }
 
         if (groupMembers != null) {
@@ -623,5 +628,9 @@ public final class Group extends AbstractPersistable<Long> {
     	
     public void updateOffice(Office office) {
     	this.office = office;
+    }
+    public boolean isAccountNumberRequiresAutoGeneration() {return this.accountNumberRequiresAutoGeneration;}
+    public void updateExternalId(String externalId){
+        this.externalId = externalId;
     }
 }

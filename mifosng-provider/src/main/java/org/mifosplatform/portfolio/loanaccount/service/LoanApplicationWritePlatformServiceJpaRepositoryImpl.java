@@ -5,13 +5,7 @@
  */
 package org.mifosplatform.portfolio.loanaccount.service;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.gson.JsonElement;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.accountnumberformat.domain.AccountNumberFormat;
@@ -101,7 +95,12 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.google.gson.JsonElement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements LoanApplicationWritePlatformService {
@@ -258,7 +257,11 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             if (newLoanApplication.isAccountNumberRequiresAutoGeneration()) {
                 final AccountNumberFormat accountNumberFormat = this.accountNumberFormatRepository
                         .findByAccountType(EntityAccountType.LOAN);
-                newLoanApplication.updateAccountNo(this.accountNumberGenerator.generate(newLoanApplication, accountNumberFormat));
+                if(accountNumberFormat.getCustomPattern() !=null){
+                    newLoanApplication.updateAccountNo(this.accountNumberGenerator.generateCustom(newLoanApplication,accountNumberFormat));
+                }else{
+                    newLoanApplication.updateAccountNo(this.accountNumberGenerator.generate(newLoanApplication, accountNumberFormat));
+                }
                 this.loanRepository.save(newLoanApplication);
             }
 
