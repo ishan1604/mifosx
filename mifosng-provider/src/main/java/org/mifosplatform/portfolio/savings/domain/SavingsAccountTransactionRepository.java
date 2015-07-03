@@ -24,9 +24,15 @@ public interface SavingsAccountTransactionRepository extends JpaRepository<Savin
     public static final String FIND_THE_CURRENT_TRANSFER_TRANSACTIONS = "select * from m_savings_account_transaction t1 where t1.savings_account_id = :savingsAccountId and " +
             "t1.transaction_type_enum in (12,13) order by t1.id desc limit 2";
 
+    public static final String FIND_THE_LAST_APPROVED_TRANSFER_TRANSACTIONS= "select * from m_savings_account_transaction t1 where t1.savings_account_id = :savingsAccountId and " +
+            "t1.transaction_type_enum in (13) order by t1.id desc limit 1";
+
 
     @Query(FIND_ALL_TRANSACTIONS_AFTER_CLIENT_TRANSFER)
     List<SavingsAccountTransaction> transactionsAfterClientTransfer(@Param("savingsAccountId") Long savingsAccountId,@Param("enumType") Integer enumType);
+
+    @Query(value=FIND_THE_LAST_APPROVED_TRANSFER_TRANSACTIONS,nativeQuery = true)
+    SavingsAccountTransaction lastApprovedTransfer(@Param("savingsAccountId") Long savingsAccountId);
 
     @Query(value=FIND_THE_CURRENT_TRANSFER_TRANSACTIONS,nativeQuery = true)
     List<SavingsAccountTransaction> currentTransferTransaction(@Param("savingsAccountId") Long savingsAccountId);
