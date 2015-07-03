@@ -85,5 +85,4 @@ public enum EntityAccountType {
     public Boolean isGroupAccount(){
     	return this.value.equals(EntityAccountType.GROUP.getValue());
     }
-
 }

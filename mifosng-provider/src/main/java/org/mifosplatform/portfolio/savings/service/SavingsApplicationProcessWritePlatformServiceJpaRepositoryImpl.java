@@ -5,15 +5,6 @@
  */
 package org.mifosplatform.portfolio.savings.service;
 
-import static org.mifosplatform.portfolio.savings.SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.commons.lang.StringUtils;
 import org.mifosplatform.commands.domain.CommandWrapper;
 import org.mifosplatform.commands.service.CommandProcessingService;
@@ -66,6 +57,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME;
 
 @Service
 public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl implements SavingsApplicationProcessWritePlatformService {
@@ -180,7 +180,11 @@ public class SavingsApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
     private void generateAccountNumber(final SavingsAccount account) {
         if (account.isAccountNumberRequiresAutoGeneration()) {
             final AccountNumberFormat accountNumberFormat = this.accountNumberFormatRepository.findByAccountType(EntityAccountType.SAVINGS);
-            account.updateAccountNo(this.accountNumberGenerator.generate(account, accountNumberFormat));
+            if(accountNumberFormat !=null && accountNumberFormat.getCustomPattern() !=null){
+                account.updateAccountNo(this.accountNumberGenerator.generateCustom(account,accountNumberFormat));
+            }else{
+                account.updateAccountNo(this.accountNumberGenerator.generate(account, accountNumberFormat));
+            }
 
             this.savingAccountRepository.save(account);
         }

@@ -5,14 +5,6 @@
  */
 package org.mifosplatform.portfolio.group.service;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.commands.domain.CommandWrapper;
 import org.mifosplatform.commands.service.CommandProcessingService;
@@ -77,6 +69,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 @Service
 public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements GroupingTypesWritePlatformService {
 
@@ -101,6 +101,7 @@ public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements Group
     private final AccountNumberFormatRepositoryWrapper accountNumberFormatRepository;
     private final AccountNumberGenerator accountNumberGenerator;
     private final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService;
+
 
     @Autowired
     public GroupingTypesWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -213,6 +214,11 @@ public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements Group
 
             /* Generate account number if required */
             generateAccountNumberIfRequired(newGroup);
+
+            //update externalId
+            if(newGroup.isAccountNumberRequiresAutoGeneration()){
+                generateAccountNumber(newGroup);
+            }
 
             this.groupRepository.saveAndFlush(newGroup);
             newGroup.captureStaffHistoryDuringCenterCreation(staff, activationDate);
@@ -935,6 +941,16 @@ public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements Group
                         "error.msg.center.associating.group.not.allowed.with.different.meeting", "Group with id " + group.getId()
                                 + " meeting recurrence doesnot matched with center meeting recurrence", group.getId()); }
             }
+        }
+    }
+
+    private void generateAccountNumber(final Group group) {
+        if (group.isAccountNumberRequiresAutoGeneration()) {
+            final AccountNumberFormat accountNumberFormat = this.accountNumberFormatRepository.findByAccountType(EntityAccountType.GROUP);
+            if(accountNumberFormat !=null && accountNumberFormat.getCustomPattern() !=null){
+                group.updateExternalId(this.accountNumberGenerator.generateCustom(group, accountNumberFormat));
+            }
+            this.groupRepository.save(group);
         }
     }
 }

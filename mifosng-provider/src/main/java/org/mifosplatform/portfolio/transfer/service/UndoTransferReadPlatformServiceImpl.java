@@ -196,6 +196,6 @@ public class UndoTransferReadPlatformServiceImpl implements UndoTransferReadPlat
     @Override
     public Collection<UndoTransferGroupData> retrieveAllTransferredGroups() {
         final String sql = "select " + this.undoTransferGroupMapper.schema + " where ut.is_transfer_undone = 0 and ut.group_id is not null " +
-                "and ut.id in (select max(u.id) from m_undo_transfer u where u.group_id is not null and ut.is_transfer_undone = 0 group by u.group_id)";
+                "and ut.id in (select max(u.id) from m_undo_transfer u where u.group_id is not null and u.is_transfer_undone = 0 group by u.group_id)";
         return this.jdbcTemplate.query(sql, this.undoTransferGroupMapper, new Object[] {});    }
 }

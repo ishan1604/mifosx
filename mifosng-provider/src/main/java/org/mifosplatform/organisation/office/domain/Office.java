@@ -5,11 +5,12 @@
  */
 package org.mifosplatform.organisation.office.domain;
 
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import org.apache.commons.lang.StringUtils;
+import org.joda.time.LocalDate;
+import org.mifosplatform.infrastructure.core.api.JsonCommand;
+import org.mifosplatform.organisation.office.exception.CannotUpdateOfficeWithParentOfficeSameAsSelf;
+import org.mifosplatform.organisation.office.exception.RootOfficeParentCannotBeUpdated;
+import org.springframework.data.jpa.domain.AbstractPersistable;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -21,13 +22,11 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.persistence.UniqueConstraint;
-
-import org.apache.commons.lang.StringUtils;
-import org.joda.time.LocalDate;
-import org.mifosplatform.infrastructure.core.api.JsonCommand;
-import org.mifosplatform.organisation.office.exception.CannotUpdateOfficeWithParentOfficeSameAsSelf;
-import org.mifosplatform.organisation.office.exception.RootOfficeParentCannotBeUpdated;
-import org.springframework.data.jpa.domain.AbstractPersistable;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "m_office", uniqueConstraints = { @UniqueConstraint(columnNames = { "name" }, name = "name_org"),
@@ -225,4 +224,6 @@ public class Office extends AbstractPersistable<Long> {
 
         return match;
     }
+
+    public String getExternalId() {return this.externalId;}
 }

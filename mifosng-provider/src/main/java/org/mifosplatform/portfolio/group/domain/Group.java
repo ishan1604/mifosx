@@ -97,6 +97,9 @@ public final class Group extends AbstractPersistable<Long> {
     @JoinColumn(name = "parent_id")
     private final List<Group> groupMembers = new LinkedList<>();
 
+    @Transient
+    private boolean accountNumberRequiresAutoGeneration = false;
+
     @ManyToMany
     @JoinTable(name = "m_group_client", joinColumns = @JoinColumn(name = "group_id"), inverseJoinColumns = @JoinColumn(name = "client_id"))
     private Set<Client> clientMembers = new HashSet<>();
@@ -126,9 +129,6 @@ public final class Group extends AbstractPersistable<Long> {
     
     @Column(name = "account_no", length = 20, unique = true, nullable = false)
     private String accountNumber;
-    
-    @Transient
-    private boolean accountNumberRequiresAutoGeneration = false;
 
     // JPA default constructor for entity
     protected Group() {
@@ -185,7 +185,8 @@ public final class Group extends AbstractPersistable<Long> {
         if (StringUtils.isNotBlank(externalId)) {
             this.externalId = externalId.trim();
         } else {
-            this.externalId = null;
+            this.externalId = new RandomPasswordGenerator(19).generate();
+            this.accountNumberRequiresAutoGeneration = true;
         }
 
         if (groupMembers != null) {
@@ -730,5 +731,9 @@ public final class Group extends AbstractPersistable<Long> {
     	
     public void updateOffice(Office office) {
     	this.office = office;
+    }
+    
+    public void updateExternalId(String externalId){
+        this.externalId = externalId;
     }
 }

@@ -5,15 +5,6 @@
  */
 package org.mifosplatform.infrastructure.accountnumberformat.service;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.mifosplatform.infrastructure.accountnumberformat.data.AccountNumberFormatData;
 import org.mifosplatform.infrastructure.accountnumberformat.domain.AccountNumberFormatEnumerations;
 import org.mifosplatform.infrastructure.accountnumberformat.domain.AccountNumberFormatEnumerations.AccountNumberPrefixType;
@@ -27,6 +18,15 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class AccountNumberFormatReadPlatformServiceImpl implements AccountNumberFormatReadPlatformService {
@@ -48,7 +48,8 @@ public class AccountNumberFormatReadPlatformServiceImpl implements AccountNumber
         public AccountNumberFormatMapper() {
             final StringBuilder builder = new StringBuilder(400);
 
-            builder.append(" anf.id as id, anf.account_type_enum as accountTypeEnum, anf.prefix_type_enum as prefixTypeEnum");
+            builder.append(" anf.id as id, anf.account_type_enum as accountTypeEnum, anf.prefix_type_enum as prefixTypeEnum,");
+            builder.append(" anf.custom_pattern as customPattern, anf.zero_padding as zeroPadding");
             builder.append(" from c_account_number_format anf ");
 
             this.schema = builder.toString();
@@ -65,12 +66,16 @@ public class AccountNumberFormatReadPlatformServiceImpl implements AccountNumber
             final Integer accountTypeEnum = rs.getInt("accountTypeEnum");
             final Integer prefixTypeEnum = JdbcSupport.getInteger(rs, "prefixTypeEnum");
 
+            final String customPadding = rs.getString("customPattern");
+            final Integer zeroPadding = JdbcSupport.getInteger(rs, "zeroPadding");
+
+
             final EnumOptionData accountNumberType = AccountNumberFormatEnumerations.entityAccountType(accountTypeEnum);
             EnumOptionData prefixType = null;
             if (prefixTypeEnum != null) {
                 prefixType = AccountNumberFormatEnumerations.accountNumberPrefixType(prefixTypeEnum);
             }
-            return new AccountNumberFormatData(id, accountNumberType, prefixType);
+            return new AccountNumberFormatData(id, accountNumberType, prefixType,customPadding,zeroPadding);
         }
     }
 

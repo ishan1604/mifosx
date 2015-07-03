@@ -5,13 +5,8 @@
  */
 package org.mifosplatform.infrastructure.accountnumberformat.data;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang.StringUtils;
 import org.mifosplatform.infrastructure.accountnumberformat.domain.AccountNumberFormatEnumerations;
 import org.mifosplatform.infrastructure.accountnumberformat.domain.AccountNumberFormatEnumerations.AccountNumberPrefixType;
@@ -25,8 +20,12 @@ import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.gson.JsonElement;
-import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Component
 public class AccountNumberFormatDataValidator {

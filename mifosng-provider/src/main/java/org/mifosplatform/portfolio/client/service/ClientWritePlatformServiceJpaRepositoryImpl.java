@@ -3,19 +3,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-/**
-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/.
- */
 package org.mifosplatform.portfolio.client.service;
-
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
 
 import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormat;
@@ -273,7 +267,11 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
 
             if (newClient.isAccountNumberRequiresAutoGeneration()) {
                 AccountNumberFormat accountNumberFormat = this.accountNumberFormatRepository.findByAccountType(EntityAccountType.CLIENT);
-                newClient.updateAccountNo(accountNumberGenerator.generate(newClient, accountNumberFormat));
+                if(accountNumberFormat != null && accountNumberFormat.getCustomPattern() !=null){
+                    newClient.updateAccountNo(accountNumberGenerator.generateCustom(newClient,accountNumberFormat));
+                }else{
+                    newClient.updateAccountNo(accountNumberGenerator.generate(newClient, accountNumberFormat));
+                }
                 this.clientRepository.save(newClient);
             }
                         

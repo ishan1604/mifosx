@@ -5,14 +5,14 @@
  */
 package org.mifosplatform.infrastructure.accountnumberformat.domain;
 
+import org.mifosplatform.infrastructure.accountnumberformat.domain.AccountNumberFormatEnumerations.AccountNumberPrefixType;
+import org.mifosplatform.infrastructure.accountnumberformat.service.AccountNumberFormatConstants;
+import org.springframework.data.jpa.domain.AbstractPersistable;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
-
-import org.mifosplatform.infrastructure.accountnumberformat.domain.AccountNumberFormatEnumerations.AccountNumberPrefixType;
-import org.mifosplatform.infrastructure.accountnumberformat.service.AccountNumberFormatConstants;
-import org.springframework.data.jpa.domain.AbstractPersistable;
 
 @Entity
 @Table(name = AccountNumberFormatConstants.ACCOUNT_NUMBER_FORMAT_TABLE_NAME, uniqueConstraints = { @UniqueConstraint(columnNames = { AccountNumberFormatConstants.ACCOUNT_TYPE_ENUM_COLUMN_NAME }, name = AccountNumberFormatConstants.ACCOUNT_TYPE_UNIQUE_CONSTRAINT_NAME) })
@@ -23,6 +23,12 @@ public class AccountNumberFormat extends AbstractPersistable<Long> {
 
     @Column(name = AccountNumberFormatConstants.PREFIX_TYPE_ENUM_COLUMN_NAME, nullable = false)
     private Integer prefixEnum;
+
+    @Column(name=AccountNumberFormatConstants.CUSTOM_PATTERN, nullable = true)
+    private String customPattern;
+
+    @Column(name=AccountNumberFormatConstants.ZERO_PADDING, nullable = true)
+    private Integer zeroPadding;
 
     protected AccountNumberFormat() {
         //
@@ -61,5 +67,16 @@ public class AccountNumberFormat extends AbstractPersistable<Long> {
 
     public void setPrefix(AccountNumberPrefixType accountNumberPrefixType) {
         setPrefixEnum(accountNumberPrefixType.getValue());
+    }
+
+    public String getCustomPattern() {return this.customPattern;}
+
+    public Integer getZeroPadding() { return this.zeroPadding;}
+
+    public void updateCustomPattern(final String customPattern){
+        this.customPattern = customPattern;
+    }
+    public  void updateZeroPadding(final Integer zeroPadding){
+        this.zeroPadding = zeroPadding;
     }
 }
