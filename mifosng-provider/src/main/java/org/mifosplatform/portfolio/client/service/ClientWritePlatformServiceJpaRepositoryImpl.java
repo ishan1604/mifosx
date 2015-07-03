@@ -5,11 +5,6 @@
  */
 package org.mifosplatform.portfolio.client.service;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
 import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -28,11 +23,7 @@ import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.mifosplatform.infrastructure.dataqueries.data.EntityTables;
 import org.mifosplatform.infrastructure.dataqueries.data.StatusEnum;
-import org.mifosplatform.infrastructure.dataqueries.domain.EntityDatatableChecks;
-import org.mifosplatform.infrastructure.dataqueries.domain.EntityDatatableChecksRepository;
-import org.mifosplatform.infrastructure.dataqueries.exception.DatatabaleEntryRequiredException;
 import org.mifosplatform.infrastructure.dataqueries.service.EntityDatatableChecksWritePlatformService;
-import org.mifosplatform.infrastructure.dataqueries.service.ReadWriteNonCoreDataService;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.organisation.office.domain.Office;
 import org.mifosplatform.organisation.office.domain.OfficeRepository;
@@ -73,6 +64,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWritePlatformService {
@@ -243,7 +239,11 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
 
             if (newClient.isAccountNumberRequiresAutoGeneration()) {
                 AccountNumberFormat accountNumberFormat = this.accountNumberFormatRepository.findByAccountType(EntityAccountType.CLIENT);
-                newClient.updateAccountNo(accountNumberGenerator.generate(newClient, accountNumberFormat));
+                if(accountNumberFormat.getCustomPattern() !=null){
+                    newClient.updateAccountNo(accountNumberGenerator.generateCustom(newClient,accountNumberFormat));
+                }else{
+                    newClient.updateAccountNo(accountNumberGenerator.generate(newClient, accountNumberFormat));
+                }
                 this.clientRepository.save(newClient);
             }
 

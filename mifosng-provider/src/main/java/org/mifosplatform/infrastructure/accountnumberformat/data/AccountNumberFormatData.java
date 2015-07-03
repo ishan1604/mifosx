@@ -5,11 +5,11 @@
  */
 package org.mifosplatform.infrastructure.accountnumberformat.data;
 
+import org.mifosplatform.infrastructure.core.data.EnumOptionData;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-
-import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 
 public class AccountNumberFormatData implements Serializable {
 
@@ -22,12 +22,17 @@ public class AccountNumberFormatData implements Serializable {
     private List<EnumOptionData> accountTypeOptions;
     private Map<String, List<EnumOptionData>> prefixTypeOptions;
 
-    public AccountNumberFormatData(final Long id, final EnumOptionData accountType, final EnumOptionData prefixType) {
-        this(id, accountType, prefixType, null, null);
+    private final String customPattern;
+    private  final Integer zeroPadding;
+
+
+    public AccountNumberFormatData(final Long id, final EnumOptionData accountType, final EnumOptionData prefixType,
+                                   final String customPattern, final Integer zeroPadding) {
+        this(id, accountType, prefixType, null, null,customPattern,zeroPadding);
     }
 
     public AccountNumberFormatData(final List<EnumOptionData> accountTypeOptions, Map<String, List<EnumOptionData>> prefixTypeOptions) {
-        this(null, null, null, accountTypeOptions, prefixTypeOptions);
+        this(null, null, null, accountTypeOptions, prefixTypeOptions,null,null);
     }
 
     public void templateOnTop(List<EnumOptionData> accountTypeOptions, Map<String, List<EnumOptionData>> prefixTypeOptions) {
@@ -36,12 +41,15 @@ public class AccountNumberFormatData implements Serializable {
     }
 
     private AccountNumberFormatData(final Long id, final EnumOptionData accountType, final EnumOptionData prefixType,
-            final List<EnumOptionData> accountTypeOptions, Map<String, List<EnumOptionData>> prefixTypeOptions) {
+            final List<EnumOptionData> accountTypeOptions, Map<String, List<EnumOptionData>> prefixTypeOptions,
+            final String customPattern, final Integer zeroPadding) {
         this.id = id;
         this.accountType = accountType;
         this.prefixType = prefixType;
         this.accountTypeOptions = accountTypeOptions;
         this.prefixTypeOptions = prefixTypeOptions;
+        this.customPattern = customPattern;
+        this.zeroPadding  =zeroPadding;
     }
 
     public Long getId() {
@@ -64,4 +72,7 @@ public class AccountNumberFormatData implements Serializable {
         return this.prefixTypeOptions;
     }
 
+    public String getCustomPattern() {return this.customPattern;}
+
+    public Integer getZeroPadding() {return this.zeroPadding;}
 }

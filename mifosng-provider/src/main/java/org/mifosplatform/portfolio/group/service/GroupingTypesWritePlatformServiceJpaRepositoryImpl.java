@@ -5,18 +5,13 @@
  */
 package org.mifosplatform.portfolio.group.service;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.commands.domain.CommandWrapper;
 import org.mifosplatform.commands.service.CommandProcessingService;
 import org.mifosplatform.commands.service.CommandWrapperBuilder;
+import org.mifosplatform.infrastructure.accountnumberformat.domain.AccountNumberFormat;
+import org.mifosplatform.infrastructure.accountnumberformat.domain.AccountNumberFormatRepositoryWrapper;
+import org.mifosplatform.infrastructure.accountnumberformat.domain.EntityAccountType;
 import org.mifosplatform.infrastructure.codes.domain.CodeValue;
 import org.mifosplatform.infrastructure.codes.domain.CodeValueRepositoryWrapper;
 import org.mifosplatform.infrastructure.configuration.domain.ConfigurationDomainService;
@@ -40,6 +35,7 @@ import org.mifosplatform.portfolio.calendar.domain.CalendarEntityType;
 import org.mifosplatform.portfolio.calendar.domain.CalendarInstance;
 import org.mifosplatform.portfolio.calendar.domain.CalendarInstanceRepository;
 import org.mifosplatform.portfolio.calendar.domain.CalendarType;
+import org.mifosplatform.portfolio.client.domain.AccountNumberGenerator;
 import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.client.domain.ClientRepositoryWrapper;
 import org.mifosplatform.portfolio.client.service.LoanStatusMapper;
@@ -72,6 +68,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 @Service
 public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements GroupingTypesWritePlatformService {
 
@@ -93,6 +97,9 @@ public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements Group
     private final ConfigurationDomainService configurationDomainService;
     private final SavingsAccountRepository savingsAccountRepository;
     private final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService;
+    private final AccountNumberGenerator accountNumberGenerator;
+    private final AccountNumberFormatRepositoryWrapper accountNumberFormatRepository;
+
 
     @Autowired
     public GroupingTypesWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -103,7 +110,8 @@ public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements Group
             final CodeValueRepositoryWrapper codeValueRepository, final CommandProcessingService commandProcessingService,
             final CalendarInstanceRepository calendarInstanceRepository, final ConfigurationDomainService configurationDomainService,
             final SavingsAccountRepository savingsAccountRepository, 
-            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService) {
+            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,final AccountNumberGenerator accountNumberGenerator,
+            final AccountNumberFormatRepositoryWrapper accountNumberFormatRepository) {
         this.context = context;
         this.groupRepository = groupRepository;
         this.clientRepositoryWrapper = clientRepositoryWrapper;
@@ -120,6 +128,8 @@ public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements Group
         this.configurationDomainService = configurationDomainService;
         this.savingsAccountRepository = savingsAccountRepository;
         this.entityDatatableChecksWritePlatformService = entityDatatableChecksWritePlatformService;
+        this.accountNumberGenerator = accountNumberGenerator;
+        this.accountNumberFormatRepository = accountNumberFormatRepository;
     }
 
     private CommandProcessingResult createGroupingType(final JsonCommand command, final GroupTypes groupingType, final Long centerId) {
@@ -193,6 +203,11 @@ public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements Group
             this.groupRepository.save(newGroup);
 
             newGroup.generateHierarchy();
+
+            //update externalId
+            if(newGroup.isAccountNumberRequiresAutoGeneration()){
+                generateAccountNumber(newGroup);
+            }
 
             this.groupRepository.saveAndFlush(newGroup);
 
@@ -901,6 +916,16 @@ public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements Group
                         "error.msg.center.associating.group.not.allowed.with.different.meeting", "Group with id " + group.getId()
                                 + " meeting recurrence doesnot matched with center meeting recurrence", group.getId()); }
             }
+        }
+    }
+
+    private void generateAccountNumber(final Group group) {
+        if (group.isAccountNumberRequiresAutoGeneration()) {
+            final AccountNumberFormat accountNumberFormat = this.accountNumberFormatRepository.findByAccountType(EntityAccountType.GROUP);
+            if(accountNumberFormat.getCustomPattern() !=null){
+                group.updateExternalId(this.accountNumberGenerator.generateCustom(group, accountNumberFormat));
+            }
+            this.groupRepository.save(group);
         }
     }
 }

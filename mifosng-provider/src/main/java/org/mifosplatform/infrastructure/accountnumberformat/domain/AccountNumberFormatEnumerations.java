@@ -5,6 +5,8 @@
  */
 package org.mifosplatform.infrastructure.accountnumberformat.domain;
 
+import org.mifosplatform.infrastructure.core.data.EnumOptionData;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -12,8 +14,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 
 public class AccountNumberFormatEnumerations {
 
@@ -23,6 +23,10 @@ public class AccountNumberFormatEnumerations {
             AccountNumberPrefixType.OFFICE_NAME, AccountNumberPrefixType.LOAN_PRODUCT_SHORT_NAME));
     public final static Set<AccountNumberPrefixType> accountNumberPrefixesForSavingsAccounts = new HashSet<>(Arrays.asList(
             AccountNumberPrefixType.OFFICE_NAME, AccountNumberPrefixType.SAVINGS_PRODUCT_SHORT_NAME));
+
+    public final static Set<AccountNumberPrefixType> accountNumberPrefixesForGroupExternalId = new HashSet<>(Arrays.asList(
+            AccountNumberPrefixType.OFFICE_NAME
+    ));
 
     public enum AccountNumberPrefixType {
         OFFICE_NAME(1, "accountNumberPrefixType.officeName"), CLIENT_TYPE(101, "accountNumberPrefixType.clientType"), LOAN_PRODUCT_SHORT_NAME(
