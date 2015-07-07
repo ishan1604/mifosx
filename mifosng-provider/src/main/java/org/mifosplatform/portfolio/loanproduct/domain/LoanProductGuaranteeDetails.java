@@ -40,7 +40,7 @@ public class LoanProductGuaranteeDetails extends AbstractPersistable<Long> {
     @Column(name = "minimum_guarantee_from_guarantor_funds", scale = 6, precision = 19, nullable = false)
     private BigDecimal minimumGuaranteeFromGuarantor;
     
-    @Column(name = "split_interest_to_guarantors", nullable = false)
+    @Column(name = "split_interest_among_guarantors", nullable = false)
     private boolean splitInterestAmongGuarantors;
 
     protected LoanProductGuaranteeDetails() {

@@ -174,7 +174,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     + "lpr.rest_frequency_type_enum as restFrequencyEnum, lpr.rest_frequency_interval as restFrequencyInterval, "
                     + "lpr.rest_freqency_date as restFrequencyDate, "
                     + "lp.hold_guarantee_funds as holdGuaranteeFunds, "
-                    + "lpg.id as lpgId, lpg.mandatory_guarantee as mandatoryGuarantee,lpg.split_interest_to_guarantors as splitInterestAmongGuarantors, "
+                    + "lpg.id as lpgId, lpg.mandatory_guarantee as mandatoryGuarantee,lpg.split_interest_among_guarantors as splitInterestAmongGuarantors, "
                     + "lpg.minimum_guarantee_from_own_funds as minimumGuaranteeFromOwnFunds, lpg.minimum_guarantee_from_guarantor_funds as minimumGuaranteeFromGuarantor, "
                     + "curr.name as currencyName, curr.internationalized_name_code as currencyNameCode, curr.display_symbol as currencyDisplaySymbol, lp.external_id as externalId, "
                     + "lca.id as lcaId, lca.allow_attribute_configuration as allowAttributeConfiguration, lca.amortization as configureAmortization, lca.interest_method as configureInterestMethod, "
