@@ -922,7 +922,7 @@ public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements Group
     private void generateAccountNumber(final Group group) {
         if (group.isAccountNumberRequiresAutoGeneration()) {
             final AccountNumberFormat accountNumberFormat = this.accountNumberFormatRepository.findByAccountType(EntityAccountType.GROUP);
-            if(accountNumberFormat.getCustomPattern() !=null){
+            if(accountNumberFormat !=null && accountNumberFormat.getCustomPattern() !=null){
                 group.updateExternalId(this.accountNumberGenerator.generateCustom(group, accountNumberFormat));
             }
             this.groupRepository.save(group);
