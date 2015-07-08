@@ -511,6 +511,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             final Long productId = command.longValueOfParameterNamed(productIdParamName);
             final LoanProduct loanProduct = this.loanProductRepository.findOne(productId);
             if (loanProduct == null) { throw new LoanProductNotFoundException(productId); }
+            
+
 
             if (changes.containsKey(productIdParamName)) {                
                 existingLoanApplication.updateLoanProduct(loanProduct);
