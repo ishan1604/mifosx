@@ -586,7 +586,13 @@ public class Loan extends AbstractPersistable<Long> {
         final LoanRepaymentScheduleProcessingWrapper wrapper = new LoanRepaymentScheduleProcessingWrapper();
         wrapper.reprocess(getCurrency(), getDisbursementDate(), this.repaymentScheduleInstallments, charges(),
                 getLastUserTransactionForChargeCalc());
-        if (!loanCharge.isDueAtDisbursement()) {
+        boolean isPaymentModeAccountTransfer = false;
+        
+        if (loanCharge.getChargePaymentMode() != null) {
+            isPaymentModeAccountTransfer = loanCharge.getChargePaymentMode().isPaymentModeAccountTransfer();
+        }
+        
+        if (!loanCharge.isDueAtDisbursement() && !isPaymentModeAccountTransfer) {
             final List<LoanTransaction> allNonContraTransactionsPostDisbursement = retreiveListOfTransactionsPostDisbursement();
             changedTransactionDetail = loanRepaymentScheduleTransactionProcessor.handleTransaction(getDisbursementDate(),
                     allNonContraTransactionsPostDisbursement, getCurrency(), this.repaymentScheduleInstallments, charges(),
