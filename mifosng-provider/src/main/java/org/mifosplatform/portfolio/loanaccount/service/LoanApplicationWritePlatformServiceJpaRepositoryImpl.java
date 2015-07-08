@@ -508,11 +508,12 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             }
 
             final String productIdParamName = "productId";
-            final Long productId = command.longValueOfParameterNamed(productIdParamName);
-            final LoanProduct loanProduct = this.loanProductRepository.findOne(productId);
-            if (loanProduct == null) { throw new LoanProductNotFoundException(productId); }
 
-            if (changes.containsKey(productIdParamName)) {                
+            if (changes.containsKey(productIdParamName)) {
+                final Long productId = command.longValueOfParameterNamed(productIdParamName);
+                final LoanProduct loanProduct = this.loanProductRepository.findOne(productId);
+                if (loanProduct == null) { throw new LoanProductNotFoundException(productId); }
+
                 existingLoanApplication.updateLoanProduct(loanProduct);
                 if (!changes.containsKey("interestRateFrequencyType")) {
                     existingLoanApplication.updateInterestRateFrequencyType();
