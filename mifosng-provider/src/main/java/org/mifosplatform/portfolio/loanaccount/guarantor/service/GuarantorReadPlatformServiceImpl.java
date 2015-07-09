@@ -5,13 +5,6 @@
  */
 package org.mifosplatform.portfolio.loanaccount.guarantor.service;
 
-import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.codes.data.CodeValueData;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
@@ -35,6 +28,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 @Service
 public class GuarantorReadPlatformServiceImpl implements GuarantorReadPlatformService {
@@ -256,7 +256,7 @@ public class GuarantorReadPlatformServiceImpl implements GuarantorReadPlatformSe
             final boolean transactionReversed = rs.getBoolean("transactionReversed");
             if (id != null) {
                 DepositAccountOnHoldTransactionData onHoldTransactionData = DepositAccountOnHoldTransactionData.instance(transactionId,
-                        amount, transactionType, date, transactionReversed);
+                        amount, transactionType, date, transactionReversed,null);
                 guarantorTransactionData = GuarantorTransactionData.instance(id, onHoldTransactionData, null, reversed);
             }
             return guarantorTransactionData;

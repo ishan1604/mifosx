@@ -5,12 +5,6 @@
  */
 package org.mifosplatform.portfolio.savings.service;
 
-import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
@@ -23,6 +17,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class DepositAccountOnHoldTransactionReadPlatformServiceImpl implements DepositAccountOnHoldTransactionReadPlatformService {
@@ -81,9 +81,11 @@ public class DepositAccountOnHoldTransactionReadPlatformServiceImpl implements D
             final StringBuilder sqlBuilder = new StringBuilder(400);
             sqlBuilder.append("tr.id as transactionId, tr.transaction_type_enum as transactionType, ");
             sqlBuilder.append("tr.transaction_date as transactionDate, tr.amount as transactionAmount,");
-            sqlBuilder.append("tr.is_reversed as reversed ");
+            sqlBuilder.append("tr.is_reversed as reversed, ");
+            sqlBuilder.append("lt.loan_id as loanId ");
             sqlBuilder.append("from m_deposit_account_on_hold_transaction tr ");
             sqlBuilder.append(" left join m_guarantor_transaction gt on gt.deposit_on_hold_transaction_id = tr.id ");
+            sqlBuilder.append(" left join m_loan_transaction lt on lt.id = gt.loan_transaction_id ");
 
             this.schemaSql = sqlBuilder.toString();
         }
@@ -102,7 +104,8 @@ public class DepositAccountOnHoldTransactionReadPlatformServiceImpl implements D
             final LocalDate date = JdbcSupport.getLocalDate(rs, "transactionDate");
             final BigDecimal amount = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "transactionAmount");
             final boolean reversed = rs.getBoolean("reversed");
-            return DepositAccountOnHoldTransactionData.instance(id, amount, transactionType, date, reversed);
+            final Long loanId     = rs.getLong("loanId");
+            return DepositAccountOnHoldTransactionData.instance(id, amount, transactionType, date, reversed,loanId);
         }
     }
 

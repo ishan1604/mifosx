@@ -5,10 +5,10 @@
  */
 package org.mifosplatform.portfolio.savings.data;
 
-import java.math.BigDecimal;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
+
+import java.math.BigDecimal;
 
 public class DepositAccountOnHoldTransactionData {
 
@@ -22,18 +22,22 @@ public class DepositAccountOnHoldTransactionData {
     private final LocalDate transactionDate;
     @SuppressWarnings("unused")
     private final boolean reversed;
+    @SuppressWarnings("unused")
+
+    private final Long loanId;
 
     private DepositAccountOnHoldTransactionData(final Long id, final BigDecimal amount, final EnumOptionData transactionType,
-            final LocalDate transactionDate, final boolean reversed) {
+            final LocalDate transactionDate, final boolean reversed,final Long loanId) {
         this.id = id;
         this.amount = amount;
         this.transactionType = transactionType;
         this.transactionDate = transactionDate;
         this.reversed = reversed;
+        this.loanId   = loanId;
     }
 
     public static DepositAccountOnHoldTransactionData instance(final Long id, final BigDecimal amount,
-            final EnumOptionData transactionType, final LocalDate transactionDate, final boolean reversed) {
-        return new DepositAccountOnHoldTransactionData(id, amount, transactionType, transactionDate, reversed);
+            final EnumOptionData transactionType, final LocalDate transactionDate, final boolean reversed,final Long loanId) {
+        return new DepositAccountOnHoldTransactionData(id, amount, transactionType, transactionDate, reversed,loanId);
     }
 }
