@@ -5,11 +5,6 @@
  */
 package org.mifosplatform.portfolio.client.service;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
 import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -26,13 +21,10 @@ import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.infrastructure.dataqueries.data.EntityTables;
 import org.mifosplatform.infrastructure.dataqueries.data.StatusEnum;
-import org.mifosplatform.infrastructure.dataqueries.domain.EntityDatatableChecks;
-import org.mifosplatform.infrastructure.dataqueries.domain.EntityDatatableChecksRepository;
-import org.mifosplatform.infrastructure.dataqueries.exception.DatatabaleEntryRequiredException;
 import org.mifosplatform.infrastructure.dataqueries.service.EntityDatatableChecksWritePlatformService;
-import org.mifosplatform.infrastructure.dataqueries.service.ReadWriteNonCoreDataService;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.organisation.office.domain.Office;
 import org.mifosplatform.organisation.office.domain.OfficeRepository;
@@ -74,6 +66,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 @Service
 public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWritePlatformService {
 
@@ -96,6 +93,7 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
     private final ConfigurationDomainService configurationDomainService;
     private final AccountNumberFormatRepositoryWrapper accountNumberFormatRepository;
     private final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService;
+    private final SavingsAccountRepository savingsAccountRepository;
 
     @Autowired
     public ClientWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -107,7 +105,7 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
             final SavingsApplicationProcessWritePlatformService savingsApplicationProcessWritePlatformService,
             final CommandProcessingService commandProcessingService, final ConfigurationDomainService configurationDomainService,
             final AccountNumberFormatRepositoryWrapper accountNumberFormatRepository, 
-            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService) {
+            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,final SavingsAccountRepository savingsAccountRepository) {
         this.context = context;
         this.clientRepository = clientRepository;
         this.officeRepository = officeRepository;
@@ -125,6 +123,7 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
         this.configurationDomainService = configurationDomainService;
         this.accountNumberFormatRepository = accountNumberFormatRepository;
         this.entityDatatableChecksWritePlatformService = entityDatatableChecksWritePlatformService;
+        this.savingsAccountRepository = savingsAccountRepository;
     }
 
     @Transactional
@@ -471,6 +470,30 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
              **/
             clientForUpdate.assignStaff(staff);
         }
+        final boolean inheritClientAccounts = command
+                .booleanPrimitiveValueOfParameterNamed(ClientApiConstants.inheritClientAccountsParamName);
+        /**
+         * update all clients active loans and savings account with this loanOfficer
+         */
+        if(inheritClientAccounts){
+            final LocalDate loanOfficerReassignmentDate = DateUtils.getLocalDateOfTenant();
+            if(this.loanRepository.doNonClosedLoanAccountsExistForClient(clientId)){
+                for(final Loan loan : this.loanRepository.findLoanByClientId(clientId)){
+                    if(loan.isDisbursed() && !loan.isClosed()){
+                        loan.reassignLoanOfficer(staff,loanOfficerReassignmentDate);
+                    }
+                }
+            }
+            if (this.savingsAccountRepository.doNonClosedSavingAccountsExistForClient(clientId)) {
+                for (final SavingsAccount savingsAccount : this.savingsAccountRepository
+                        .findSavingAccountByClientId(clientId)) {
+                    if (!savingsAccount.isClosed()) {
+                        savingsAccount.reassignSavingsOfficer(staff, loanOfficerReassignmentDate);
+                    }
+                }
+            }
+        }
+
 
         this.clientRepository.saveAndFlush(clientForUpdate);
 

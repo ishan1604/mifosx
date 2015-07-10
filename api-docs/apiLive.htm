@@ -3708,6 +3708,25 @@ Request Body:
 	        <p>Allows you to assign a <i>Staff</i> for existed Client.</p>
 	        <p>The selected Staff should belong to the same office (or an officer higher up in the hierarchy) 
 	        as the Client he manages.</p>
+			<table class=matrixHeading>
+						<tr class="matrixHeadingBG">
+							<td><div class="mifosXHeading2">Mandatory Fields</div></td>
+						</tr>
+						<tr class=alt>
+							<td>staffId</td>
+						</tr>
+					</table>
+					<table class=matrixHeading>
+						<tr class="matrixHeadingBG">
+							<td><div class="mifosXHeading2">Optional Fields</div></td>
+						</tr>
+						<tr class=alt>
+							<td>inheritClientAccounts</td>
+						</tr>
+						<tr>
+							<td class=fielddesc>Optional: Boolean if true all active loans and savings will inherit the staffId</td>
+						</tr>
+					</table>
 	    </div>
 	    <div class="method-example">
 	        <code class="method-declaration">POST https://Domain Name/api/v1/clients/{clientId}?command=assignStaff</code>

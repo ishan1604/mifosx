@@ -5,11 +5,11 @@
  */
 package org.mifosplatform.portfolio.client.api;
 
+import org.mifosplatform.portfolio.client.data.ClientData;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-
-import org.mifosplatform.portfolio.client.data.ClientData;
 
 public class ClientApiConstants {
 
@@ -81,6 +81,8 @@ public class ClientApiConstants {
     // template related part of response
     public static final String officeOptionsParamName = "officeOptions";
     public static final String staffOptionsParamName = "staffOptions";
+
+    public static final String inheritClientAccountsParamName ="inheritClientAccounts";
 
     public static final Set<String> CLIENT_CREATE_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(localeParamName,
             dateFormatParamName, groupIdParamName, accountNoParamName, externalIdParamName, mobileNoParamName, firstnameParamName,

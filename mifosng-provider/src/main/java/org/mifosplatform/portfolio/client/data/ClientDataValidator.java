@@ -5,14 +5,8 @@
  */
 package org.mifosplatform.portfolio.client.data;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
@@ -26,8 +20,13 @@ import org.mifosplatform.portfolio.client.api.ClientApiConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.gson.JsonElement;
-import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Component
 public final class ClientDataValidator {
@@ -445,7 +444,7 @@ public final class ClientDataValidator {
 
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
 
-        final Set<String> supportedParametersUnassignStaff = new HashSet<>(Arrays.asList(ClientApiConstants.staffIdParamName));
+        final Set<String> supportedParametersUnassignStaff = new HashSet<>(Arrays.asList(ClientApiConstants.staffIdParamName,ClientApiConstants.inheritClientAccountsParamName));
 
         this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, supportedParametersUnassignStaff);
         final JsonElement element = this.fromApiJsonHelper.parse(json);
@@ -458,6 +457,10 @@ public final class ClientDataValidator {
         final String staffIdParameterName = ClientApiConstants.staffIdParamName;
         final Long staffId = this.fromApiJsonHelper.extractLongNamed(staffIdParameterName, element);
         baseDataValidator.reset().parameter(staffIdParameterName).value(staffId).notNull().longGreaterThanZero();
+
+        final String inheritClientAccountsParamName = ClientApiConstants.inheritClientAccountsParamName;
+        final Boolean inheritClientAccounts= this.fromApiJsonHelper.extractBooleanNamed(inheritClientAccountsParamName,element);
+        baseDataValidator.reset().parameter(inheritClientAccountsParamName).value(inheritClientAccounts).ignoreIfNull().notBlank().isOneOfTheseValues(true, false);
 
         if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
 
