@@ -178,7 +178,7 @@ public class UndoTransferReadPlatformServiceImpl implements UndoTransferReadPlat
     public UndoTransferGroupData retrieveUndoTransferGroupData(Long groupId) {
         try{
             final String sql = "select " + this.undoTransferGroupMapper.schema + " where ut.group_id = ? and " +
-                    "ut.id=(select max(t.id) from m_undo_transfer t where t.group_id = ? and and t.is_transfer_undone = 0)";
+                    "ut.id=(select max(t.id) from m_undo_transfer t where t.group_id = ? and t.is_transfer_undone = 0)";
             return this.jdbcTemplate.queryForObject(sql, this.undoTransferGroupMapper, new Object[] { groupId,groupId });
         }catch (final EmptyResultDataAccessException e) {
             throw new UndoTransferEntityNotFound(groupId);
