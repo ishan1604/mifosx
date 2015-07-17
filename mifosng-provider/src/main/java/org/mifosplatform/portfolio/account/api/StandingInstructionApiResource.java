@@ -179,7 +179,7 @@ public class StandingInstructionApiResource {
         final Date startDateRange = null;
         final Date endDateRange = null;
         StandingInstructionDTO standingInstructionDTO = new StandingInstructionDTO(searchParameters, transferType, clientName, clientId,
-                fromAccount, fromAccountType, startDateRange, endDateRange);
+                fromAccount, fromAccountType, startDateRange, endDateRange, null);
 
         final Page<StandingInstructionData> transfers = this.standingInstructionReadPlatformService.retrieveAll(standingInstructionDTO);
 

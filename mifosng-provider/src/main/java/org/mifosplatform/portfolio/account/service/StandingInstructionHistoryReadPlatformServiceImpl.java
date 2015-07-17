@@ -64,6 +64,14 @@ public class StandingInstructionHistoryReadPlatformServiceImpl implements Standi
         }
         boolean addAndCaluse = false;
         List<Object> paramObj = new ArrayList<>();
+        if (standingInstructionDTO.standingInstructionId() != null) {
+            if (addAndCaluse) {
+                sqlBuilder.append(" and ");
+            }
+            sqlBuilder.append(" atsih.standing_instruction_id=? ");
+            paramObj.add(standingInstructionDTO.standingInstructionId());
+            addAndCaluse = true;
+        }
         if (standingInstructionDTO.transferType() != null) {
             if (addAndCaluse) {
                 sqlBuilder.append(" and ");
