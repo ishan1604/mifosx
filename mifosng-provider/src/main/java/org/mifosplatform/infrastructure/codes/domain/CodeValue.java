@@ -130,6 +130,7 @@ public class CodeValue extends AbstractPersistable<Long> {
      **/
     public void delete() {
         this.isDeleted = true;
+        this.label = this.label + "_deleted_" + this.getId();
     }
     
     /** 
