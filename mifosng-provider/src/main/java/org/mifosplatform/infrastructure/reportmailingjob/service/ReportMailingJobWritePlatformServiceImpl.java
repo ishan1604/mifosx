@@ -310,8 +310,8 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
     private void createReportMailingJobRunHistroryAfterJobExecution(final ReportMailingJob reportMailingJob, final StringBuilder errorLog, 
             final DateTime jobStartDateTime, final String jobRunStatus) {
         final DateTime jobEndDateTime = DateUtils.getLocalDateTimeOfTenant().toDateTime();
-        final ReportMailingJobRunHistory reportMailingJobRunHistory = ReportMailingJobRunHistory.instance(reportMailingJob, jobEndDateTime, 
-                jobStartDateTime, jobRunStatus, null, errorLog.toString());
+        final ReportMailingJobRunHistory reportMailingJobRunHistory = ReportMailingJobRunHistory.instance(reportMailingJob, jobStartDateTime, 
+                jobEndDateTime, jobRunStatus, null, errorLog.toString());
         
         this.reportMailingJobRunHistoryRepository.save(reportMailingJobRunHistory);
     }
