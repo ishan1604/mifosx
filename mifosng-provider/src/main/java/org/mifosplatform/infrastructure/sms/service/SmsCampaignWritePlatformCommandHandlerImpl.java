@@ -8,7 +8,6 @@ package org.mifosplatform.infrastructure.sms.service;
 import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
-
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.joda.time.DateTimeZone;
@@ -252,13 +251,20 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
         LocalDateTime nextTriggerDate = smsCampaign.getNextTriggerDate();
         smsCampaign.setLastTriggerDate(nextTriggerDate.toDate());
         //calculate new trigger date and insert into next trigger date
-       // final LocalDate nextDay = nextTriggerDate.plusDays(1).toLocalDate();
 
-        final LocalDate nextRuntime = CalendarUtils.getNextRecurringDate(smsCampaign.getRecurrence(), smsCampaign.getNextTriggerDate().toLocalDate(),nextTriggerDate.toLocalDate()) ;
+        /**
+         * next run time has to be in the future if not calculate a new future date
+         */
+        LocalDate nextRuntime = CalendarUtils.getNextRecurringDate(smsCampaign.getRecurrence(), smsCampaign.getNextTriggerDate().toLocalDate(),nextTriggerDate.toLocalDate()) ;
+        if(nextRuntime.isBefore(DateUtils.getLocalDateOfTenant())){ // means next run time is in the past calculate a new future date
+            nextRuntime = CalendarUtils.getNextRecurringDate(smsCampaign.getRecurrence(), smsCampaign.getNextTriggerDate().toLocalDate(),DateUtils.getLocalDateOfTenant()) ;
+        }
         final LocalDateTime getTime = smsCampaign.getRecurrenceStartDateTime();
         final String dateString = nextRuntime.toString() + " " + getTime.getHourOfDay()+":"+getTime.getMinuteOfHour()+":"+getTime.getSecondOfMinute();
         final DateTimeFormatter simpleDateFormat = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
         final LocalDateTime newTriggerDateWithTime = LocalDateTime.parse(dateString,simpleDateFormat);
+
+
         smsCampaign.setNextTriggerDate(newTriggerDateWithTime.toDate());
         this.smsCampaignRepository.saveAndFlush(smsCampaign);
     }
@@ -435,17 +441,30 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
         final LocalDate reactivationDate = command.localDateValueOfParameterNamed("activationDate");
         smsCampaign.reactivate(currentUser,fmt,reactivationDate);
         if (smsCampaign.isSchedule()) {
-            final LocalDate nextTriggerDate = CalendarUtils.getNextRecurringDate(smsCampaign.getRecurrence(), smsCampaign.getRecurrenceStartDate(), new LocalDate());
+
+            /**
+             * if recurrence start date is in the future calculate
+             * next trigger date if not use recurrence start date us next trigger
+             * date when activating
+             */
+            LocalDate nextTriggerDate = null;
+            if(smsCampaign.getRecurrenceStartDateTime().isBefore(tenantDateTime())){
+                nextTriggerDate = CalendarUtils.getNextRecurringDate(smsCampaign.getRecurrence(), smsCampaign.getRecurrenceStartDate(), DateUtils.getLocalDateOfTenant());
+            }else{
+                nextTriggerDate = smsCampaign.getRecurrenceStartDate();
+            }
+            // to get time of tenant
             final LocalDateTime getTime = smsCampaign.getRecurrenceStartDateTime();
-                /*
-                final String dateString = nextTriggerDate.toString() + " " + getTime.getHourOfDay()+":"+getTime.getMinuteOfHour()+":"+getTime.getSecondOfMinute();
-                final DateTimeFormatter simpleDateFormat = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
-                final LocalDateTime nextTriggerDateWithTime = LocalDateTime.parse(dateString,simpleDateFormat);
-                */
-            smsCampaign.setNextTriggerDate(getTime.toDate());
+
+            final String dateString = nextTriggerDate.toString() + " " + getTime.getHourOfDay()+":"+getTime.getMinuteOfHour()+":"+getTime.getSecondOfMinute();
+            final DateTimeFormatter simpleDateFormat = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
+            final LocalDateTime nextTriggerDateWithTime = LocalDateTime.parse(dateString,simpleDateFormat);
+
+            smsCampaign.setNextTriggerDate(nextTriggerDateWithTime.toDate());
+            this.smsCampaignRepository.saveAndFlush(smsCampaign);
         }
 
-        this.smsCampaignRepository.saveAndFlush(smsCampaign);
+
 
         return new CommandProcessingResultBuilder() //
                 .withEntityId(smsCampaign.getId()) //
