@@ -5,13 +5,7 @@
  */
 package org.mifosplatform.accounting.producttoaccountmapping.serialization;
 
-import static org.mifosplatform.portfolio.savings.SavingsApiConstants.SAVINGS_PRODUCT_RESOURCE_NAME;
-import static org.mifosplatform.portfolio.savings.SavingsApiConstants.accountingRuleParamName;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
+import com.google.gson.JsonElement;
 import org.apache.commons.lang.StringUtils;
 import org.mifosplatform.accounting.common.AccountingConstants.LOAN_PRODUCT_ACCOUNTING_PARAMS;
 import org.mifosplatform.accounting.common.AccountingConstants.SAVINGS_PRODUCT_ACCOUNTING_PARAMS;
@@ -28,7 +22,12 @@ import org.mifosplatform.portfolio.savings.DepositAccountType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.gson.JsonElement;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.SAVINGS_PRODUCT_RESOURCE_NAME;
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.accountingRuleParamName;
 
 /**
  * TODO Vishwas find a better approach for validation
@@ -141,6 +140,11 @@ public final class ProductToGLAccountMappingFromApiJsonDeserializer {
                     LOAN_PRODUCT_ACCOUNTING_PARAMS.PENALTIES_RECEIVABLE.getValue(), element);
             baseDataValidator.reset().parameter(LOAN_PRODUCT_ACCOUNTING_PARAMS.PENALTIES_RECEIVABLE.getValue())
                     .value(receivablePenaltyAccountId).notNull().integerGreaterThanZero();
+
+            final Long suspendedIncomeAccountId = this.fromApiJsonHelper.extractLongNamed(
+                    LOAN_PRODUCT_ACCOUNTING_PARAMS.SUSPENDED_INCOME.getValue(), element);
+            baseDataValidator.reset().parameter(LOAN_PRODUCT_ACCOUNTING_PARAMS.SUSPENDED_INCOME.getValue()).value(suspendedIncomeAccountId)
+                    .notNull().integerGreaterThanZero();
         }
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
