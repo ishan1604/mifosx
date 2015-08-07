@@ -61,7 +61,8 @@ public class StandingInstructionHistoryApiResource {
             @QueryParam("clientName") final String clientName, @QueryParam("clientId") final Long clientId,
             @QueryParam("fromAccountId") final Long fromAccount, @QueryParam("fromAccountType") final Integer fromAccountType,
             @QueryParam("locale") final String locale, @QueryParam("dateFormat") final String dateFormat,
-            @QueryParam("fromDate") final DateParam fromDateParam, @QueryParam("toDate") final DateParam toDateParam) {
+            @QueryParam("fromDate") final DateParam fromDateParam, @QueryParam("toDate") final DateParam toDateParam, 
+            @QueryParam("standingInstructionId") final Long standingInstructionId) {
 
         this.context.authenticatedUser().validateHasReadPermission(StandingInstructionApiConstants.STANDING_INSTRUCTION_RESOURCE_NAME);
 
@@ -77,7 +78,7 @@ public class StandingInstructionHistoryApiResource {
         }
 
         StandingInstructionDTO standingInstructionDTO = new StandingInstructionDTO(searchParameters, transferType, clientName, clientId,
-                fromAccount, fromAccountType, startDateRange, endDateRange);
+                fromAccount, fromAccountType, startDateRange, endDateRange, standingInstructionId);
 
         final Page<StandingInstructionHistoryData> history = this.standingInstructionHistoryReadPlatformService
                 .retrieveAll(standingInstructionDTO);
