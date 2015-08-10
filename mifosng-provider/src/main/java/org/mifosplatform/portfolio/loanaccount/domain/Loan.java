@@ -359,6 +359,10 @@ public class Loan extends AbstractPersistable<Long> {
     @Column(name = "guarantee_amount_derived", scale = 6, precision = 19, nullable = true)
     private BigDecimal guaranteeAmountDerived;
 
+    @LazyCollection(LazyCollectionOption.FALSE)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "loan", orphanRemoval = true)
+    private Set<GroupLoanMemberAllocation> groupLoanMemberAllocations = new HashSet<>();
+
     public static Loan newIndividualLoanApplication(final String accountNo, final Client client, final Integer loanType,
             final LoanProduct loanProduct, final Fund fund, final Staff officer, final CodeValue loanPurpose,
             final LoanTransactionProcessingStrategy transactionProcessingStrategy,
@@ -380,12 +384,12 @@ public class Loan extends AbstractPersistable<Long> {
             final LoanProductRelatedDetail loanRepaymentScheduleDetail, final Set<LoanCharge> loanCharges,
             final Set<LoanCollateral> collateral, final Boolean syncDisbursementWithMeeting, final BigDecimal fixedEmiAmount,
             final Set<LoanDisbursementDetails> disbursementDetails, final BigDecimal maxOutstandingLoanBalance,
-            final Boolean createStandingInstructionAtDisbursement, final Set<LoanCreditCheck> creditChecks) {
+            final Boolean createStandingInstructionAtDisbursement, final Set<LoanCreditCheck> creditChecks,Set<GroupLoanMemberAllocation> groupLoanMemberAllocations) {
         final LoanStatus status = null;
         final Client client = null;
         return new Loan(accountNo, client, group, loanType, fund, officer, loanPurpose, transactionProcessingStrategy, loanProduct,
                 loanRepaymentScheduleDetail, status, loanCharges, collateral, syncDisbursementWithMeeting, fixedEmiAmount,
-                disbursementDetails, maxOutstandingLoanBalance, createStandingInstructionAtDisbursement, creditChecks);
+                disbursementDetails, maxOutstandingLoanBalance, createStandingInstructionAtDisbursement, creditChecks,groupLoanMemberAllocations);
     }
 
     public static Loan newIndividualLoanApplicationFromGroup(final String accountNo, final Client client, final Group group,
@@ -472,6 +476,84 @@ public class Loan extends AbstractPersistable<Long> {
         
         else {
             this.creditChecks = null;
+        }
+
+        this.groupLoanMemberAllocations = null;
+    }
+
+    private Loan(final String accountNo, final Client client, final Group group, final Integer loanType, final Fund fund,
+                 final Staff loanOfficer, final CodeValue loanPurpose, final LoanTransactionProcessingStrategy transactionProcessingStrategy,
+                 final LoanProduct loanProduct, final LoanProductRelatedDetail loanRepaymentScheduleDetail, final LoanStatus loanStatus,
+                 final Set<LoanCharge> loanCharges, final Set<LoanCollateral> collateral, final Boolean syncDisbursementWithMeeting,
+                 final BigDecimal fixedEmiAmount, final Set<LoanDisbursementDetails> disbursementDetails,
+                 final BigDecimal maxOutstandingLoanBalance, final Boolean createStandingInstructionAtDisbursement,
+                 final Set<LoanCreditCheck> creditChecks,final Set<GroupLoanMemberAllocation> groupLoanMemberAllocations) {
+
+        this.loanRepaymentScheduleDetail = loanRepaymentScheduleDetail;
+        this.loanRepaymentScheduleDetail.validateRepaymentPeriodWithGraceSettings();
+
+        if (StringUtils.isBlank(accountNo)) {
+            this.accountNumber = new RandomPasswordGenerator(19).generate();
+            this.accountNumberRequiresAutoGeneration = true;
+        } else {
+            this.accountNumber = accountNo;
+        }
+        this.client = client;
+        this.group = group;
+        this.loanType = loanType;
+        this.fund = fund;
+        this.loanOfficer = loanOfficer;
+        this.loanPurpose = loanPurpose;
+
+        this.transactionProcessingStrategy = transactionProcessingStrategy;
+        this.loanProduct = loanProduct;
+        if (loanStatus != null) {
+            this.loanStatus = loanStatus.getValue();
+        } else {
+            this.loanStatus = null;
+        }
+        if (loanCharges != null && !loanCharges.isEmpty()) {
+            this.charges = associateChargesWithThisLoan(loanCharges);
+            this.summary = updateSummaryWithTotalFeeChargesDueAtDisbursement(deriveSumTotalOfChargesDueAtDisbursement());
+        } else {
+            this.charges = null;
+            this.summary = new LoanSummary();
+        }
+        if (collateral != null && !collateral.isEmpty()) {
+            this.collateral = associateWithThisLoan(collateral);
+        } else {
+            this.collateral = null;
+        }
+        this.loanOfficerHistory = null;
+
+        this.syncDisbursementWithMeeting = syncDisbursementWithMeeting;
+        this.fixedEmiAmount = fixedEmiAmount;
+        this.maxOutstandingLoanBalance = maxOutstandingLoanBalance;
+        this.disbursementDetails = disbursementDetails;
+        this.approvedPrincipal = this.loanRepaymentScheduleDetail.getPrincipal().getAmount();
+        this.createStandingInstructionAtDisbursement = createStandingInstructionAtDisbursement;
+
+        /*
+         * During loan origination stage and before loan is approved
+         * principal_amount, approved_principal and principal_amount_demanded
+         * will same amount and that amount is same as applicant loan demanded
+         * amount.
+         */
+
+        this.proposedPrincipal = this.loanRepaymentScheduleDetail.getPrincipal().getAmount();
+
+        if (creditChecks != null && !creditChecks.isEmpty()) {
+            this.creditChecks = associateLoanCreditChecksWithThisLoan(creditChecks);
+        }
+
+        else {
+            this.creditChecks = null;
+        }
+
+        if(groupLoanMemberAllocations != null && !groupLoanMemberAllocations.isEmpty()){
+            this.groupLoanMemberAllocations = groupLoanMemberAllocations;
+        }else{
+            this.groupLoanMemberAllocations = null;
         }
     }
 

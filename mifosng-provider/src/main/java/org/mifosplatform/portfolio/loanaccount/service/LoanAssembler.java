@@ -45,16 +45,7 @@ import org.mifosplatform.portfolio.group.exception.ClientNotInGroupException;
 import org.mifosplatform.portfolio.group.exception.GroupNotActiveException;
 import org.mifosplatform.portfolio.group.exception.GroupNotFoundException;
 import org.mifosplatform.portfolio.loanaccount.api.LoanApiConstants;
-import org.mifosplatform.portfolio.loanaccount.domain.DefaultLoanLifecycleStateMachine;
-import org.mifosplatform.portfolio.loanaccount.domain.Loan;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanDisbursementDetails;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanLifecycleStateMachine;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanRepaymentScheduleTransactionProcessorFactory;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanRepositoryWrapper;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanStatus;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanSummaryWrapper;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionProcessingStrategyRepository;
+import org.mifosplatform.portfolio.loanaccount.domain.*;
 import org.mifosplatform.portfolio.loanaccount.exception.ExceedingTrancheCountException;
 import org.mifosplatform.portfolio.loanaccount.exception.LoanTransactionProcessingStrategyNotFoundException;
 import org.mifosplatform.portfolio.loanaccount.exception.MultiDisbursementDataRequiredException;
@@ -97,6 +88,7 @@ public class LoanAssembler {
     private final HolidayRepository holidayRepository;
     private final ConfigurationDomainService configurationDomainService;
     private final WorkingDaysRepositoryWrapper workingDaysRepository;
+    private final GroupLoanMemberAllocationAssembler groupLoanMemberAllocationAssembler;
 
     @Autowired
     public LoanAssembler(final FromJsonHelper fromApiJsonHelper, final LoanRepositoryWrapper loanRepository,
@@ -108,7 +100,7 @@ public class LoanAssembler {
             final CollateralAssembler loanCollateralAssembler, final LoanSummaryWrapper loanSummaryWrapper,
             final LoanRepaymentScheduleTransactionProcessorFactory loanRepaymentScheduleTransactionProcessorFactory,
             final HolidayRepository holidayRepository, final ConfigurationDomainService configurationDomainService,
-            final WorkingDaysRepositoryWrapper workingDaysRepository) {
+            final WorkingDaysRepositoryWrapper workingDaysRepository,GroupLoanMemberAllocationAssembler groupLoanMemberAllocationAssembler) {
         this.fromApiJsonHelper = fromApiJsonHelper;
         this.loanRepository = loanRepository;
         this.loanProductRepository = loanProductRepository;
@@ -126,6 +118,7 @@ public class LoanAssembler {
         this.holidayRepository = holidayRepository;
         this.configurationDomainService = configurationDomainService;
         this.workingDaysRepository = workingDaysRepository;
+        this.groupLoanMemberAllocationAssembler = groupLoanMemberAllocationAssembler;
     }
 
     public Loan assembleFrom(final Long accountId) {
@@ -239,10 +232,12 @@ public class LoanAssembler {
 
         } else if (group != null) {
 
+            Set<GroupLoanMemberAllocation> groupLoanMemberAllocations = this.groupLoanMemberAllocationAssembler.fromParsedJson(element);
+
             loanApplication = Loan.newGroupLoanApplication(accountNo, group, loanType.getId().intValue(), loanProduct, fund, loanOfficer,
                     loanPurpose, loanTransactionProcessingStrategy, loanProductRelatedDetail, loanCharges, collateral,
                     syncDisbursementWithMeeting, fixedEmiAmount, disbursementDetails, maxOutstandingLoanBalance, 
-                    createStandingInstructionAtDisbursement, null);
+                    createStandingInstructionAtDisbursement, null,groupLoanMemberAllocations);
 
         } else if (client != null) {
 
