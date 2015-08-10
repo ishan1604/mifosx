@@ -26,6 +26,7 @@ import org.mifosplatform.organisation.staff.data.StaffData;
 import org.mifosplatform.portfolio.account.data.PortfolioAccountData;
 import org.mifosplatform.portfolio.calendar.data.CalendarData;
 import org.mifosplatform.portfolio.charge.data.ChargeData;
+import org.mifosplatform.portfolio.client.data.ClientData;
 import org.mifosplatform.portfolio.collateral.data.CollateralData;
 import org.mifosplatform.portfolio.fund.data.FundData;
 import org.mifosplatform.portfolio.group.data.GroupGeneralData;
@@ -190,6 +191,9 @@ public class LoanAccountData {
 
     // Paid In Advance
     private final PaidInAdvanceData paidInAdvance;
+
+
+    private final Collection<ClientData> groupMembers;
 
     /**
      * Used to produce a {@link LoanAccountData} with only collateral options
@@ -726,7 +730,7 @@ public class LoanAccountData {
                 acc.emiAmountVariations, acc.memberVariations, acc.product, acc.inArrears, acc.graceOnArrearsAgeing, acc.overdueCharges,
                 acc.isNPA, acc.daysInMonthType, acc.daysInYearType, acc.isInterestRecalculationEnabled, acc.interestRecalculationData,
                 acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.paidInAdvance, acc.creditChecks, 
-                acc.loanProductConfigurableAttributes);
+                acc.loanProductConfigurableAttributes,groupAcc.groupData().clientMembers());
     }
 
     public static LoanAccountData loanProductWithTemplateDefaults(final LoanProductData product,
@@ -1409,6 +1413,225 @@ public class LoanAccountData {
         this.paidInAdvance = paidInAdvance;
         this.creditChecks = creditChecks;
         this.loanProductConfigurableAttributes = loanProductConfigurableAttributes;
+        this.groupMembers = null;
+
+    }
+
+    private LoanAccountData(
+            final Long id, //
+            final String accountNo, //
+            final LoanStatusEnumData status, //
+            final String externalId, //
+            final Long clientId,
+            final String clientName,
+            final Long clientOfficeId, //
+            final GroupGeneralData group,
+            final EnumOptionData loanType,
+            final Long loanProductId,
+            final String loanProductName,
+            final String loanProductDescription, //
+            final Long fundId,
+            final String fundName,
+            final Long loanPurposeId,
+            final String loanPurposeName, //
+            final Long loanOfficerId,
+            final String loanOfficerName, //
+            final CurrencyData currency,
+            BigDecimal proposedPrincipal,
+            final BigDecimal principal,
+            final BigDecimal approvedPrincipal,
+            final BigDecimal totalOverpaid, //
+            final BigDecimal inArrearsTolerance,
+            final Integer termFrequency, //
+            final EnumOptionData termPeriodFrequencyType,
+            final Integer numberOfRepayments,
+            final Integer repaymentEvery,
+            final EnumOptionData repaymentFrequencyType, //
+            final EnumOptionData repaymentFrequencyNthDayType, final EnumOptionData repaymentFrequencyDayOfWeekType,
+            final Long transactionProcessingStrategyId, final String transactionProcessingStrategyName,
+            final EnumOptionData amortizationType, final BigDecimal interestRatePerPeriod, final EnumOptionData interestRateFrequencyType,
+            final BigDecimal annualInterestRate, final EnumOptionData interestType, final EnumOptionData interestCalculationPeriodType,
+            final LocalDate expectedFirstRepaymentOnDate, final Integer graceOnPrincipalPayment, final Integer graceOnInterestPayment,
+            final Integer graceOnInterestCharged, final LocalDate interestChargedFromDate, final LoanApplicationTimelineData timeline,
+            final LoanSummaryData summary, final BigDecimal feeChargesDueAtDisbursementCharged, final LoanScheduleData repaymentSchedule,
+            final Collection<LoanTransactionData> transactions, final Collection<LoanChargeData> charges,
+            final Collection<CollateralData> collateral, final Collection<GuarantorData> guarantors, final CalendarData meeting,
+            final Collection<LoanProductData> productOptions, final Collection<EnumOptionData> termFrequencyTypeOptions,
+            final Collection<EnumOptionData> repaymentFrequencyTypeOptions,
+            final Collection<EnumOptionData> repaymentFrequencyNthDayTypeOptions,
+            final Collection<EnumOptionData> repaymentFrequencyDaysOfWeekTypeOptions,
+            final Collection<TransactionProcessingStrategyData> transactionProcessingStrategyOptions,
+            final Collection<EnumOptionData> interestRateFrequencyTypeOptions, final Collection<EnumOptionData> amortizationTypeOptions,
+            final Collection<EnumOptionData> interestTypeOptions, final Collection<EnumOptionData> interestCalculationPeriodTypeOptions,
+            final Collection<FundData> fundOptions, final Collection<ChargeData> chargeOptions, final ChargeData chargeTemplate,
+            final Collection<StaffData> loanOfficerOptions, final Collection<CodeValueData> loanPurposeOptions,
+            final Collection<CodeValueData> loanCollateralOptions, final Collection<CalendarData> calendarOptions,
+            final Boolean syncDisbursementWithMeeting, final Integer loanCounter, final Integer loanProductCounter,
+            final Collection<NoteData> notes, final Collection<PortfolioAccountData> accountLinkingOptions,
+            final PortfolioAccountData linkedAccount, final Collection<DisbursementData> disbursementDetails,
+            final Boolean multiDisburseLoan, BigDecimal fixedEmiAmount, final BigDecimal maxOutstandingLoanBalance,
+            final Collection<LoanTermVariationsData> emiAmountVariations, final Map<Long, LoanBorrowerCycleData> memberVariations,
+            final LoanProductData product, final Boolean inArrears, final Integer graceOnArrearsAgeing,
+            final Collection<ChargeData> overdueCharges, final Boolean isNPA, final EnumOptionData daysInMonthType,
+            final EnumOptionData daysInYearType, final boolean isInterestRecalculationEnabled,
+            final LoanInterestRecalculationData interestRecalculationData, final LoanScheduleData originalSchedule,
+            final Boolean createStandingInstructionAtDisbursement, final PaidInAdvanceData paidInAdvance,
+            final Collection<LoanCreditCheckData> creditChecks,
+            final LoanProductConfigurableAttributes loanProductConfigurableAttributes,Collection<ClientData> groupMembers) {
+        this.id = id;
+        this.accountNo = accountNo;
+        this.status = status;
+        this.externalId = externalId;
+        this.clientId = clientId;
+        this.clientName = clientName;
+        this.clientOfficeId = clientOfficeId;
+        this.group = group;
+        this.loanType = loanType;
+        this.loanProductId = loanProductId;
+        this.loanProductName = loanProductName;
+        this.loanProductDescription = loanProductDescription;
+        this.fundId = fundId;
+        this.fundName = fundName;
+        this.loanPurposeId = loanPurposeId;
+        this.loanPurposeName = loanPurposeName;
+        this.loanOfficerId = loanOfficerId;
+        this.loanOfficerName = loanOfficerName;
+        this.currency = currency;
+        this.proposedPrincipal = proposedPrincipal;
+        this.principal = principal;
+        this.approvedPrincipal = approvedPrincipal;
+        this.totalOverpaid = totalOverpaid;
+        this.inArrearsTolerance = inArrearsTolerance;
+        this.termFrequency = termFrequency;
+        this.termPeriodFrequencyType = termPeriodFrequencyType;
+        this.numberOfRepayments = numberOfRepayments;
+        this.repaymentEvery = repaymentEvery;
+        this.repaymentFrequencyType = repaymentFrequencyType;
+        this.repaymentFrequencyNthDayType = repaymentFrequencyNthDayType;
+        this.repaymentFrequencyDayOfWeekType = repaymentFrequencyDayOfWeekType;
+        this.transactionProcessingStrategyId = transactionProcessingStrategyId;
+        this.transactionProcessingStrategyName = transactionProcessingStrategyName;
+        this.amortizationType = amortizationType;
+        this.interestRatePerPeriod = interestRatePerPeriod;
+        this.interestRateFrequencyType = interestRateFrequencyType;
+        this.annualInterestRate = annualInterestRate;
+        this.interestType = interestType;
+        this.interestCalculationPeriodType = interestCalculationPeriodType;
+        this.expectedFirstRepaymentOnDate = expectedFirstRepaymentOnDate;
+        this.graceOnPrincipalPayment = graceOnPrincipalPayment;
+        this.graceOnInterestPayment = graceOnInterestPayment;
+        this.graceOnInterestCharged = graceOnInterestCharged;
+        this.interestChargedFromDate = interestChargedFromDate;
+        this.timeline = timeline;
+        this.feeChargesAtDisbursementCharged = feeChargesDueAtDisbursementCharged;
+        this.syncDisbursementWithMeeting = syncDisbursementWithMeeting;
+
+        // totals
+        this.summary = summary;
+
+        // associations
+        this.repaymentSchedule = repaymentSchedule;
+        this.transactions = transactions;
+        this.charges = charges;
+        this.collateral = collateral;
+        this.guarantors = guarantors;
+        this.meeting = meeting;
+        this.notes = notes;
+
+        // template
+        this.productOptions = productOptions;
+        this.termFrequencyTypeOptions = termFrequencyTypeOptions;
+        this.repaymentFrequencyTypeOptions = repaymentFrequencyTypeOptions;
+        this.repaymentFrequencyNthDayTypeOptions = repaymentFrequencyNthDayTypeOptions;
+        this.repaymentFrequencyDaysOfWeekTypeOptions = repaymentFrequencyDaysOfWeekTypeOptions;
+        this.interestRateFrequencyTypeOptions = interestRateFrequencyTypeOptions;
+        this.amortizationTypeOptions = amortizationTypeOptions;
+        this.interestTypeOptions = interestTypeOptions;
+        this.interestCalculationPeriodTypeOptions = interestCalculationPeriodTypeOptions;
+
+        if (CollectionUtils.isEmpty(transactionProcessingStrategyOptions)) {
+            this.transactionProcessingStrategyOptions = null;
+        } else {
+            this.transactionProcessingStrategyOptions = transactionProcessingStrategyOptions;
+        }
+
+        if (CollectionUtils.isEmpty(fundOptions)) {
+            this.fundOptions = null;
+        } else {
+            this.fundOptions = fundOptions;
+        }
+
+        if (CollectionUtils.isEmpty(chargeOptions)) {
+            this.chargeOptions = null;
+        } else {
+            this.chargeOptions = chargeOptions;
+        }
+
+        if (CollectionUtils.isEmpty(loanOfficerOptions)) {
+            this.loanOfficerOptions = null;
+        } else {
+            this.loanOfficerOptions = loanOfficerOptions;
+        }
+
+        if (CollectionUtils.isEmpty(loanPurposeOptions)) {
+            this.loanPurposeOptions = null;
+        } else {
+            this.loanPurposeOptions = loanPurposeOptions;
+        }
+
+        if (CollectionUtils.isEmpty(loanCollateralOptions)) {
+            this.loanCollateralOptions = null;
+        } else {
+            this.loanCollateralOptions = loanCollateralOptions;
+        }
+
+        if (CollectionUtils.isEmpty(calendarOptions)) {
+            this.calendarOptions = null;
+        } else {
+            this.calendarOptions = calendarOptions;
+        }
+
+        this.loanCounter = loanCounter;
+        this.loanProductCounter = loanProductCounter;
+
+        this.linkedAccount = linkedAccount;
+        this.accountLinkingOptions = accountLinkingOptions;
+        this.disbursementDetails = disbursementDetails;
+        this.multiDisburseLoan = multiDisburseLoan;
+        this.fixedEmiAmount = fixedEmiAmount;
+        this.maxOutstandingLoanBalance = maxOutstandingLoanBalance;
+
+        if (this.status != null && LoanStatus.fromInt(this.status.id().intValue()).isApproved()) {
+            this.canDisburse = true;
+        } else {
+            boolean canDisburse = false;
+            if (this.multiDisburseLoan != null && this.multiDisburseLoan && this.disbursementDetails != null) {
+                for (DisbursementData disbursementData : this.disbursementDetails) {
+                    if (!disbursementData.isDisbursed()) {
+                        canDisburse = true;
+                    }
+                }
+            }
+            this.canDisburse = canDisburse;
+        }
+        this.emiAmountVariations = emiAmountVariations;
+        this.memberVariations = memberVariations;
+        this.product = product;
+        this.inArrears = inArrears;
+        this.graceOnArrearsAgeing = graceOnArrearsAgeing;
+        this.overdueCharges = overdueCharges;
+        this.isNPA = isNPA;
+
+        this.daysInMonthType = daysInMonthType;
+        this.daysInYearType = daysInYearType;
+        this.isInterestRecalculationEnabled = isInterestRecalculationEnabled;
+        this.interestRecalculationData = interestRecalculationData;
+        this.originalSchedule = originalSchedule;
+        this.createStandingInstructionAtDisbursement = createStandingInstructionAtDisbursement;
+        this.paidInAdvance = paidInAdvance;
+        this.creditChecks = creditChecks;
+        this.loanProductConfigurableAttributes = loanProductConfigurableAttributes;
+        this.groupMembers = groupMembers;
 
     }
 
