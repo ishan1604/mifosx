@@ -54,17 +54,7 @@ import org.mifosplatform.portfolio.group.exception.GroupNotActiveException;
 import org.mifosplatform.portfolio.loanaccount.api.LoanApiConstants;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargeData;
 import org.mifosplatform.portfolio.loanaccount.data.ScheduleGeneratorDTO;
-import org.mifosplatform.portfolio.loanaccount.domain.DefaultLoanLifecycleStateMachine;
-import org.mifosplatform.portfolio.loanaccount.domain.Loan;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanAccountDomainService;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanLifecycleStateMachine;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallmentRepository;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanRepaymentScheduleTransactionProcessorFactory;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanRepository;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanStatus;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanSummaryWrapper;
+import org.mifosplatform.portfolio.loanaccount.domain.*;
 import org.mifosplatform.portfolio.loanaccount.exception.LoanApplicationDateException;
 import org.mifosplatform.portfolio.loanaccount.exception.LoanApplicationNotInSubmittedAndPendingApprovalStateCannotBeDeleted;
 import org.mifosplatform.portfolio.loanaccount.exception.LoanApplicationNotInSubmittedAndPendingApprovalStateCannotBeModified;
@@ -137,6 +127,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     private final ConfigurationDomainService configurationDomainService;
     private final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService;
     private final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService;
+    private final GroupLoanMemberAllocationAssembler groupLoanMemberAllocationAssembler;
 
     @Autowired
     public LoanApplicationWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context, final FromJsonHelper fromJsonHelper,
@@ -156,7 +147,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             final AccountNumberFormatRepositoryWrapper accountNumberFormatRepository,
             final BusinessEventNotifierService businessEventNotifierService, final ConfigurationDomainService configurationDomainService, 
             final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService, 
-            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService) {
+            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,GroupLoanMemberAllocationAssembler groupLoanMemberAllocationAssembler) {
         this.context = context;
         this.fromJsonHelper = fromJsonHelper;
         this.loanApplicationTransitionApiJsonValidator = loanApplicationTransitionApiJsonValidator;
@@ -187,6 +178,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         this.configurationDomainService = configurationDomainService;
         this.loanCreditCheckWritePlatformService = loanCreditCheckWritePlatformService;
         this.entityDatatableChecksWritePlatformService = entityDatatableChecksWritePlatformService;
+        this.groupLoanMemberAllocationAssembler = groupLoanMemberAllocationAssembler;
     }
 
     private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
@@ -479,11 +471,41 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                 }
             }
 
+
+            final Set<GroupLoanMemberAllocation> existingGroupLoanMembersAllocation = existingLoanApplication.groupLoanMemberAllocations();
+            Map<Long,GroupLoanMemberAllocation > groupLoanMemberAllocationMap = new HashMap<>();
+            for (GroupLoanMemberAllocation member : existingGroupLoanMembersAllocation) {
+                groupLoanMemberAllocationMap.put(member.getId(),member);
+            }
+
+            final Set<GroupLoanMemberAllocation> possiblyModifiedGroupLoanMembersAllocation = this.groupLoanMemberAllocationAssembler.fromParsedJson(command.parsedJson());
+            /** Boolean determines if any GroupLoanMembersAllocation has been modified **/
+            boolean isGroupLoanMembersAllocationModified = false;
+
+            if (!possiblyModifiedGroupLoanMembersAllocation.isEmpty()) {
+                if (!possiblyModifiedGroupLoanMembersAllocation.containsAll(existingGroupLoanMembersAllocation)) {
+                    isGroupLoanMembersAllocationModified = true;
+                }
+            }
+
+            for (GroupLoanMemberAllocation groupLoanMemberAllocation : possiblyModifiedGroupLoanMembersAllocation) {
+                if (groupLoanMemberAllocation.getId() == null) {
+                    isGroupLoanMembersAllocationModified = true;
+                } else {
+                    GroupLoanMemberAllocation groupLoanMemberAllocation1 = groupLoanMemberAllocationMap.get(groupLoanMemberAllocation.getId());
+                    if (!groupLoanMemberAllocation1.amount().equals(groupLoanMemberAllocation.amount()) ||
+                            ! groupLoanMemberAllocation1.loan().getId().equals(groupLoanMemberAllocation.loan().getId()) ||
+                            ! groupLoanMemberAllocation1.client().getId().equals(groupLoanMemberAllocation.client().getId())) {
+                        isGroupLoanMembersAllocationModified = true;
+                    }
+                }
+            }
+
             final Set<LoanCollateral> possiblyModifedLoanCollateralItems = this.loanCollateralAssembler
                     .fromParsedJson(command.parsedJson());
 
             final Map<String, Object> changes = existingLoanApplication.loanApplicationModification(command, possiblyModifedLoanCharges,
-                    possiblyModifedLoanCollateralItems, this.aprCalculator, isChargeModified);
+                    possiblyModifedLoanCollateralItems, this.aprCalculator, isChargeModified,possiblyModifiedGroupLoanMembersAllocation,isGroupLoanMembersAllocationModified);
 
             if (changes.containsKey("expectedDisbursementDate")) {
                 this.loanAssembler.validateExpectedDisbursementForHolidayAndNonWorkingDay(existingLoanApplication);
@@ -592,6 +614,13 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             final String chargesParamName = "charges";
             if (changes.containsKey(chargesParamName)) {
                 existingLoanApplication.updateLoanCharges(possiblyModifedLoanCharges);
+            }
+
+
+            final String groupLoanMemberAllocationParamName = "groupMemberAllocation";
+            if (changes.containsKey(groupLoanMemberAllocationParamName)) {
+                final Set<GroupLoanMemberAllocation> groupLoanMemberAllocations = this.groupLoanMemberAllocationAssembler.fromParsedJson(command.parsedJson());
+                existingLoanApplication.updateGroupLoanMemberAllocation(groupLoanMemberAllocations);
             }
 
             final LoanProductRelatedDetail productRelatedDetail = existingLoanApplication.repaymentScheduleDetail();

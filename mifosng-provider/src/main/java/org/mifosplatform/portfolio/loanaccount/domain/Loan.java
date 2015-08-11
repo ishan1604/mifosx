@@ -551,7 +551,7 @@ public class Loan extends AbstractPersistable<Long> {
         }
 
         if(groupLoanMemberAllocations != null && !groupLoanMemberAllocations.isEmpty()){
-            this.groupLoanMemberAllocations = groupLoanMemberAllocations;
+            this.groupLoanMemberAllocations = associateGroupLoanMemberAllocationWithThisLoan(groupLoanMemberAllocations);
         }else{
             this.groupLoanMemberAllocations = null;
         }
@@ -592,7 +592,14 @@ public class Loan extends AbstractPersistable<Long> {
         }
         return collateral;
     }
-    
+
+    private Set<GroupLoanMemberAllocation> associateGroupLoanMemberAllocationWithThisLoan(final Set<GroupLoanMemberAllocation> groupLoanMemberAllocation) {
+        for (final GroupLoanMemberAllocation item : groupLoanMemberAllocation) {
+            item.associateWith(this);
+        }
+        return groupLoanMemberAllocation;
+    }
+
     private Set<LoanCreditCheck> associateLoanCreditChecksWithThisLoan(final Set<LoanCreditCheck> loanCreditChecks) {
         for (final LoanCreditCheck loanCreditCheck : loanCreditChecks) {
             loanCreditCheck.update(this);
@@ -1228,6 +1235,19 @@ public class Loan extends AbstractPersistable<Long> {
         this.collateral.addAll(associateWithThisLoan(loanCollateral));
     }
 
+    public void updateGroupLoanMemberAllocation(final Set<GroupLoanMemberAllocation> groupLoanMemberAllocations) {
+
+        if (this.groupLoanMemberAllocations == null) {
+
+            this.groupLoanMemberAllocations = new HashSet<>();
+
+        }
+
+        this.groupLoanMemberAllocations.clear();
+        this.groupLoanMemberAllocations.addAll(associateGroupLoanMemberAllocationWithThisLoan(groupLoanMemberAllocations));
+
+    }
+
     public void updateLoanSchedule(final LoanScheduleModel modifiedLoanSchedule, AppUser currentUser) {
         this.repaymentScheduleInstallments.clear();
 
@@ -1349,7 +1369,8 @@ public class Loan extends AbstractPersistable<Long> {
     }
 
     public Map<String, Object> loanApplicationModification(final JsonCommand command, final Set<LoanCharge> possiblyModifedLoanCharges,
-            final Set<LoanCollateral> possiblyModifedLoanCollateralItems, final AprCalculator aprCalculator, boolean isChargesModified) {
+            final Set<LoanCollateral> possiblyModifedLoanCollateralItems, final AprCalculator aprCalculator, boolean isChargesModified,
+            final Set<GroupLoanMemberAllocation> possiblyModifiedGroupLoanMembersAllocation,boolean isGroupLoanMembersAllocationChanged) {
 
         final Map<String, Object> actualChanges = this.loanRepaymentScheduleDetail.updateLoanApplicationAttributes(command, aprCalculator);
         if (!actualChanges.isEmpty()) {
@@ -1541,6 +1562,14 @@ public class Loan extends AbstractPersistable<Long> {
         if (isChargesModified) {
             actualChanges.put(chargesParamName, getLoanCharges(possiblyModifedLoanCharges));
             actualChanges.put("recalculateLoanSchedule", true);
+        }
+
+        final String groupMemberAllocation = "groupMemberAllocation";
+        if (command.parameterExists(groupMemberAllocation)) {
+
+            if (!possiblyModifiedGroupLoanMembersAllocation.equals(this.groupLoanMemberAllocations)) {
+                actualChanges.put(groupMemberAllocation,possiblyModifiedGroupLoanMembersAllocation);
+            }
         }
 
         final String collateralParamName = "collateral";
@@ -4432,6 +4461,12 @@ public class Loan extends AbstractPersistable<Long> {
         return loanCharges;
     }
 
+    public Set<GroupLoanMemberAllocation> groupLoanMemberAllocations(){
+
+        return groupLoanMemberAllocations;
+
+    }
+
     public Set<LoanInstallmentCharge> generateInstallmentLoanCharges(final LoanCharge loanCharge) {
         final Set<LoanInstallmentCharge> loanChargePerInstallments = new HashSet<>();
         if (loanCharge.isInstalmentFee()) {
@@ -4591,6 +4626,17 @@ public class Loan extends AbstractPersistable<Long> {
             }
         }
         return charge;
+    }
+
+    public GroupLoanMemberAllocation fetchGroupLoanMemberAllocationById(Long id) {
+        GroupLoanMemberAllocation memberAllocation = null;
+        for (GroupLoanMemberAllocation allocation : this.groupLoanMemberAllocations) {
+            if (id.equals(allocation.getId())) {
+                memberAllocation = allocation;
+                break;
+            }
+        }
+        return memberAllocation;
     }
 
     private List<Long> fetchAllLoanChargeIds() {

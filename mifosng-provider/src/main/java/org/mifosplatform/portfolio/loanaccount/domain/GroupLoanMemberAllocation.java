@@ -52,6 +52,12 @@ public class GroupLoanMemberAllocation extends AbstractPersistable<Long> {
 
     }
 
+    public static GroupLoanMemberAllocation createNew(final Loan loan,Client client, final BigDecimal amount) {
+
+        return new GroupLoanMemberAllocation(loan,client,amount);
+
+    }
+
     public static GroupLoanMemberAllocation createNewWithoutLoan(final Client client, final BigDecimal amount) {
         return new GroupLoanMemberAllocation(null,client,amount);
     }
@@ -68,10 +74,25 @@ public class GroupLoanMemberAllocation extends AbstractPersistable<Long> {
         this.amount = amount;
     }
 
+    public void associateWith(final Loan loan) {
+        this.loan = loan;
+    }
+
+    public Loan loan(){
+        return this.loan;
+    }
+
+    public Client client(){
+        return this.client;
+    }
 
 
     public BigDecimal amount() {
         return this.amount;
+    }
+
+    protected GroupLoanMemberAllocation() {
+        //
     }
 
 

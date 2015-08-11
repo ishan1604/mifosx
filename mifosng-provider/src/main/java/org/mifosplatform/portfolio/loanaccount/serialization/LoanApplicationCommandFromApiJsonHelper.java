@@ -30,6 +30,8 @@ import org.mifosplatform.portfolio.loanproduct.LoanProductConstants;
 import org.mifosplatform.portfolio.loanproduct.domain.InterestMethod;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -66,10 +68,11 @@ public final class LoanApplicationCommandFromApiJsonHelper {
             "syncDisbursementWithMeeting",// optional
             "linkAccountId", LoanApiConstants.disbursementDataParameterName, LoanApiConstants.emiAmountParameterName,
             LoanApiConstants.maxOutstandingBalanceParameterName, LoanProductConstants.graceOnArrearsAgeingParameterName,
-            LoanProductConstants.recalculationRestFrequencyDateParamName, "createStandingInstructionAtDisbursement"));
+            LoanProductConstants.recalculationRestFrequencyDateParamName, "createStandingInstructionAtDisbursement","groupMemberAllocation"));
 
     private final FromJsonHelper fromApiJsonHelper;
     private final CalculateLoanScheduleQueryFromApiJsonHelper apiJsonHelper;
+    private final static Logger logger = LoggerFactory.getLogger(LoanApplicationCommandFromApiJsonHelper.class);
 
     @Autowired
     public LoanApplicationCommandFromApiJsonHelper(final FromJsonHelper fromApiJsonHelper,
@@ -397,8 +400,8 @@ public final class LoanApplicationCommandFromApiJsonHelper {
                     this.fromApiJsonHelper.checkForUnsupportedParameters(arrayObjectParameterTypeOfMap, arrayObjectJson,
                             supportedParameters);
 
-                    final Long chargeId = this.fromApiJsonHelper.extractLongNamed("client_id", groupMemberAllocationElement);
-                    baseDataValidator.reset().parameter("groupMemberAllocation").parameterAtIndexArray("client_id", i).value(chargeId).notNull()
+                    final Long clientId = this.fromApiJsonHelper.extractLongNamed("client_id", groupMemberAllocationElement);
+                    baseDataValidator.reset().parameter("groupMemberAllocation").parameterAtIndexArray("client_id", i).value(clientId).notNull()
                             .integerGreaterThanZero();
 
                     final BigDecimal amount = this.fromApiJsonHelper.extractBigDecimalNamed("amount", groupMemberAllocationElement, locale);
@@ -407,7 +410,7 @@ public final class LoanApplicationCommandFromApiJsonHelper {
                     total += amount.longValue();
                 }
 
-                baseDataValidator.reset().parameter("groupMemberAllocation").value(total).equals(principal);
+                baseDataValidator.reset().parameter("groupMemberAllocation").value(total).equalToParameter("principal", principal.longValue());
 
 
             } else {
@@ -761,6 +764,52 @@ public final class LoanApplicationCommandFromApiJsonHelper {
             baseDataValidator.reset().parameter(LoanApiConstants.maxOutstandingBalanceParameterName).value(maxOutstandingBalance)
                     .ignoreIfNull().positiveAmount();
         }
+
+        final String groupMemberAllocation = "groupMemberAllocation";
+
+        if(element.isJsonObject() && this.fromApiJsonHelper.parameterExists(groupMemberAllocation, element)){
+            final JsonObject topLevelJsonElement = element.getAsJsonObject();
+
+            if (topLevelJsonElement.get("groupMemberAllocation").isJsonArray()) {
+
+                final Type arrayObjectParameterTypeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+                final Set<String> supportedParameters = new HashSet<>(Arrays.asList("client_id", "amount"));
+
+
+                final JsonArray array = topLevelJsonElement.get("groupMemberAllocation").getAsJsonArray();
+                final Locale locale = this.fromApiJsonHelper.extractLocaleParameter(topLevelJsonElement);
+
+                long total = 0;
+
+                for (int i = 1; i <= array.size(); i++) {
+
+                    final JsonObject groupMemberAllocationElement = array.get(i - 1).getAsJsonObject();
+                    final String arrayObjectJson = this.fromApiJsonHelper.toJson(groupMemberAllocationElement);
+
+                    this.fromApiJsonHelper.checkForUnsupportedParameters(arrayObjectParameterTypeOfMap, arrayObjectJson,
+                            supportedParameters);
+
+                    final Long clientId = this.fromApiJsonHelper.extractLongNamed("client_id", groupMemberAllocationElement);
+                    baseDataValidator.reset().parameter("groupMemberAllocation").parameterAtIndexArray("client_id", i).value(clientId).notNull()
+                            .integerGreaterThanZero();
+
+                    final BigDecimal amount = this.fromApiJsonHelper.extractBigDecimalNamed("amount", groupMemberAllocationElement, locale);
+                    baseDataValidator.reset().parameter("groupMemberAllocation").parameterAtIndexArray("amount", i).value(amount).notNull().positiveAmount();
+
+                    total += amount.longValue();
+                }
+
+                baseDataValidator.reset().parameter("groupMemberAllocation").value(total).equalToParameter("principal", principal.longValue());
+
+
+            } else {
+                baseDataValidator.reset().parameter(collateralParameterName).expectedArrayButIsNot();
+            }
+
+
+        }
+
+        validateLoanMultiDisbursementdate(element, baseDataValidator, expectedDisbursementDate, principal);
 
         validateLoanMultiDisbursementdate(element, baseDataValidator, expectedDisbursementDate, principal);
 

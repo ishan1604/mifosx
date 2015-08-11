@@ -16,10 +16,7 @@ import org.mifosplatform.portfolio.charge.exception.LoanChargeNotFoundException;
 import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.client.domain.ClientRepository;
 import org.mifosplatform.portfolio.client.domain.ClientRepositoryWrapper;
-import org.mifosplatform.portfolio.loanaccount.domain.GroupLoanMemberAllocation;
-import org.mifosplatform.portfolio.loanaccount.domain.GroupLoanMemberAllocationRepository;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanChargeRepository;
+import org.mifosplatform.portfolio.loanaccount.domain.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -65,6 +62,48 @@ public class GroupLoanMemberAllocationAssembler {
                         final Client client = this.clientRepository.findOneWithNotFoundDetection(clientId);
 
                         final GroupLoanMemberAllocation groupLoanMemberAllocation = GroupLoanMemberAllocation.createNewWithoutLoan(client,amount);
+                        groupLoanMemberAllocations.add(groupLoanMemberAllocation);
+
+                    } else {
+                        final Long groupLoanMemberAllocationId = id;
+                        final GroupLoanMemberAllocation groupLoanMemberAllocation = this.groupLoanMemberAllocationRepository.findOne(groupLoanMemberAllocationId);
+                        if (groupLoanMemberAllocation == null) { /* throw new LoanChargeNotFoundException(loanChargeId);*/ }
+
+                        groupLoanMemberAllocation.update(amount);
+
+                        groupLoanMemberAllocations.add(groupLoanMemberAllocation);
+                    }
+                }
+            }
+        }
+
+        return groupLoanMemberAllocations;
+    }
+
+
+
+    public Set<GroupLoanMemberAllocation> fromParsedJsonWithLoan(final JsonElement element,final Loan loan) {
+
+        final Set<GroupLoanMemberAllocation> groupLoanMemberAllocations = new HashSet<>();
+
+        if (element.isJsonObject()) {
+            final JsonObject topLevelJsonElement = element.getAsJsonObject();
+            final Locale locale = this.fromApiJsonHelper.extractLocaleParameter(topLevelJsonElement);
+
+            if (topLevelJsonElement.has("groupMemberAllocation") && topLevelJsonElement.get("groupMemberAllocation").isJsonArray()) {
+                final JsonArray array = topLevelJsonElement.get("groupMemberAllocation").getAsJsonArray();
+                for (int i = 0; i < array.size(); i++) {
+
+                    final JsonObject loanChargeElement = array.get(i).getAsJsonObject();
+
+                    final Long id = this.fromApiJsonHelper.extractLongNamed("id", loanChargeElement);
+                    final Long clientId = this.fromApiJsonHelper.extractLongNamed("client_id", loanChargeElement);
+                    final BigDecimal amount = this.fromApiJsonHelper.extractBigDecimalNamed("amount", loanChargeElement, locale);
+
+                    if (id == null) {
+                        final Client client = this.clientRepository.findOneWithNotFoundDetection(clientId);
+
+                        final GroupLoanMemberAllocation groupLoanMemberAllocation = GroupLoanMemberAllocation.createNew(loan,client,amount) ;
                         groupLoanMemberAllocations.add(groupLoanMemberAllocation);
 
                     } else {
