@@ -38,10 +38,10 @@ public final class SearchParameters {
 
     public static SearchParameters forClients(final String sqlSearch, final Long officeId, final String externalId,
             final String displayName, final String firstname, final String lastname, final String hierarchy, final Integer offset,
-            final Integer limit, final String orderBy, final String sortOrder) {
+            final Integer limit, final String orderBy, final String sortOrder, final Long staffId) {
 
         final Integer maxLimitAllowed = getCheckedLimit(limit);
-        final Long staffId = null;
+        // final Long staffId = null;
         final String accountNo = null;
 
         return new SearchParameters(sqlSearch, officeId, externalId, displayName, hierarchy, firstname, lastname, offset, maxLimitAllowed,
@@ -65,13 +65,12 @@ public final class SearchParameters {
     }
 
     public static SearchParameters forLoans(final String sqlSearch, final String externalId, final Integer offset, final Integer limit,
-            final String orderBy, final String sortOrder, final String accountNo) {
+            final String orderBy, final String sortOrder, final String accountNo, final Long loanOfficerId) {
 
         final Integer maxLimitAllowed = getCheckedLimit(limit);
-        final Long staffId = null;
 
         return new SearchParameters(sqlSearch, null, externalId, null, null, null, null, offset, maxLimitAllowed, orderBy, sortOrder,
-                staffId, accountNo,null,null);
+                loanOfficerId, accountNo,null,null);
     }
 
     public static SearchParameters forJournalEntries(final Long officeId, final Integer offset, final Integer limit, final String orderBy,
@@ -93,10 +92,9 @@ public final class SearchParameters {
     }
 
     public static SearchParameters forSavings(final String sqlSearch, final String externalId, final Integer offset, final Integer limit,
-            final String orderBy, final String sortOrder) {
+            final String orderBy, final String sortOrder, final Long staffId) {
 
         final Integer maxLimitAllowed = getCheckedLimit(limit);
-        final Long staffId = null;
         final String accountNo = null;
 
         return new SearchParameters(sqlSearch, null, externalId, null, null, null, null, offset, maxLimitAllowed, orderBy, sortOrder,

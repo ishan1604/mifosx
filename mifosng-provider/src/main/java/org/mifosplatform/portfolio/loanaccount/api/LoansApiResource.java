@@ -561,12 +561,12 @@ public class LoansApiResource {
             // @QueryParam("underHierarchy") final String hierarchy,
             @QueryParam("offset") final Integer offset, @QueryParam("limit") final Integer limit,
             @QueryParam("orderBy") final String orderBy, @QueryParam("sortOrder") final String sortOrder,
-            @QueryParam("accountNo") final String accountNo) {
+            @QueryParam("accountNo") final String accountNo, @QueryParam("loanOfficerId") final Long loanOfficerId) {
 
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
 
         final SearchParameters searchParameters = SearchParameters.forLoans(sqlSearch, externalId, offset, limit, orderBy, sortOrder,
-                accountNo);
+                accountNo, loanOfficerId);
 
         final Page<LoanAccountData> loanBasicDetails = this.loanReadPlatformService.retrieveAll(searchParameters);
 

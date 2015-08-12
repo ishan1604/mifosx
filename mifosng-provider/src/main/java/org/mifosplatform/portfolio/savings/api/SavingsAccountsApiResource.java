@@ -100,11 +100,11 @@ public class SavingsAccountsApiResource {
             @QueryParam("externalId") final String externalId,
             // @QueryParam("underHierarchy") final String hierarchy,
             @QueryParam("offset") final Integer offset, @QueryParam("limit") final Integer limit,
-            @QueryParam("orderBy") final String orderBy, @QueryParam("sortOrder") final String sortOrder) {
+            @QueryParam("orderBy") final String orderBy, @QueryParam("sortOrder") final String sortOrder, @QueryParam("staffId") final Long staffId) {
 
         this.context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME);
 
-        final SearchParameters searchParameters = SearchParameters.forSavings(sqlSearch, externalId, offset, limit, orderBy, sortOrder);
+        final SearchParameters searchParameters = SearchParameters.forSavings(sqlSearch, externalId, offset, limit, orderBy, sortOrder,staffId);
 
         final Page<SavingsAccountData> products = this.savingsAccountReadPlatformService.retrieveAll(searchParameters);
 

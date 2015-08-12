@@ -254,6 +254,12 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
             arrayPos = arrayPos + 1;
         }
 
+        if (searchParameters.getStaffId() != null) {
+            sqlBuilder.append(" and l.loan_officer_id = ?");
+            extraCriterias.add(searchParameters.getStaffId());
+            arrayPos = arrayPos + 1;
+        }
+
         if (StringUtils.isNotBlank(searchParameters.getAccountNo())) {
             sqlBuilder.append(" and l.account_no = ?");
             extraCriterias.add(searchParameters.getAccountNo());

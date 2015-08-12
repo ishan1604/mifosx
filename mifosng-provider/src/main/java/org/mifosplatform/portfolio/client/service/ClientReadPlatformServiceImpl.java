@@ -158,6 +158,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
         final String displayName = searchParameters.getName();
         final String firstname = searchParameters.getFirstname();
         final String lastname = searchParameters.getLastname();
+        final Long staffId = searchParameters.getStaffId();
 
         String extraCriteria = "";
         if (sqlSearch != null) {
@@ -168,6 +169,10 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
 
         if (officeId != null) {
             extraCriteria += " and c.office_id = " + officeId;
+        }
+
+        if (officeId != null) {
+            extraCriteria += " and c.staff_id = " + staffId;
         }
 
         if (externalId != null) {
