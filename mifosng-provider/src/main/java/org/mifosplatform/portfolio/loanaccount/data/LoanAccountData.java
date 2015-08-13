@@ -195,6 +195,9 @@ public class LoanAccountData {
 
     private final Collection<ClientData> groupMembers;
 
+
+    final Collection<GroupLoanMembersAllocationData> groupLoanMembersAllocation;
+
     /**
      * Used to produce a {@link LoanAccountData} with only collateral options
      * for now.
@@ -689,6 +692,7 @@ public class LoanAccountData {
         final Collection<LoanCreditCheckData> creditChecks = null;
         final LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
 
+
         return new LoanAccountData(id, accountNo, status, externalId, clientId, clientName, clientOfficeId, group, loanType, loanProductId,
                 loanProductName, loanProductDescription, fundId, fundName, loanPurposeId, loanPurposeName, loanOfficerId, loanOfficerName,
                 currencyData, proposedPrincipal, principal, principal, totalOverpaid, inArrearsTolerance, termFrequency,
@@ -730,7 +734,7 @@ public class LoanAccountData {
                 acc.emiAmountVariations, acc.memberVariations, acc.product, acc.inArrears, acc.graceOnArrearsAgeing, acc.overdueCharges,
                 acc.isNPA, acc.daysInMonthType, acc.daysInYearType, acc.isInterestRecalculationEnabled, acc.interestRecalculationData,
                 acc.originalSchedule, acc.createStandingInstructionAtDisbursement, acc.paidInAdvance, acc.creditChecks, 
-                acc.loanProductConfigurableAttributes,groupAcc.groupData().clientMembers());
+                acc.loanProductConfigurableAttributes,groupAcc.groupData().clientMembers(),null);
     }
 
     public static LoanAccountData loanProductWithTemplateDefaults(final LoanProductData product,
@@ -1027,7 +1031,7 @@ public class LoanAccountData {
             final Collection<NoteData> notes, final Collection<PortfolioAccountData> accountLinkingOptions,
             final PortfolioAccountData linkedAccount, final Collection<DisbursementData> disbursementDetails,
             final Collection<LoanTermVariationsData> emiAmountVariations, final Collection<ChargeData> overdueCharges,
-            final PaidInAdvanceData paidInAdvance, final Collection<LoanCreditCheckData> creditChecks) {
+            final PaidInAdvanceData paidInAdvance, final Collection<LoanCreditCheckData> creditChecks,Collection<GroupLoanMembersAllocationData> groupLoanMembersAllocation) {
 
         return new LoanAccountData(acc.id, acc.accountNo, acc.status, acc.externalId, acc.clientId, acc.clientName, acc.clientOfficeId,
                 acc.group, acc.loanType, acc.loanProductId, acc.loanProductName, acc.loanProductDescription, acc.fundId, acc.fundName,
@@ -1047,7 +1051,7 @@ public class LoanAccountData {
                 disbursementDetails, acc.multiDisburseLoan, acc.fixedEmiAmount, acc.maxOutstandingLoanBalance, emiAmountVariations,
                 acc.memberVariations, acc.product, acc.inArrears, acc.graceOnArrearsAgeing, overdueCharges, acc.isNPA, acc.daysInMonthType,
                 acc.daysInYearType, acc.isInterestRecalculationEnabled, acc.interestRecalculationData, acc.originalSchedule,
-                acc.createStandingInstructionAtDisbursement, paidInAdvance, creditChecks, acc.loanProductConfigurableAttributes);
+                acc.createStandingInstructionAtDisbursement, paidInAdvance, creditChecks, acc.loanProductConfigurableAttributes,null,groupLoanMembersAllocation);
     }
 
     public static LoanAccountData associationsAndTemplate(final LoanAccountData acc, final Collection<LoanProductData> productOptions,
@@ -1059,7 +1063,7 @@ public class LoanAccountData {
                 acc.transactionProcessingStrategyOptions, acc.interestRateFrequencyTypeOptions, acc.amortizationTypeOptions,
                 acc.interestTypeOptions, acc.interestCalculationPeriodTypeOptions, acc.fundOptions, acc.chargeOptions, null,
                 allowedLoanOfficers, acc.loanPurposeOptions, acc.loanCollateralOptions, calendarOptions, acc.notes, accountLinkingOptions,
-                acc.linkedAccount, acc.disbursementDetails, acc.emiAmountVariations, acc.overdueCharges, acc.paidInAdvance, acc.creditChecks);
+                acc.linkedAccount, acc.disbursementDetails, acc.emiAmountVariations, acc.overdueCharges, acc.paidInAdvance, acc.creditChecks,null);
     }
 
     public static LoanAccountData associateGroup(final LoanAccountData acc, final GroupGeneralData group) {
@@ -1414,6 +1418,7 @@ public class LoanAccountData {
         this.creditChecks = creditChecks;
         this.loanProductConfigurableAttributes = loanProductConfigurableAttributes;
         this.groupMembers = null;
+        this.groupLoanMembersAllocation = null;
 
     }
 
@@ -1477,7 +1482,7 @@ public class LoanAccountData {
             final LoanInterestRecalculationData interestRecalculationData, final LoanScheduleData originalSchedule,
             final Boolean createStandingInstructionAtDisbursement, final PaidInAdvanceData paidInAdvance,
             final Collection<LoanCreditCheckData> creditChecks,
-            final LoanProductConfigurableAttributes loanProductConfigurableAttributes,Collection<ClientData> groupMembers) {
+            final LoanProductConfigurableAttributes loanProductConfigurableAttributes,Collection<ClientData> groupMembers,Collection<GroupLoanMembersAllocationData> groupLoanMembersAllocation) {
         this.id = id;
         this.accountNo = accountNo;
         this.status = status;
@@ -1632,6 +1637,7 @@ public class LoanAccountData {
         this.creditChecks = creditChecks;
         this.loanProductConfigurableAttributes = loanProductConfigurableAttributes;
         this.groupMembers = groupMembers;
+        this.groupLoanMembersAllocation = groupLoanMembersAllocation;
 
     }
 

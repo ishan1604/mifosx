@@ -34,11 +34,11 @@ import java.util.*;
 public class GroupLoanMemberAllocation extends AbstractPersistable<Long> {
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "loan_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "loan_id", nullable = false)
     private Loan loan;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "client_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "client_id", nullable = false)
     private Client client;
 
     @Column(name = "amount", scale = 6, precision = 19, nullable = false)
@@ -93,6 +93,28 @@ public class GroupLoanMemberAllocation extends AbstractPersistable<Long> {
 
     protected GroupLoanMemberAllocation() {
         //
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj == null) { return false; }
+        if (obj == this) { return true; }
+        if (obj.getClass() != getClass()) { return false; }
+        final GroupLoanMemberAllocation rhs = (GroupLoanMemberAllocation) obj;
+        return new EqualsBuilder().appendSuper(super.equals(obj)) //
+                .append(getId(), rhs.getId())
+                .append(this.loan.getId(), rhs.loan.getId()) //
+                .append(this.client.getId(), rhs.client.getId()) //
+                .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder() //
+                .append(getId())
+                .append(this.loan.getId()) //
+                .append(this.client.getId()) //
+                .toHashCode();
     }
 
 

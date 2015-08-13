@@ -65,15 +65,7 @@ import org.mifosplatform.portfolio.fund.service.FundReadPlatformService;
 import org.mifosplatform.portfolio.group.data.GroupGeneralData;
 import org.mifosplatform.portfolio.group.service.GroupReadPlatformService;
 import org.mifosplatform.infrastructure.core.service.SearchParameters;
-import org.mifosplatform.portfolio.loanaccount.data.DisbursementData;
-import org.mifosplatform.portfolio.loanaccount.data.LoanAccountData;
-import org.mifosplatform.portfolio.loanaccount.data.LoanApprovalData;
-import org.mifosplatform.portfolio.loanaccount.data.LoanChargeData;
-import org.mifosplatform.portfolio.loanaccount.data.LoanCreditCheckData;
-import org.mifosplatform.portfolio.loanaccount.data.LoanTermVariationsData;
-import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionData;
-import org.mifosplatform.portfolio.loanaccount.data.PaidInAdvanceData;
-import org.mifosplatform.portfolio.loanaccount.data.RepaymentScheduleRelatedLoanData;
+import org.mifosplatform.portfolio.loanaccount.data.*;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTermVariationType;
 import org.mifosplatform.portfolio.loanaccount.exception.LoanTemplateTypeRequiredException;
 import org.mifosplatform.portfolio.loanaccount.exception.NotSupportedLoanTemplateTypeException;
@@ -83,6 +75,7 @@ import org.mifosplatform.portfolio.loanaccount.loanschedule.data.LoanScheduleDat
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanScheduleModel;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.service.LoanScheduleCalculationPlatformService;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.service.LoanScheduleHistoryReadPlatformService;
+import org.mifosplatform.portfolio.loanaccount.service.GroupLoanMembersAllocationReadPlatformService;
 import org.mifosplatform.portfolio.loanaccount.service.LoanChargeReadPlatformService;
 import org.mifosplatform.portfolio.loanaccount.service.LoanCreditCheckReadPlatformService;
 import org.mifosplatform.portfolio.loanaccount.service.LoanReadPlatformService;
@@ -149,6 +142,7 @@ public class LoansApiResource {
     private final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService;
     private final LoanScheduleHistoryReadPlatformService loanScheduleHistoryReadPlatformService;
     private final LoanCreditCheckReadPlatformService loanCreditCheckReadPlatformService;
+    private final GroupLoanMembersAllocationReadPlatformService groupLoanMembersAllocationReadPlatformService;
 
     @Autowired
     public LoansApiResource(final PlatformSecurityContext context, final LoanReadPlatformService loanReadPlatformService,
@@ -168,7 +162,8 @@ public class LoansApiResource {
             final PortfolioAccountReadPlatformService portfolioAccountReadPlatformServiceImpl,
             final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
             final LoanScheduleHistoryReadPlatformService loanScheduleHistoryReadPlatformService,
-            final LoanCreditCheckReadPlatformService loanCreditCheckReadPlatformService) {
+            final LoanCreditCheckReadPlatformService loanCreditCheckReadPlatformService,
+            final GroupLoanMembersAllocationReadPlatformService groupLoanMembersAllocationReadPlatformService) {
         this.context = context;
         this.loanReadPlatformService = loanReadPlatformService;
         this.loanProductReadPlatformService = loanProductReadPlatformService;
@@ -193,6 +188,7 @@ public class LoansApiResource {
         this.accountAssociationsReadPlatformService = accountAssociationsReadPlatformService;
         this.loanScheduleHistoryReadPlatformService = loanScheduleHistoryReadPlatformService;
         this.loanCreditCheckReadPlatformService = loanCreditCheckReadPlatformService;
+        this.groupLoanMembersAllocationReadPlatformService = groupLoanMembersAllocationReadPlatformService;
     }
 
     /*
@@ -370,6 +366,8 @@ public class LoansApiResource {
         Collection<DisbursementData> disbursementData = null;
         Collection<LoanTermVariationsData> emiAmountVariations = null;
         Collection<LoanCreditCheckData> loanCreditCheckDataList = null;
+        Collection<GroupLoanMembersAllocationData> groupLoanMembersAllocationList= null;
+
 
         final Set<String> mandatoryResponseParameters = new HashSet<>();
         final Set<String> associationParameters = ApiParameterHelper.extractAssociationsForResponseIfProvided(uriInfo.getQueryParameters());
@@ -378,7 +376,7 @@ public class LoansApiResource {
             if (associationParameters.contains("all")) {
                 associationParameters.addAll(Arrays.asList("repaymentSchedule", "futureSchedule", "originalSchedule", "transactions",
                         "charges", "guarantors", "collateral", "notes", "linkedAccount", "multiDisburseDetails", 
-                        CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME));
+                        CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME,"groupMemberAllocation"));
             }
 
             ApiParameterHelper.excludeAssociationsForResponseIfProvided(uriInfo.getQueryParameters(), associationParameters);
@@ -390,6 +388,8 @@ public class LoansApiResource {
                     guarantors = null;
                 }
             }
+
+
 
             if (associationParameters.contains("transactions")) {
                 mandatoryResponseParameters.add("transactions");
@@ -444,6 +444,14 @@ public class LoansApiResource {
                 collateral = this.loanCollateralReadPlatformService.retrieveCollaterals(loanId);
                 if (CollectionUtils.isEmpty(collateral)) {
                     collateral = null;
+                }
+            }
+
+            if (associationParameters.contains("groupMemberAllocation")) {
+                mandatoryResponseParameters.add("groupMemberAllocation");
+                groupLoanMembersAllocationList = this.groupLoanMembersAllocationReadPlatformService.retrieveGroupLoanMembersAllocation(loanId);
+                if (CollectionUtils.isEmpty(groupLoanMembersAllocationList)) {
+                    groupLoanMembersAllocationList= null;
                 }
             }
 
@@ -545,7 +553,7 @@ public class LoansApiResource {
                 null, null, repaymentStrategyOptions, interestRateFrequencyTypeOptions, amortizationTypeOptions, interestTypeOptions,
                 interestCalculationPeriodTypeOptions, fundOptions, chargeOptions, chargeTemplate, allowedLoanOfficers, loanPurposeOptions,
                 loanCollateralOptions, calendarOptions, notes, accountLinkingOptions, linkedAccount, disbursementData, emiAmountVariations,
-                overdueCharges, paidInAdvanceTemplate, loanCreditCheckDataList);
+                overdueCharges, paidInAdvanceTemplate, loanCreditCheckDataList,groupLoanMembersAllocationList);
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters(),
                 mandatoryResponseParameters);

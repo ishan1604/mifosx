@@ -401,11 +401,11 @@ public final class LoanApplicationCommandFromApiJsonHelper {
                             supportedParameters);
 
                     final Long clientId = this.fromApiJsonHelper.extractLongNamed("client_id", groupMemberAllocationElement);
-                    baseDataValidator.reset().parameter("groupMemberAllocation").parameterAtIndexArray("client_id", i).value(clientId).notNull()
+                    baseDataValidator.reset().parameter("groupMemberAllocation.client_id").parameterAtIndexArray("client_id", i).value(clientId).notNull()
                             .integerGreaterThanZero();
 
                     final BigDecimal amount = this.fromApiJsonHelper.extractBigDecimalNamed("amount", groupMemberAllocationElement, locale);
-                    baseDataValidator.reset().parameter("groupMemberAllocation").parameterAtIndexArray("amount", i).value(amount).notNull().positiveAmount();
+                    baseDataValidator.reset().parameter("groupMemberAllocation.amount").parameterAtIndexArray("amount", i).value(amount).notNull().zeroOrPositiveAmount();
 
                     total += amount.longValue();
                 }

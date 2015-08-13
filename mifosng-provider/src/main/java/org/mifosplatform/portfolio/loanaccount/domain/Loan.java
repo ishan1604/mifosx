@@ -1237,15 +1237,19 @@ public class Loan extends AbstractPersistable<Long> {
 
     public void updateGroupLoanMemberAllocation(final Set<GroupLoanMemberAllocation> groupLoanMemberAllocations) {
 
-        if (this.groupLoanMemberAllocations == null) {
+//        if (this.groupLoanMemberAllocations == null) {
+//
+//            this.groupLoanMemberAllocations = new HashSet<>();
+//
+//        }
 
-            this.groupLoanMemberAllocations = new HashSet<>();
+       this.groupLoanMemberAllocations.clear();
+       // this.groupLoanMemberAllocations.addAll(associateGroupLoanMemberAllocationWithThisLoan(groupLoanMemberAllocations));
 
-        }
+    }
 
-        this.groupLoanMemberAllocations.clear();
-        this.groupLoanMemberAllocations.addAll(associateGroupLoanMemberAllocationWithThisLoan(groupLoanMemberAllocations));
-
+    public Set<GroupLoanMemberAllocation> getGroupLoanMemberAllocations(){
+        return this.groupLoanMemberAllocations;
     }
 
     public void updateLoanSchedule(final LoanScheduleModel modifiedLoanSchedule, AppUser currentUser) {
