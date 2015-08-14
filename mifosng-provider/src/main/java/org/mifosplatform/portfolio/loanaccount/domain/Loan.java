@@ -1237,14 +1237,12 @@ public class Loan extends AbstractPersistable<Long> {
 
     public void updateGroupLoanMemberAllocation(final Set<GroupLoanMemberAllocation> groupLoanMemberAllocations) {
 
-//        if (this.groupLoanMemberAllocations == null) {
-//
-//            this.groupLoanMemberAllocations = new HashSet<>();
-//
-//        }
+        if (this.groupLoanMemberAllocations == null) {
+            this.groupLoanMemberAllocations = new HashSet<>();
+        }
 
        this.groupLoanMemberAllocations.clear();
-       // this.groupLoanMemberAllocations.addAll(associateGroupLoanMemberAllocationWithThisLoan(groupLoanMemberAllocations));
+       this.groupLoanMemberAllocations.addAll(associateGroupLoanMemberAllocationWithThisLoan(groupLoanMemberAllocations));
 
     }
 
@@ -1374,7 +1372,7 @@ public class Loan extends AbstractPersistable<Long> {
 
     public Map<String, Object> loanApplicationModification(final JsonCommand command, final Set<LoanCharge> possiblyModifedLoanCharges,
             final Set<LoanCollateral> possiblyModifedLoanCollateralItems, final AprCalculator aprCalculator, boolean isChargesModified,
-            final Set<GroupLoanMemberAllocation> possiblyModifiedGroupLoanMembersAllocation,boolean isGroupLoanMembersAllocationChanged) {
+            final Set<GroupLoanMemberAllocation> possiblyModifiedGroupLoanMembersAllocation) {
 
         final Map<String, Object> actualChanges = this.loanRepaymentScheduleDetail.updateLoanApplicationAttributes(command, aprCalculator);
         if (!actualChanges.isEmpty()) {

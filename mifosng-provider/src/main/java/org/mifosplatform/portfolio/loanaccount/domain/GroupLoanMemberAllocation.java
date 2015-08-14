@@ -37,20 +37,13 @@ public class GroupLoanMemberAllocation extends AbstractPersistable<Long> {
     @JoinColumn(name = "loan_id", nullable = false)
     private Loan loan;
 
-    @ManyToOne(optional = false)
+    @ManyToOne
     @JoinColumn(name = "client_id", nullable = false)
     private Client client;
 
     @Column(name = "amount", scale = 6, precision = 19, nullable = false)
     private BigDecimal amount;
 
-    public static GroupLoanMemberAllocation createNewFromJson(final Loan loan,Client client, final JsonCommand command) {
-        final BigDecimal amount = command.bigDecimalValueOfParameterNamed("amount");
-        //final long clientId = command.longValueOfParameterNamed("client_id");
-
-        return new GroupLoanMemberAllocation(loan,client,amount);
-
-    }
 
     public static GroupLoanMemberAllocation createNew(final Loan loan,Client client, final BigDecimal amount) {
 
@@ -58,12 +51,11 @@ public class GroupLoanMemberAllocation extends AbstractPersistable<Long> {
 
     }
 
-    public static GroupLoanMemberAllocation createNewWithoutLoan(final Client client, final BigDecimal amount) {
+    public static GroupLoanMemberAllocation from(final Client client, final BigDecimal amount) {
         return new GroupLoanMemberAllocation(null,client,amount);
     }
 
-
-    protected GroupLoanMemberAllocation(final Loan loan, final Client client, final BigDecimal amount) {
+    private GroupLoanMemberAllocation(final Loan loan, final Client client, final BigDecimal amount) {
         this.loan = loan;
         this.client = client;
         this.amount = amount;
@@ -102,21 +94,19 @@ public class GroupLoanMemberAllocation extends AbstractPersistable<Long> {
         if (obj.getClass() != getClass()) { return false; }
         final GroupLoanMemberAllocation rhs = (GroupLoanMemberAllocation) obj;
         return new EqualsBuilder().appendSuper(super.equals(obj)) //
-                .append(getId(), rhs.getId())
-                .append(this.loan.getId(), rhs.loan.getId()) //
+                .append(getId(), rhs.getId()) //
                 .append(this.client.getId(), rhs.client.getId()) //
+                .append(this.amount, this.amount)//
                 .isEquals();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder() //
-                .append(getId())
-                .append(this.loan.getId()) //
+        return new HashCodeBuilder(3, 5) //
+                .append(getId()) //
                 .append(this.client.getId()) //
+                .append(this.amount)//
                 .toHashCode();
     }
-
-
 
 }

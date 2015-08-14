@@ -33,7 +33,7 @@ public class GroupLoanMemberAllocationAssembler {
     private final ClientRepositoryWrapper clientRepository;
 
     @Autowired
-    public GroupLoanMemberAllocationAssembler(final FromJsonHelper fromApiJsonHelper, final ChargeRepositoryWrapper chargeRepository,
+    public GroupLoanMemberAllocationAssembler(final FromJsonHelper fromApiJsonHelper,
                                               final GroupLoanMemberAllocationRepository groupLoanMemberAllocationRepository,final ClientRepositoryWrapper clientRepository) {
         this.fromApiJsonHelper = fromApiJsonHelper;
         this.groupLoanMemberAllocationRepository = groupLoanMemberAllocationRepository;
@@ -61,8 +61,7 @@ public class GroupLoanMemberAllocationAssembler {
                     if (id == null) {
                         final Client client = this.clientRepository.findOneWithNotFoundDetection(clientId);
 
-                        final GroupLoanMemberAllocation groupLoanMemberAllocation = GroupLoanMemberAllocation.createNewWithoutLoan(client,amount);
-                        groupLoanMemberAllocations.add(groupLoanMemberAllocation);
+                        groupLoanMemberAllocations.add(GroupLoanMemberAllocation.from(client,amount));
 
                     } else {
                         final Long groupLoanMemberAllocationId = id;

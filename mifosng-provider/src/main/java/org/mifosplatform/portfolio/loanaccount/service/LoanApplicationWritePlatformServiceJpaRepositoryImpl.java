@@ -472,40 +472,13 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             }
 
 
-            final Set<GroupLoanMemberAllocation> existingGroupLoanMembersAllocation = existingLoanApplication.groupLoanMemberAllocations();
-            Map<Long,GroupLoanMemberAllocation > groupLoanMemberAllocationMap = new HashMap<>();
-            for (GroupLoanMemberAllocation member : existingGroupLoanMembersAllocation) {
-                groupLoanMemberAllocationMap.put(member.getId(),member);
-            }
-
             final Set<GroupLoanMemberAllocation> possiblyModifiedGroupLoanMembersAllocation = this.groupLoanMemberAllocationAssembler.fromParsedJson(command.parsedJson());
-            /** Boolean determines if any GroupLoanMembersAllocation has been modified **/
-            boolean isGroupLoanMembersAllocationModified = false;
-
-            if (!possiblyModifiedGroupLoanMembersAllocation.isEmpty()) {
-                if (!possiblyModifiedGroupLoanMembersAllocation.containsAll(existingGroupLoanMembersAllocation)) {
-                    isGroupLoanMembersAllocationModified = true;
-                }
-            }
-
-            for (GroupLoanMemberAllocation groupLoanMemberAllocation : possiblyModifiedGroupLoanMembersAllocation) {
-                if (groupLoanMemberAllocation.getId() == null) {
-                    isGroupLoanMembersAllocationModified = true;
-                } else {
-                    GroupLoanMemberAllocation groupLoanMemberAllocation1 = groupLoanMemberAllocationMap.get(groupLoanMemberAllocation.getId());
-                    if (!groupLoanMemberAllocation1.amount().equals(groupLoanMemberAllocation.amount()) ||
-                            ! groupLoanMemberAllocation1.loan().getId().equals(groupLoanMemberAllocation.loan().getId()) ||
-                            ! groupLoanMemberAllocation1.client().getId().equals(groupLoanMemberAllocation.client().getId())) {
-                        isGroupLoanMembersAllocationModified = true;
-                    }
-                }
-            }
 
             final Set<LoanCollateral> possiblyModifedLoanCollateralItems = this.loanCollateralAssembler
                     .fromParsedJson(command.parsedJson());
 
             final Map<String, Object> changes = existingLoanApplication.loanApplicationModification(command, possiblyModifedLoanCharges,
-                    possiblyModifedLoanCollateralItems, this.aprCalculator, isChargeModified,possiblyModifiedGroupLoanMembersAllocation,isGroupLoanMembersAllocationModified);
+                    possiblyModifedLoanCollateralItems, this.aprCalculator, isChargeModified,possiblyModifiedGroupLoanMembersAllocation);
 
             if (changes.containsKey("expectedDisbursementDate")) {
                 this.loanAssembler.validateExpectedDisbursementForHolidayAndNonWorkingDay(existingLoanApplication);
