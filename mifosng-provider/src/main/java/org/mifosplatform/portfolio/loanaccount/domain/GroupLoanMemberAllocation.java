@@ -18,8 +18,10 @@ import org.mifosplatform.portfolio.charge.domain.ChargeCalculationType;
 import org.mifosplatform.portfolio.charge.domain.ChargePaymentMode;
 import org.mifosplatform.portfolio.charge.domain.ChargeTimeType;
 import org.mifosplatform.portfolio.charge.exception.LoanChargeWithoutMandatoryFieldException;
+import org.mifosplatform.portfolio.client.data.ClientData;
 import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.loanaccount.command.LoanChargeCommand;
+import org.mifosplatform.portfolio.loanaccount.data.GroupLoanMembersAllocationData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargePaidDetail;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 
@@ -85,6 +87,12 @@ public class GroupLoanMemberAllocation extends AbstractPersistable<Long> {
 
     protected GroupLoanMemberAllocation() {
         //
+    }
+
+
+    public GroupLoanMembersAllocationData toData() {
+
+        return GroupLoanMembersAllocationData.newOne(null,null,this.client.toData(),this.amount());
     }
 
     @Override

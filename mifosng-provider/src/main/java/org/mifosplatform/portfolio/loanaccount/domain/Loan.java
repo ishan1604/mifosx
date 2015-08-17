@@ -78,10 +78,7 @@ import org.mifosplatform.portfolio.fund.domain.Fund;
 import org.mifosplatform.portfolio.group.domain.Group;
 import org.mifosplatform.portfolio.loanaccount.api.LoanApiConstants;
 import org.mifosplatform.portfolio.loanaccount.command.LoanChargeCommand;
-import org.mifosplatform.portfolio.loanaccount.data.DisbursementData;
-import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
-import org.mifosplatform.portfolio.loanaccount.data.LoanTermVariationsData;
-import org.mifosplatform.portfolio.loanaccount.data.ScheduleGeneratorDTO;
+import org.mifosplatform.portfolio.loanaccount.data.*;
 import org.mifosplatform.portfolio.loanaccount.domain.transactionprocessor.LoanRepaymentScheduleTransactionProcessor;
 import org.mifosplatform.portfolio.loanaccount.exception.ExceedingTrancheCountException;
 import org.mifosplatform.portfolio.loanaccount.exception.InvalidLoanStateTransitionException;
@@ -1570,7 +1567,7 @@ public class Loan extends AbstractPersistable<Long> {
         if (command.parameterExists(groupMemberAllocation)) {
 
             if (!possiblyModifiedGroupLoanMembersAllocation.equals(this.groupLoanMemberAllocations)) {
-                actualChanges.put(groupMemberAllocation,possiblyModifiedGroupLoanMembersAllocation);
+                actualChanges.put(groupMemberAllocation,listOfGroupLoanMemberAllocationData(possiblyModifiedGroupLoanMembersAllocation));
             }
         }
 
@@ -1877,6 +1874,23 @@ public class Loan extends AbstractPersistable<Long> {
         existingLoanCollateral = loanCollateralList.toArray(new CollateralData[loanCollateralList.size()]);
 
         return existingLoanCollateral;
+    }
+
+    private GroupLoanMembersAllocationData[] listOfGroupLoanMemberAllocationData(final Set<GroupLoanMemberAllocation> setOfGroupLoanMemberAllocation) {
+
+        GroupLoanMembersAllocationData[] existingGroupLoanMemberAllocation = null;
+
+        final List<GroupLoanMembersAllocationData> GroupLoanMemberAllocationList = new ArrayList<>();
+        for (final GroupLoanMemberAllocation memberAllocation : setOfGroupLoanMemberAllocation) {
+
+            final GroupLoanMembersAllocationData data = memberAllocation.toData();
+
+            GroupLoanMemberAllocationList.add(data);
+        }
+
+        existingGroupLoanMemberAllocation = GroupLoanMemberAllocationList.toArray(new GroupLoanMembersAllocationData[GroupLoanMemberAllocationList.size()]);
+
+        return existingGroupLoanMemberAllocation;
     }
 
     private LoanChargeCommand[] getLoanCharges(final Set<LoanCharge> setOfLoanCharges) {

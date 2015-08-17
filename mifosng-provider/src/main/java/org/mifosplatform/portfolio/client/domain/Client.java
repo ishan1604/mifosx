@@ -44,6 +44,7 @@ import org.mifosplatform.infrastructure.security.service.RandomPasswordGenerator
 import org.mifosplatform.organisation.office.domain.Office;
 import org.mifosplatform.organisation.staff.domain.Staff;
 import org.mifosplatform.portfolio.client.api.ClientApiConstants;
+import org.mifosplatform.portfolio.client.data.ClientData;
 import org.mifosplatform.portfolio.group.domain.Group;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
 import org.mifosplatform.portfolio.savings.domain.SavingsProduct;
@@ -900,5 +901,9 @@ public final class Client extends AbstractPersistable<Long> {
         this.updatedOnDate = reactivateDate;
         this.status = ClientStatus.PENDING.getValue();
 
+    }
+
+    public ClientData toData(){
+       return  ClientData.instance(this.accountNumber,null,null, null, null, null, null,this.getId(), null, null, null, null, this.displayName, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 }

@@ -794,7 +794,7 @@ public final class LoanApplicationCommandFromApiJsonHelper {
                             .integerGreaterThanZero();
 
                     final BigDecimal amount = this.fromApiJsonHelper.extractBigDecimalNamed("amount", groupMemberAllocationElement, locale);
-                    baseDataValidator.reset().parameter("groupMemberAllocation").parameterAtIndexArray("amount", i).value(amount).notNull().positiveAmount();
+                    baseDataValidator.reset().parameter("groupMemberAllocation").parameterAtIndexArray("amount", i).value(amount).notNull().zeroOrPositiveAmount();
 
                     total += amount.longValue();
                 }
