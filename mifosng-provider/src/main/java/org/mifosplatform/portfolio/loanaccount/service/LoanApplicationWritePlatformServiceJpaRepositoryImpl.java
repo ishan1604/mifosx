@@ -478,7 +478,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                     .fromParsedJson(command.parsedJson());
 
             final Map<String, Object> changes = existingLoanApplication.loanApplicationModification(command, possiblyModifedLoanCharges,
-                    possiblyModifedLoanCollateralItems, this.aprCalculator, isChargeModified,possiblyModifiedGroupLoanMembersAllocation);
+                    possiblyModifedLoanCollateralItems, this.aprCalculator, isChargeModified, possiblyModifiedGroupLoanMembersAllocation);
 
             if (changes.containsKey("expectedDisbursementDate")) {
                 this.loanAssembler.validateExpectedDisbursementForHolidayAndNonWorkingDay(existingLoanApplication);
@@ -644,7 +644,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             // Save linked account information
             final String linkAccountIdParamName = "linkAccountId";
             final Long savingsAccountId = command.longValueOfParameterNamed(linkAccountIdParamName);
-            AccountAssociations accountAssociations = this.accountAssociationsRepository.findByLoanId(loanId);
+            AccountAssociations accountAssociations = this.accountAssociationsRepository.findLinkedSavingsByLoanId(loanId, new Integer(1));
             boolean isLinkedAccPresent = false;
             if (savingsAccountId == null) {
                 if (accountAssociations != null) {
