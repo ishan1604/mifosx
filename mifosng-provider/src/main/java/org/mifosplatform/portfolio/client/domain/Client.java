@@ -574,7 +574,15 @@ public final class Client extends AbstractPersistable<Long> {
             actualChanges.put(ClientApiConstants.localeParamName, localeAsInput);
 
             final LocalDate newValue = command.localDateValueOfParameterNamed(ClientApiConstants.dateOfBirthParamName);
-            this.dateOfBirth = newValue.toDate();
+
+            if (newValue == null) {
+                this.dateOfBirth = null;
+            }
+            
+            else {
+                this.dateOfBirth = newValue.toDate();
+            }
+
         }
 
         if (command.isChangeInLocalDateParameterNamed(ClientApiConstants.submittedOnDateParamName, getSubmittedOnDate())) {
