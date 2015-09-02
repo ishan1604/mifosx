@@ -22,6 +22,7 @@ import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
 import org.mifosplatform.organisation.office.domain.Office;
 import org.mifosplatform.portfolio.client.domain.Client;
+import org.mifosplatform.portfolio.group.domain.Group;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
 import org.springframework.data.jpa.domain.AbstractPersistable;
@@ -35,8 +36,12 @@ public class AccountTransferDetails extends AbstractPersistable<Long> {
     private Office fromOffice;
 
     @ManyToOne
-    @JoinColumn(name = "from_client_id", nullable = false)
+    @JoinColumn(name = "from_client_id", nullable = true)
     private Client fromClient;
+
+    @ManyToOne
+    @JoinColumn(name = "from_group_id", nullable = true)
+    private Group fromGroup;
 
     @ManyToOne
     @JoinColumn(name = "from_savings_account_id", nullable = true)
@@ -47,8 +52,12 @@ public class AccountTransferDetails extends AbstractPersistable<Long> {
     private Office toOffice;
 
     @ManyToOne
-    @JoinColumn(name = "to_client_id", nullable = false)
+    @JoinColumn(name = "to_client_id", nullable = true)
     private Client toClient;
+
+    @ManyToOne
+    @JoinColumn(name = "to_group_id", nullable = true)
+    private Group toGroup;
 
     @ManyToOne
     @JoinColumn(name = "to_savings_account_id", nullable = true)
@@ -80,6 +89,14 @@ public class AccountTransferDetails extends AbstractPersistable<Long> {
                 transferType, null);
     }
 
+    public static AccountTransferDetails savingsToSavingsTransfer(final Office fromOffice, final Client fromClient,
+                                                                  final SavingsAccount fromSavingsAccount, final Office toOffice, final Client toClient, final SavingsAccount toSavingsAccount,
+                                                                  Integer transferType,final Group fromGroup, final Group toGroup) {
+
+        return new AccountTransferDetails(fromOffice, fromClient, fromSavingsAccount, null, toOffice, toClient, toSavingsAccount, null,
+                transferType, null,toGroup,fromGroup);
+    }
+
     public static AccountTransferDetails savingsToLoanTransfer(final Office fromOffice, final Client fromClient,
             final SavingsAccount fromSavingsAccount, final Office toOffice, final Client toClient, final Loan toLoanAccount,
             Integer transferType) {
@@ -87,11 +104,25 @@ public class AccountTransferDetails extends AbstractPersistable<Long> {
                 transferType, null);
     }
 
+    public static AccountTransferDetails savingsToLoanTransfer(final Office fromOffice, final Client fromClient,
+                                                               final SavingsAccount fromSavingsAccount, final Office toOffice, final Client toClient, final Loan toLoanAccount,
+                                                               Integer transferType,final Group toGroup, final Group fromGroup) {
+        return new AccountTransferDetails(fromOffice, fromClient, fromSavingsAccount, null, toOffice, toClient, null, toLoanAccount,
+                transferType, null,toGroup,fromGroup);
+    }
+
     public static AccountTransferDetails LoanTosavingsTransfer(final Office fromOffice, final Client fromClient,
             final Loan fromLoanAccount, final Office toOffice, final Client toClient, final SavingsAccount toSavingsAccount,
             Integer transferType) {
         return new AccountTransferDetails(fromOffice, fromClient, null, fromLoanAccount, toOffice, toClient, toSavingsAccount, null,
                 transferType, null);
+    }
+
+    public static AccountTransferDetails LoanTosavingsTransfer(final Office fromOffice, final Client fromClient,
+                                                               final Loan fromLoanAccount, final Office toOffice, final Client toClient, final SavingsAccount toSavingsAccount,
+                                                               Integer transferType,final Group fromGroup,final Group toGroup) {
+        return new AccountTransferDetails(fromOffice, fromClient, null, fromLoanAccount, toOffice, toClient, toSavingsAccount, null,
+                transferType, null,fromGroup,toGroup);
     }
 
     protected AccountTransferDetails() {
@@ -112,6 +143,25 @@ public class AccountTransferDetails extends AbstractPersistable<Long> {
         this.toLoanAccount = toLoanAccount;
         this.transferType = transferType;
         this.accountTransferStandingInstruction = accountTransferStandingInstruction;
+    }
+
+    private AccountTransferDetails(final Office fromOffice, final Client fromClient, final SavingsAccount fromSavingsAccount,
+                                   final Loan fromLoanAccount, final Office toOffice, final Client toClient, final SavingsAccount toSavingsAccount,
+                                   final Loan toLoanAccount, final Integer transferType,
+                                   final AccountTransferStandingInstruction accountTransferStandingInstruction,
+                                   final Group toGroup, final Group fromGroup) {
+        this.fromOffice = fromOffice;
+        this.fromClient = fromClient;
+        this.fromSavingsAccount = fromSavingsAccount;
+        this.fromLoanAccount = fromLoanAccount;
+        this.toOffice = toOffice;
+        this.toClient = toClient;
+        this.toSavingsAccount = toSavingsAccount;
+        this.toLoanAccount = toLoanAccount;
+        this.transferType = transferType;
+        this.accountTransferStandingInstruction = accountTransferStandingInstruction;
+        this.toGroup = toGroup ;
+        this.fromGroup = fromGroup;
     }
 
     public SavingsAccount toSavingsAccount() {

@@ -240,6 +240,13 @@ public class GroupGeneralData {
                 availableRoles, role, calendarsData, collectionMeetingCalendar, closureReasons, null);
     }
 
+    public static GroupGeneralData lookup (final Long id, final String displayName, final Long officeId, final String officeName){
+
+        return new GroupGeneralData(id, displayName, null, null, null, null, officeId, officeName, null, null,null,
+                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null);
+    }
+
     public Collection<ClientData> clientMembers() {
         return this.clientMembers;
     }

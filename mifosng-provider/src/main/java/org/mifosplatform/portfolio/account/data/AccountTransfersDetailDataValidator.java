@@ -5,15 +5,6 @@
  */
 package org.mifosplatform.portfolio.account.data;
 
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.fromAccountIdParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.fromAccountTypeParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.fromClientIdParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.fromOfficeIdParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.toAccountIdParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.toAccountTypeParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.toClientIdParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.toOfficeIdParamName;
-
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
@@ -21,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.gson.JsonElement;
+
+import static org.mifosplatform.portfolio.account.AccountDetailConstants.*;
 
 @Component
 public class AccountTransfersDetailDataValidator {
@@ -39,8 +32,26 @@ public class AccountTransfersDetailDataValidator {
         final Long fromOfficeId = this.fromApiJsonHelper.extractLongNamed(fromOfficeIdParamName, element);
         baseDataValidator.reset().parameter(fromOfficeIdParamName).value(fromOfficeId).notNull().integerGreaterThanZero();
 
-        final Long fromClientId = this.fromApiJsonHelper.extractLongNamed(fromClientIdParamName, element);
-        baseDataValidator.reset().parameter(fromClientIdParamName).value(fromClientId).notNull().integerGreaterThanZero();
+        if(this.fromApiJsonHelper.parameterExists(fromClientIdParamName,element) && this.fromApiJsonHelper.parameterExists(toClientIdParamName,element)){
+
+            final Long fromClientId = this.fromApiJsonHelper.extractLongNamed(fromClientIdParamName, element);
+            baseDataValidator.reset().parameter(fromClientIdParamName).value(fromClientId).notNull().integerGreaterThanZero();
+
+            final Long toClientId = this.fromApiJsonHelper.extractLongNamed(toClientIdParamName, element);
+            baseDataValidator.reset().parameter(toClientIdParamName).value(toClientId).notNull().integerGreaterThanZero();
+
+        }else{
+
+            final Long fromGroupId = this.fromApiJsonHelper.extractLongNamed(fromGroupIdParamName, element);
+            baseDataValidator.reset().parameter(fromGroupIdParamName).value(fromGroupId).notNull().integerGreaterThanZero();
+
+
+            final Long toGroupId = this.fromApiJsonHelper.extractLongNamed(toGroupIdParamName, element);
+            baseDataValidator.reset().parameter(toGroupIdParamName).value(toGroupId).notNull().integerGreaterThanZero();
+        }
+
+
+
 
         final Long fromAccountId = this.fromApiJsonHelper.extractLongNamed(fromAccountIdParamName, element);
         baseDataValidator.reset().parameter(fromAccountIdParamName).value(fromAccountId).notNull().integerGreaterThanZero();
@@ -52,8 +63,8 @@ public class AccountTransfersDetailDataValidator {
         final Long toOfficeId = this.fromApiJsonHelper.extractLongNamed(toOfficeIdParamName, element);
         baseDataValidator.reset().parameter(toOfficeIdParamName).value(toOfficeId).notNull().integerGreaterThanZero();
 
-        final Long toClientId = this.fromApiJsonHelper.extractLongNamed(toClientIdParamName, element);
-        baseDataValidator.reset().parameter(toClientIdParamName).value(toClientId).notNull().integerGreaterThanZero();
+
+
 
         final Long toAccountId = this.fromApiJsonHelper.extractLongNamed(toAccountIdParamName, element);
         baseDataValidator.reset().parameter(toAccountIdParamName).value(toAccountId).notNull().integerGreaterThanZero();
