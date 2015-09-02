@@ -5,14 +5,6 @@
  */
 package org.mifosplatform.portfolio.account.domain;
 
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.fromAccountIdParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.fromClientIdParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.fromOfficeIdParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.toAccountIdParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.toClientIdParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.toOfficeIdParamName;
-import static org.mifosplatform.portfolio.account.AccountDetailConstants.transferTypeParamName;
-
 import java.util.Locale;
 
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
@@ -21,6 +13,9 @@ import org.mifosplatform.organisation.office.domain.Office;
 import org.mifosplatform.organisation.office.domain.OfficeRepository;
 import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.client.domain.ClientRepositoryWrapper;
+import org.mifosplatform.portfolio.group.domain.Group;
+import org.mifosplatform.portfolio.group.domain.GroupRepository;
+import org.mifosplatform.portfolio.group.domain.GroupRepositoryWrapper;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.portfolio.loanaccount.service.LoanAssembler;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
@@ -30,10 +25,13 @@ import org.springframework.stereotype.Service;
 
 import com.google.gson.JsonElement;
 
+import static org.mifosplatform.portfolio.account.AccountDetailConstants.*;
+
 @Service
 public class AccountTransferDetailAssembler {
 
     private final ClientRepositoryWrapper clientRepository;
+    private final GroupRepositoryWrapper groupRepository;
     private final OfficeRepository officeRepository;
     private final SavingsAccountAssembler savingsAccountAssembler;
     private final FromJsonHelper fromApiJsonHelper;
@@ -42,12 +40,13 @@ public class AccountTransferDetailAssembler {
     @Autowired
     public AccountTransferDetailAssembler(final ClientRepositoryWrapper clientRepository, final OfficeRepository officeRepository,
             final SavingsAccountAssembler savingsAccountAssembler, final FromJsonHelper fromApiJsonHelper,
-            final LoanAssembler loanAccountAssembler) {
+            final LoanAssembler loanAccountAssembler,final GroupRepositoryWrapper groupRepository) {
         this.clientRepository = clientRepository;
         this.officeRepository = officeRepository;
         this.savingsAccountAssembler = savingsAccountAssembler;
         this.fromApiJsonHelper = fromApiJsonHelper;
         this.loanAccountAssembler = loanAccountAssembler;
+        this.groupRepository = groupRepository;
     }
 
     public AccountTransferDetails assembleSavingsToSavingsTransfer(final JsonCommand command) {
@@ -93,19 +92,43 @@ public class AccountTransferDetailAssembler {
         final Long fromOfficeId = this.fromApiJsonHelper.extractLongNamed(fromOfficeIdParamName, element);
         final Office fromOffice = this.officeRepository.findOne(fromOfficeId);
 
-        final Long fromClientId = this.fromApiJsonHelper.extractLongNamed(fromClientIdParamName, element);
-        final Client fromClient = this.clientRepository.findOneWithNotFoundDetection(fromClientId);
+        Client fromClient = null;
+        Group fromGroup = null;
+
+        if(this.fromApiJsonHelper.parameterExists(fromClientIdParamName,element)) {
+            final Long fromClientId = this.fromApiJsonHelper.extractLongNamed(fromClientIdParamName, element);
+              fromClient = this.clientRepository.findOneWithNotFoundDetection(fromClientId);
+
+        }else if(this.fromApiJsonHelper.parameterExists(fromGroupIdParamName,element)){
+
+            final Long fromGroupId = this.fromApiJsonHelper.extractLongNamed(toGroupIdParamName,element);
+            fromGroup = this.groupRepository.findOneWithNotFoundDetection(fromGroupId);
+        }
+
+
 
         final Long toOfficeId = this.fromApiJsonHelper.extractLongNamed(toOfficeIdParamName, element);
         final Office toOffice = this.officeRepository.findOne(toOfficeId);
 
-        final Long toClientId = this.fromApiJsonHelper.extractLongNamed(toClientIdParamName, element);
-        final Client toClient = this.clientRepository.findOneWithNotFoundDetection(toClientId);
+        Group toGroup = null;
+        Client toClient = null;
+
+        if(this.fromApiJsonHelper.parameterExists(toClientIdParamName,element)) {
+             final Long toClientId = this.fromApiJsonHelper.extractLongNamed(toClientIdParamName, element);
+            toClient = this.clientRepository.findOneWithNotFoundDetection(toClientId);
+
+        }else if(this.fromApiJsonHelper.parameterExists(toGroupIdParamName,element)){
+
+             Long toGroupId = this.fromApiJsonHelper.extractLongNamed(toGroupIdParamName, element);
+             toGroup = this.groupRepository.findOneWithNotFoundDetection(toGroupId);
+        }
+
+
 
         final Integer transfertype = this.fromApiJsonHelper.extractIntegerNamed(transferTypeParamName, element, Locale.getDefault());
 
         return AccountTransferDetails.savingsToSavingsTransfer(fromOffice, fromClient, fromSavingsAccount, toOffice, toClient,
-                toSavingsAccount, transfertype);
+                toSavingsAccount, transfertype,fromGroup,toGroup);
 
     }
 
@@ -117,19 +140,39 @@ public class AccountTransferDetailAssembler {
         final Long fromOfficeId = this.fromApiJsonHelper.extractLongNamed(fromOfficeIdParamName, element);
         final Office fromOffice = this.officeRepository.findOne(fromOfficeId);
 
-        final Long fromClientId = this.fromApiJsonHelper.extractLongNamed(fromClientIdParamName, element);
-        final Client fromClient = this.clientRepository.findOneWithNotFoundDetection(fromClientId);
+        Client fromClient = null;
+        Group fromGroup = null;
+
+        if(this.fromApiJsonHelper.parameterExists(fromClientIdParamName,element)) {
+            final Long fromClientId = this.fromApiJsonHelper.extractLongNamed(fromClientIdParamName, element);
+            fromClient = this.clientRepository.findOneWithNotFoundDetection(fromClientId);
+
+        }else if(this.fromApiJsonHelper.parameterExists(fromGroupIdParamName,element)){
+
+            final Long fromGroupId = this.fromApiJsonHelper.extractLongNamed(toGroupIdParamName,element);
+            fromGroup = this.groupRepository.findOneWithNotFoundDetection(fromGroupId);
+        }
 
         final Long toOfficeId = this.fromApiJsonHelper.extractLongNamed(toOfficeIdParamName, element);
         final Office toOffice = this.officeRepository.findOne(toOfficeId);
 
-        final Long toClientId = this.fromApiJsonHelper.extractLongNamed(toClientIdParamName, element);
-        final Client toClient = this.clientRepository.findOneWithNotFoundDetection(toClientId);
+        Group toGroup = null;
+        Client toClient = null;
+
+        if(this.fromApiJsonHelper.parameterExists(toClientIdParamName,element)) {
+            final Long toClientId = this.fromApiJsonHelper.extractLongNamed(toClientIdParamName, element);
+            toClient = this.clientRepository.findOneWithNotFoundDetection(toClientId);
+
+        }else if(this.fromApiJsonHelper.parameterExists(toGroupIdParamName,element)){
+
+            Long toGroupId = this.fromApiJsonHelper.extractLongNamed(toGroupIdParamName,element);
+            toGroup = this.groupRepository.findOneWithNotFoundDetection(toGroupId);
+        }
 
         final Integer transfertype = this.fromApiJsonHelper.extractIntegerNamed(transferTypeParamName, element, Locale.getDefault());
 
         return AccountTransferDetails.savingsToLoanTransfer(fromOffice, fromClient, fromSavingsAccount, toOffice, toClient, toLoanAccount,
-                transfertype);
+                transfertype,toGroup,fromGroup);
 
     }
 
@@ -141,18 +184,39 @@ public class AccountTransferDetailAssembler {
         final Long fromOfficeId = this.fromApiJsonHelper.extractLongNamed(fromOfficeIdParamName, element);
         final Office fromOffice = this.officeRepository.findOne(fromOfficeId);
 
-        final Long fromClientId = this.fromApiJsonHelper.extractLongNamed(fromClientIdParamName, element);
-        final Client fromClient = this.clientRepository.findOneWithNotFoundDetection(fromClientId);
+        Client fromClient = null;
+        Group fromGroup = null;
+
+        if(this.fromApiJsonHelper.parameterExists(fromClientIdParamName,element)) {
+            final Long fromClientId = this.fromApiJsonHelper.extractLongNamed(fromClientIdParamName, element);
+            fromClient = this.clientRepository.findOneWithNotFoundDetection(fromClientId);
+
+        }else if(this.fromApiJsonHelper.parameterExists(fromGroupIdParamName,element)){
+
+            final Long fromGroupId = this.fromApiJsonHelper.extractLongNamed(toGroupIdParamName,element);
+            fromGroup = this.groupRepository.findOneWithNotFoundDetection(fromGroupId);
+        }
 
         final Long toOfficeId = this.fromApiJsonHelper.extractLongNamed(toOfficeIdParamName, element);
         final Office toOffice = this.officeRepository.findOne(toOfficeId);
 
-        final Long toClientId = this.fromApiJsonHelper.extractLongNamed(toClientIdParamName, element);
-        final Client toClient = this.clientRepository.findOneWithNotFoundDetection(toClientId);
+        Group toGroup = null;
+        Client toClient = null;
+
+        if(this.fromApiJsonHelper.parameterExists(toClientIdParamName,element)) {
+            final Long toClientId = this.fromApiJsonHelper.extractLongNamed(toClientIdParamName, element);
+            toClient = this.clientRepository.findOneWithNotFoundDetection(toClientId);
+
+        }else if(this.fromApiJsonHelper.parameterExists(toGroupIdParamName,element)){
+
+            Long toGroupId = this.fromApiJsonHelper.extractLongNamed(toGroupIdParamName, element);
+            toGroup = this.groupRepository.findOneWithNotFoundDetection(toGroupId);
+        }
+
         final Integer transfertype = this.fromApiJsonHelper.extractIntegerNamed(transferTypeParamName, element, Locale.getDefault());
 
         return AccountTransferDetails.LoanTosavingsTransfer(fromOffice, fromClient, fromLoanAccount, toOffice, toClient, toSavingsAccount,
-                transfertype);
+                transfertype,fromGroup,toGroup);
     }
 
     public AccountTransferDetails assembleSavingsToLoanTransfer(final SavingsAccount fromSavingsAccount, final Loan toLoanAccount,

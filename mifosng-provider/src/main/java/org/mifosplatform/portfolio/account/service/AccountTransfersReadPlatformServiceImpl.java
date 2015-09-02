@@ -32,6 +32,7 @@ import org.mifosplatform.portfolio.account.domain.AccountTransferType;
 import org.mifosplatform.portfolio.account.exception.AccountTransferNotFoundException;
 import org.mifosplatform.portfolio.client.data.ClientData;
 import org.mifosplatform.portfolio.client.service.ClientReadPlatformService;
+import org.mifosplatform.portfolio.group.data.GroupGeneralData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -263,6 +264,8 @@ public class AccountTransfersReadPlatformServiceImpl implements AccountTransfers
             sqlBuilder.append("tooff.id as toOfficeId, tooff.name as toOfficeName,");
             sqlBuilder.append("fromclient.id as fromClientId, fromclient.display_name as fromClientName,");
             sqlBuilder.append("toclient.id as toClientId, toclient.display_name as toClientName,");
+            sqlBuilder.append("fromGroup.id as fromGroupId, fromGroup.display_name as fromGroupName,");
+            sqlBuilder.append("toGroup.id as toGroupId, toGroup.display_name as toGroupName,");
             sqlBuilder.append("fromsavacc.id as fromSavingsAccountId, fromsavacc.account_no as fromSavingsAccountNo,");
             sqlBuilder.append("fromloanacc.id as fromLoanAccountId, fromloanacc.account_no as fromLoanAccountNo,");
             sqlBuilder.append("tosavacc.id as toSavingsAccountId, tosavacc.account_no as toSavingsAccountNo,");
@@ -276,8 +279,10 @@ public class AccountTransfersReadPlatformServiceImpl implements AccountTransfers
             sqlBuilder.append("join m_currency curr on curr.code = att.currency_code ");
             sqlBuilder.append("join m_office fromoff on fromoff.id = atd.from_office_id ");
             sqlBuilder.append("join m_office tooff on tooff.id = atd.to_office_id ");
-            sqlBuilder.append("join m_client fromclient on fromclient.id = atd.from_client_id ");
-            sqlBuilder.append("join m_client toclient on toclient.id = atd.to_client_id ");
+            sqlBuilder.append("left join m_client fromclient on fromclient.id = atd.from_client_id ");
+            sqlBuilder.append("left join m_client toclient on toclient.id = atd.to_client_id ");
+            sqlBuilder.append("left join m_group fromGroup on fromGroup.id = atd.from_group_id ");
+            sqlBuilder.append("left join m_group toGroup on toGroup.id = atd.to_group_id ");
             sqlBuilder.append("left join m_savings_account fromsavacc on fromsavacc.id = atd.from_savings_account_id ");
             sqlBuilder.append("left join m_loan fromloanacc on fromloanacc.id = atd.from_loan_account_id ");
             sqlBuilder.append("left join m_savings_account tosavacc on tosavacc.id = atd.to_savings_account_id ");
@@ -323,11 +328,39 @@ public class AccountTransfersReadPlatformServiceImpl implements AccountTransfers
 
             final Long fromClientId = JdbcSupport.getLong(rs, "fromClientId");
             final String fromClientName = rs.getString("fromClientName");
-            final ClientData fromClient = ClientData.lookup(fromClientId, fromClientName, fromOfficeId, fromOfficeName);
+            ClientData fromClient =  null;
+
+            if(fromClientId !=null){
+
+                fromClient = ClientData.lookup(fromClientId, fromClientName, fromOfficeId, fromOfficeName);
+            }
 
             final Long toClientId = JdbcSupport.getLong(rs, "toClientId");
             final String toClientName = rs.getString("toClientName");
-            final ClientData toClient = ClientData.lookup(toClientId, toClientName, toOfficeId, toOfficeName);
+            ClientData toClient = null;
+
+            if(toClientId !=null){
+
+                 toClient = ClientData.lookup(toClientId, toClientName, toOfficeId, toOfficeName);
+            }
+
+
+
+            final Long fromGroupId = JdbcSupport.getLong(rs, "fromGroupId");
+            final String fromGroupName = rs.getString("fromGroupName");
+            GroupGeneralData fromGroup = null;
+            if(fromGroupId !=null){
+              fromGroup = GroupGeneralData.lookup(fromGroupId,fromGroupName, fromOfficeId, fromOfficeName);
+            }
+
+
+            final Long toGroupId = JdbcSupport.getLong(rs, "toGroupId");
+            final String toGroupName = rs.getString("toGroupName");
+            GroupGeneralData toGroup = null;
+            if(toGroupId !=null){
+                 toGroup = GroupGeneralData.lookup(toGroupId,toGroupName, fromOfficeId, fromOfficeName);
+            }
+
 
             final Long fromSavingsAccountId = JdbcSupport.getLong(rs, "fromSavingsAccountId");
             final String fromSavingsAccountNo = rs.getString("fromSavingsAccountNo");
@@ -359,7 +392,7 @@ public class AccountTransfersReadPlatformServiceImpl implements AccountTransfers
             }
 
             return AccountTransferData.instance(id, reversed, transferDate, currency, transferAmount, transferDescription, fromOffice,
-                    toOffice, fromClient, toClient, fromAccountType, fromAccount, toAccountType, toAccount);
+                    toOffice, fromClient, toClient, fromAccountType, fromAccount, toAccountType, toAccount, fromGroup, toGroup);
         }
     }
 

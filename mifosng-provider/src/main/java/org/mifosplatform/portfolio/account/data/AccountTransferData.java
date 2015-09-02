@@ -13,6 +13,7 @@ import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.organisation.monetary.data.CurrencyData;
 import org.mifosplatform.organisation.office.data.OfficeData;
 import org.mifosplatform.portfolio.client.data.ClientData;
+import org.mifosplatform.portfolio.group.data.GroupGeneralData;
 
 /**
  * Immutable data object representing a savings account.
@@ -32,6 +33,8 @@ public class AccountTransferData {
     private final PortfolioAccountData fromAccount;
     private final OfficeData toOffice;
     private final ClientData toClient;
+    private final GroupGeneralData fromGroup;
+    private final GroupGeneralData toGroup;
     private final EnumOptionData toAccountType;
     private final PortfolioAccountData toAccount;
 
@@ -78,6 +81,17 @@ public class AccountTransferData {
                 null);
     }
 
+    public static AccountTransferData instance(final Long id, final Boolean reversed, final LocalDate transferDate,
+                                               final CurrencyData currency, final BigDecimal transferAmount, final String transferDescription, final OfficeData fromOffice,
+                                               final OfficeData toOffice, final ClientData fromClient, final ClientData toClient, final EnumOptionData fromAccountType,
+                                               final PortfolioAccountData fromAccount, final EnumOptionData toAccountType, final PortfolioAccountData toAccount,
+                                               final GroupGeneralData fromGroup, final GroupGeneralData toGroup) {
+
+        return new AccountTransferData(id, reversed, fromOffice, fromClient, fromAccountType, fromAccount, currency, transferAmount,
+                transferDate, transferDescription, toOffice, toClient, toAccountType, toAccount, null, null, null, null, null, null, null,
+                null,fromGroup,toGroup);
+    }
+
     public static AccountTransferData transferBasicDetails(final Long id, final CurrencyData currency, final BigDecimal transferAmount,
             final LocalDate transferDate, final String description, final Boolean reversed) {
 
@@ -120,5 +134,44 @@ public class AccountTransferData {
         this.toClientOptions = toClientOptions;
         this.toAccountTypeOptions = toAccountTypeOptions;
         this.toAccountOptions = toAccountOptions;
+        this.fromGroup = null;
+        this.toGroup = null;
+    }
+
+    private AccountTransferData(final Long id, final Boolean reversed, final OfficeData fromOffice, final ClientData fromClient,
+                                final EnumOptionData fromAccountType, final PortfolioAccountData fromAccount, final CurrencyData currency,
+                                final BigDecimal transferAmount, final LocalDate transferDate, final String transferDescription, final OfficeData toOffice,
+                                final ClientData toClient, final EnumOptionData toAccountType, final PortfolioAccountData toAccount,
+                                final Collection<OfficeData> fromOfficeOptions, final Collection<ClientData> fromClientOptions,
+                                final Collection<EnumOptionData> fromAccountTypeOptions, final Collection<PortfolioAccountData> fromAccountOptions,
+                                final Collection<OfficeData> toOfficeOptions, final Collection<ClientData> toClientOptions,
+                                final Collection<EnumOptionData> toAccountTypeOptions, final Collection<PortfolioAccountData> toAccountOptions,
+                                final GroupGeneralData fromGroup, GroupGeneralData toGroup) {
+        this.id = id;
+        this.reversed = reversed;
+        this.fromOffice = fromOffice;
+        this.fromClient = fromClient;
+        this.fromAccountType = fromAccountType;
+        this.fromAccount = fromAccount;
+        this.toOffice = toOffice;
+        this.toClient = toClient;
+        this.toAccountType = toAccountType;
+        this.toAccount = toAccount;
+
+        this.currency = currency;
+        this.transferAmount = transferAmount;
+        this.transferDate = transferDate;
+        this.transferDescription = transferDescription;
+
+        this.fromOfficeOptions = fromOfficeOptions;
+        this.fromClientOptions = fromClientOptions;
+        this.fromAccountTypeOptions = fromAccountTypeOptions;
+        this.fromAccountOptions = fromAccountOptions;
+        this.toOfficeOptions = toOfficeOptions;
+        this.toClientOptions = toClientOptions;
+        this.toAccountTypeOptions = toAccountTypeOptions;
+        this.toAccountOptions = toAccountOptions;
+        this.fromGroup = fromGroup;
+        this.toGroup = toGroup;
     }
 }

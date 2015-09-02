@@ -24,6 +24,7 @@ public class AccountTransfersApiConstants {
     public static final Set<String> REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(AccountDetailConstants.localeParamName,
             AccountDetailConstants.dateFormatParamName, AccountDetailConstants.fromOfficeIdParamName,
             AccountDetailConstants.fromClientIdParamName, AccountDetailConstants.fromAccountTypeParamName,
+            AccountDetailConstants.fromGroupIdParamName,AccountDetailConstants.toGroupIdParamName,
             AccountDetailConstants.fromAccountIdParamName, AccountDetailConstants.toOfficeIdParamName,
             AccountDetailConstants.toClientIdParamName, AccountDetailConstants.toAccountTypeParamName,
             AccountDetailConstants.toAccountIdParamName, transferDateParamName, transferAmountParamName, transferDescriptionParamName));
