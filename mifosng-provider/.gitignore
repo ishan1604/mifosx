@@ -1,3 +1,4 @@
+src/test/resources/META-INF/context.xml
 bin
 out/
 build
