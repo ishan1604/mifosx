@@ -7,6 +7,8 @@ package org.mifosplatform.portfolio.loanaccount.guarantor.service;
 
 import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormatter;
+import org.mifosplatform.infrastructure.codes.domain.CodeValue;
+import org.mifosplatform.infrastructure.codes.domain.CodeValueRepository;
 import org.mifosplatform.infrastructure.core.data.ApiParameterError;
 import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
@@ -32,6 +34,7 @@ import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorReposit
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductGuaranteeDetails;
 import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
+import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetailRepository;
 import org.mifosplatform.portfolio.savings.domain.DepositAccountOnHoldTransaction;
 import org.mifosplatform.portfolio.savings.domain.DepositAccountOnHoldTransactionRepository;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
@@ -68,6 +71,8 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
     private final SavingsAccountTransactionSummaryWrapper savingsAccountTransactionSummaryWrapper;
     private final SavingsHelper savingsHelper;
     private final AccountTransfersReadPlatformService accountTransfersReadPlatformService;
+    private final CodeValueRepository codeValueRepository;
+    private final PaymentDetailRepository paymentDetailRepository;
 
     @Autowired
     public GuarantorDomainServiceImpl(final GuarantorRepository guarantorRepository,
@@ -78,7 +83,9 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
             final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository, 
             final SavingsAccountDomainService savingsAccountDomainService, 
             final SavingsAccountTransactionSummaryWrapper savingsAccountTransactionSummaryWrapper, 
-            final AccountTransfersReadPlatformService accountTransfersReadPlatformService) {
+            final AccountTransfersReadPlatformService accountTransfersReadPlatformService,
+            final CodeValueRepository codeValueRepository,
+            final PaymentDetailRepository paymentDetailRepository) {
         this.guarantorRepository = guarantorRepository;
         this.guarantorFundingRepository = guarantorFundingRepository;
         this.guarantorFundingTransactionRepository = guarantorFundingTransactionRepository;
@@ -89,6 +96,8 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
         this.savingsAccountTransactionSummaryWrapper = savingsAccountTransactionSummaryWrapper;
         this.accountTransfersReadPlatformService = accountTransfersReadPlatformService;
         this.savingsHelper = new SavingsHelper(this.accountTransfersReadPlatformService);
+        this.codeValueRepository = codeValueRepository;
+        this.paymentDetailRepository = paymentDetailRepository;
     }
 
     @PostConstruct
@@ -540,16 +549,22 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
                         if (shareOfLoanInterestIncome.compareTo(BigDecimal.ZERO) == 1 && (savingsAccount != null)) {
                             final LocalDate transactionDate = LocalDate.now();
                             final DateTimeFormatter fmt = null;
-                            final PaymentDetail paymentDetail = null;
+                           // final PaymentDetail paymentDetail = null;
                             final boolean isAccountTransfer = false;
                             final boolean isRegularTransaction = true;
                             
                             // inject helper classes to savings account class
                             savingsAccount.setHelpers(this.savingsAccountTransactionSummaryWrapper, this.savingsHelper);
+
+                            /*hard coded for temporal fix to add reference. code value inserted in backend db */
+                            final String reference = "Interest from Guaranteed Loan";
+                            final CodeValue paymentType = codeValueRepository.findByCodeNameAndLabel("PaymentType", "Interest from Guaranteed Loan");
+                            final PaymentDetail paymentDetail =  PaymentDetail.generatePaymentDetailWithReference(paymentType,reference);
+                            PaymentDetail newPaymentTypeToSave = paymentDetailRepository.save(paymentDetail);
                             
                             // call method to handle savings account deposit
                             this.savingsAccountDomainService.handleDeposit(savingsAccount, fmt, transactionDate,
-                                    shareOfLoanInterestIncome, paymentDetail, isAccountTransfer, isRegularTransaction);
+                                    shareOfLoanInterestIncome, newPaymentTypeToSave, isAccountTransfer, isRegularTransaction);
                         }
                     }
                 }

@@ -103,7 +103,7 @@ public class SmsCampaignValidator {
         baseDataValidator.reset().parameter(SmsCampaignValidator.runReportId).value(runReportId).notNull().integerGreaterThanZero();
 
         final String message = this.fromApiJsonHelper.extractStringNamed(SmsCampaignValidator.message, element);
-        baseDataValidator.reset().parameter(SmsCampaignValidator.message).value(message).notBlank().notExceedingLengthOf(160);
+        baseDataValidator.reset().parameter(SmsCampaignValidator.message).value(message).notBlank().notExceedingLengthOf(480);
 
         final String paramValue = this.fromApiJsonHelper.extractStringNamed(SmsCampaignValidator.paramValue, element);
         baseDataValidator.reset().parameter(SmsCampaignValidator.paramValue).value(paramValue).notBlank();
@@ -152,7 +152,7 @@ public class SmsCampaignValidator {
         baseDataValidator.reset().parameter(SmsCampaignValidator.runReportId).value(runReportId).notNull().integerGreaterThanZero();
 
         final String message = this.fromApiJsonHelper.extractStringNamed(SmsCampaignValidator.message, element);
-        baseDataValidator.reset().parameter(SmsCampaignValidator.message).value(message).notBlank().notExceedingLengthOf(160);
+        baseDataValidator.reset().parameter(SmsCampaignValidator.message).value(message).notBlank().notExceedingLengthOf(480);
 
         final String paramValue = this.fromApiJsonHelper.extractStringNamed(SmsCampaignValidator.paramValue, element);
         baseDataValidator.reset().parameter(SmsCampaignValidator.paramValue).value(paramValue).notBlank();
@@ -177,7 +177,7 @@ public class SmsCampaignValidator {
         baseDataValidator.reset().parameter(SmsCampaignValidator.paramValue).value(paramValue).notBlank();
 
         final String message = this.fromApiJsonHelper.extractStringNamed(SmsCampaignValidator.message, element);
-        baseDataValidator.reset().parameter(SmsCampaignValidator.message).value(message).notBlank().notExceedingLengthOf(160);
+        baseDataValidator.reset().parameter(SmsCampaignValidator.message).value(message).notBlank().notExceedingLengthOf(480);
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
 

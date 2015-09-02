@@ -7,10 +7,8 @@ package org.mifosplatform.infrastructure.sms.scheduler;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.security.cert.X509Certificate;
 import java.security.SecureRandom;
 
@@ -31,6 +29,7 @@ import org.mifosplatform.infrastructure.sms.data.SmsMessageApiQueueResourceData;
 import org.mifosplatform.infrastructure.sms.data.SmsMessageApiReportResourceData;
 import org.mifosplatform.infrastructure.sms.data.SmsMessageApiResponseData;
 import org.mifosplatform.infrastructure.sms.data.SmsMessageDeliveryReportData;
+import org.mifosplatform.infrastructure.sms.data.TenantSmsConfiguration;
 import org.mifosplatform.infrastructure.sms.domain.SmsConfiguration;
 import org.mifosplatform.infrastructure.sms.domain.SmsConfigurationRepository;
 import org.mifosplatform.infrastructure.sms.domain.SmsMessage;
@@ -61,8 +60,7 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	private final SmsReadPlatformService smsReadPlatformService;
 	private final SmsConfigurationReadPlatformService configurationReadPlatformService;
 	private static final Logger logger = LoggerFactory.getLogger(SmsMessageScheduledJobServiceImpl.class);
-	RestTemplate restTemplate = new RestTemplate();
-    private Integer smsSqlLimit = 300;
+	private final RestTemplate restTemplate = new RestTemplate();
     
     /** 
 	 * SmsMessageScheduledJobServiceImpl constructor
@@ -79,24 +77,14 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	}
 	
 	/** 
-     * get the sms configuration 
+     * get the tenant's sms configuration 
      * 
-     * @return hash map containing name/value pairs
+     * @return {@link TenantSmsConfiguration} object
      **/
-    private Map<String, String> getConfiguration() {
-    	Map<String, String> configuration = new HashMap<String, String>();
+    private TenantSmsConfiguration getTenantSmsConfiguration() {
+    	Collection<SmsConfigurationData> configurationDataCollection = configurationReadPlatformService.retrieveAll();
     	
-        Collection<SmsConfigurationData> configurationDataCollection = configurationReadPlatformService.retrieveAll();
-    	
-    	Iterator<SmsConfigurationData> iterator = configurationDataCollection.iterator();
-    	
-    	while(iterator.hasNext()) {
-    		SmsConfigurationData configurationData = iterator.next();
-    		
-    		configuration.put(configurationData.getName(), configurationData.getValue());
-    	}
-    	
-    	return configuration;
+    	return TenantSmsConfiguration.instance(configurationDataCollection);
     }
 	
 	/** 
@@ -187,31 +175,33 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	@Transactional
 	@CronTarget(jobName = JobName.SEND_MESSAGES_TO_SMS_GATEWAY)
 	public void sendMessages() {
+		final TenantSmsConfiguration tenantSmsConfiguration = this.getTenantSmsConfiguration();
+		final String apiAuthUsername = tenantSmsConfiguration.getApiAuthUsername();
+		final String apiAuthPassword = tenantSmsConfiguration.getApiAuthPassword();
+		final String apiBaseUrl = tenantSmsConfiguration.getApiBaseUrl();
+		final String sourceAddress = tenantSmsConfiguration.getSourceAddress();
+		final String countryCallingCode = tenantSmsConfiguration.getCountryCallingCode();
+		final MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
+		final int httpEntityLimit = 500;
+		final int httpEntityLimitMinusOne = httpEntityLimit - 1;
 		
-		Map<String, String> configuration = this.getConfiguration();
-		String apiAuthUsername = configuration.get("API_AUTH_USERNAME");
-		String apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
-		String apiBaseUrl = configuration.get("API_BASE_URL");
-		String sourceAddress = configuration.get("SMS_SOURCE_ADDRESS");
-		Integer smsCredits = Integer.parseInt(configuration.get("SMS_CREDITS"));
-		String countryCallingCode = configuration.get("COUNTRY_CALLING_CODE");
-		
-		MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
+		Integer smsCredits = tenantSmsConfiguration.getSmsCredits();
+		Integer smsSqlLimit = 5000;
 		
 		if(smsCredits > 0) {
-			
-			try{
+		    try{
 				smsSqlLimit = (smsSqlLimit > smsCredits) ? smsCredits : smsSqlLimit;
-				Collection<SmsData> pendingMessages = this.smsReadPlatformService.retrieveAllPending(smsSqlLimit);
+				final Collection<SmsData> pendingMessages = this.smsReadPlatformService.retrieveAllPending(smsSqlLimit);
 				
 				if(pendingMessages.size() > 0) {
-					Iterator<SmsData> iterator1 = pendingMessages.iterator();
+					Iterator<SmsData> pendingMessageIterator = pendingMessages.iterator();
+					int index = 0;
 					
 					// ====================== start point json string ======================================
 					StringBuilder httpEntity = new StringBuilder("[");
 					
-					while(iterator1.hasNext()) {
-						SmsData smsData = iterator1.next();
+					while(pendingMessageIterator.hasNext()) {
+						SmsData smsData = pendingMessageIterator.next();
 						SmsMessageApiQueueResourceData apiQueueResourceData = 
 								SmsMessageApiQueueResourceData.instance(smsData.getId(), tenant.getTenantIdentifier(), 
 										null, sourceAddress, formatDestinationPhoneNumber(smsData.getMobileNo(), countryCallingCode), 
@@ -219,8 +209,20 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 						
 						httpEntity.append(apiQueueResourceData.toJsonString());
 						
+						index++;
+                        
+                        if (index == httpEntityLimitMinusOne) {
+                            httpEntity.append("]");
+                            
+                            smsCredits = this.sendMessages(httpEntity, apiAuthUsername, apiAuthPassword, apiBaseUrl, smsCredits, 
+                                    sourceAddress);
+                            
+                            index = 0;
+                            httpEntity = new StringBuilder("[");
+                        }
+						
 						// add comma separation if iterator has more elements
-						if(iterator1.hasNext()) {
+						if(pendingMessageIterator.hasNext() && (index > 0)) {
 							httpEntity.append(", ");
 						}
 					}
@@ -228,61 +230,7 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 					httpEntity.append("]");
 					// ====================== end point json string ====================================
 					
-					// trust all SSL certificates
-					trustAllSSLCertificates();
-					
-					// make request
-					ResponseEntity<SmsMessageApiResponseData> entity = restTemplate.postForEntity(apiBaseUrl + "/queue",
-						    getHttpEntity(httpEntity.toString(), apiAuthUsername, apiAuthPassword), 
-						    SmsMessageApiResponseData.class);
-					
-					List<SmsMessageDeliveryReportData> smsMessageDeliveryReportDataList = entity.getBody().getData();
-					Iterator<SmsMessageDeliveryReportData> iterator2 = smsMessageDeliveryReportDataList.iterator();
-					
-					while(iterator2.hasNext()) {
-						SmsMessageDeliveryReportData smsMessageDeliveryReportData = iterator2.next();
-						
-						if(!smsMessageDeliveryReportData.getHasError()) {
-							SmsMessage smsMessage = this.smsMessageRepository.findOne(smsMessageDeliveryReportData.getId());
-							
-							// initially set the status type enum to 100
-							Integer statusType = SmsMessageStatusType.PENDING.getValue();
-							
-							switch(smsMessageDeliveryReportData.getDeliveryStatus()) {
-								case 100:
-								case 200:
-									statusType = SmsMessageStatusType.SENT.getValue();
-									break;
-									
-								case 300:
-									statusType = SmsMessageStatusType.DELIVERED.getValue();
-									break;
-									
-								case 400:
-									statusType = SmsMessageStatusType.FAILED.getValue();
-									break;
-									
-								default:
-									statusType = SmsMessageStatusType.INVALID.getValue();
-									break;
-							}
-							
-							// update the externalId of the SMS message
-							smsMessage.setExternalId(smsMessageDeliveryReportData.getExternalId());
-							
-							// update the SMS message sender
-							smsMessage.setSourceAddress(sourceAddress);
-							
-							// update the status Type enum
-							smsMessage.setStatusType(statusType);
-							
-							// save the SmsMessage entity
-							this.smsMessageRepository.save(smsMessage);
-							
-							// deduct one credit from the tenant's SMS credits
-							smsCredits--;
-						}
-					}
+					smsCredits = this.sendMessages(httpEntity, apiAuthUsername, apiAuthPassword, apiBaseUrl, smsCredits, sourceAddress);
 					
 					logger.info(pendingMessages.size() + " pending message(s) successfully sent to the intermediate gateway - mlite-sms");
 					
@@ -299,6 +247,79 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 			}
 		}
 	}
+	
+	/**
+	 * handles the sending of messages to the intermediate gateway and updating of the external ID, status and sources address
+	 * of each message
+	 * 
+	 * @param httpEntity
+	 * @param apiAuthUsername
+	 * @param apiAuthPassword
+	 * @param apiBaseUrl
+	 * @param smsCredits
+	 * @param sourceAddress
+	 * @return the number of SMS credits left
+	 */
+	private Integer sendMessages(final StringBuilder httpEntity, final String apiAuthUsername, 
+	        final String apiAuthPassword, final String apiBaseUrl, Integer smsCredits, final String sourceAddress) {
+	    // trust all SSL certificates
+        trustAllSSLCertificates();
+        
+        // make request
+        final ResponseEntity<SmsMessageApiResponseData> entity = restTemplate.postForEntity(apiBaseUrl + "/queue",
+                getHttpEntity(httpEntity.toString(), apiAuthUsername, apiAuthPassword), 
+                SmsMessageApiResponseData.class);
+        
+        final List<SmsMessageDeliveryReportData> smsMessageDeliveryReportDataList = entity.getBody().getData();
+        final Iterator<SmsMessageDeliveryReportData> deliveryReportIterator = smsMessageDeliveryReportDataList.iterator();
+        
+        while(deliveryReportIterator.hasNext()) {
+            SmsMessageDeliveryReportData smsMessageDeliveryReportData = deliveryReportIterator.next();
+            
+            if(!smsMessageDeliveryReportData.getHasError()) {
+                SmsMessage smsMessage = this.smsMessageRepository.findOne(smsMessageDeliveryReportData.getId());
+                
+                // initially set the status type enum to 100
+                Integer statusType = SmsMessageStatusType.PENDING.getValue();
+                
+                switch(smsMessageDeliveryReportData.getDeliveryStatus()) {
+                    case 100:
+                    case 200:
+                        statusType = SmsMessageStatusType.SENT.getValue();
+                        break;
+                        
+                    case 300:
+                        statusType = SmsMessageStatusType.DELIVERED.getValue();
+                        break;
+                        
+                    case 400:
+                        statusType = SmsMessageStatusType.FAILED.getValue();
+                        break;
+                        
+                    default:
+                        statusType = SmsMessageStatusType.INVALID.getValue();
+                        break;
+                }
+                
+                // update the externalId of the SMS message
+                smsMessage.setExternalId(smsMessageDeliveryReportData.getExternalId());
+                
+                // update the SMS message sender
+                smsMessage.setSourceAddress(sourceAddress);
+                
+                // update the status Type enum
+                smsMessage.setStatusType(statusType);
+                
+                // save the SmsMessage entity
+                this.smsMessageRepository.save(smsMessage);
+                
+                // deduct one credit from the tenant's SMS credits
+                smsCredits--;
+            }
+        }
+        
+        return smsCredits;
+	}
 
 	/**
 	 * get SMS message delivery reports from the SMS gateway (or intermediate gateway)
@@ -307,13 +328,11 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	@Transactional
 	@CronTarget(jobName = JobName.GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY)
 	public void getDeliveryReports() {
-		
-		Map<String, String> configuration = this.getConfiguration();
-		String apiAuthUsername = configuration.get("API_AUTH_USERNAME");
-		String apiAuthPassword = configuration.get("API_AUTH_PASSWORD");
-		String apiBaseUrl = configuration.get("API_BASE_URL");
-		
-		MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
+		final TenantSmsConfiguration tenantSmsConfiguration = this.getTenantSmsConfiguration();
+        final String apiAuthUsername = tenantSmsConfiguration.getApiAuthUsername();
+        final String apiAuthPassword = tenantSmsConfiguration.getApiAuthPassword();
+        final String apiBaseUrl = tenantSmsConfiguration.getApiBaseUrl();
+		final MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
 		
 		try{
 			List<Long> smsMessageExternalIds = this.smsReadPlatformService.retrieveExternalIdsOfAllSent(0);
