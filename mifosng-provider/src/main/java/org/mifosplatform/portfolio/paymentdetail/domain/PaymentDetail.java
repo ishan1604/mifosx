@@ -5,14 +5,6 @@
  */
 package org.mifosplatform.portfolio.paymentdetail.domain;
 
-import java.util.Map;
-
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
-
 import org.apache.commons.lang.StringUtils;
 import org.mifosplatform.infrastructure.codes.data.CodeValueData;
 import org.mifosplatform.infrastructure.codes.domain.CodeValue;
@@ -20,6 +12,13 @@ import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.portfolio.paymentdetail.PaymentDetailConstants;
 import org.mifosplatform.portfolio.paymentdetail.data.PaymentDetailData;
 import org.springframework.data.jpa.domain.AbstractPersistable;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import java.util.Map;
 
 @Entity
 @Table(name = "m_payment_detail")
@@ -76,6 +75,10 @@ public final class PaymentDetail extends AbstractPersistable<Long> {
         return paymentDetail;
     }
 
+    public static PaymentDetail generatePaymentDetailWithReference(final CodeValue paymentType,final String reference){
+        return new PaymentDetail(paymentType,reference);
+    }
+
     private PaymentDetail(final CodeValue paymentType, final String accountNumber, final String checkNumber, final String routingCode,
             final String receiptNumber, final String bankNumber) {
         this.paymentType = paymentType;
@@ -91,6 +94,11 @@ public final class PaymentDetail extends AbstractPersistable<Long> {
         final PaymentDetailData paymentDetailData = new PaymentDetailData(getId(), paymentTypeData, this.accountNumber, this.checkNumber,
                 this.routingCode, this.receiptNumber, this.bankNumber);
         return paymentDetailData;
+    }
+
+    public PaymentDetail(final CodeValue paymentType,final String receiptNumber) {
+        this.paymentType = paymentType;
+        this.receiptNumber = receiptNumber;
     }
 
     public CodeValue getPaymentType() {
