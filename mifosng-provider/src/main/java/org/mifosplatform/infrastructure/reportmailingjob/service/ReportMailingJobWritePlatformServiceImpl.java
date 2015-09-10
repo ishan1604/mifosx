@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,6 +43,8 @@ import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJob
 import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJobRepositoryWrapper;
 import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJobRunHistory;
 import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJobRunHistoryRepository;
+import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJobStretchyReportParamDateOption;
+import org.mifosplatform.infrastructure.reportmailingjob.helper.ReportMailingJobStretchyReportDateHelper;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.portfolio.calendar.service.CalendarUtils;
 import org.mifosplatform.useradministration.domain.AppUser;
@@ -230,7 +233,25 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
                     Map<String, String> reportParams = new HashMap<>();
                     
                     if (validateStretchyReportParamMap != null) {
-                        reportParams = validateStretchyReportParamMap;
+                        Iterator<Map.Entry<String, String>> validateStretchyReportParamMapEntries = validateStretchyReportParamMap.entrySet().iterator();
+                        
+                        while (validateStretchyReportParamMapEntries.hasNext()) {
+                            Map.Entry<String, String> validateStretchyReportParamMapEntry = validateStretchyReportParamMapEntries.next();
+                            String key = validateStretchyReportParamMapEntry.getKey();
+                            String value = validateStretchyReportParamMapEntry.getValue();
+                            Object[] stretchyReportParamDateOptionsList = ReportMailingJobStretchyReportParamDateOption.validValues();
+                            
+                            if (StringUtils.containsIgnoreCase(key, "date")) {
+                                if (Arrays.asList(stretchyReportParamDateOptionsList).contains(value)) {
+                                    ReportMailingJobStretchyReportParamDateOption enumOption = ReportMailingJobStretchyReportParamDateOption.instance(value);
+                                    
+                                    value = ReportMailingJobStretchyReportDateHelper.getDateAsString(enumOption);
+                                }
+                            }
+                            System.out.println("key: " + key);
+                            System.out.println("value: " + value);
+                            reportParams.put(key, value);
+                        }
                     }
                     
                     // generate the pentaho report output stream, method in turn call another that sends the file to the email recipients

@@ -7,6 +7,7 @@ package org.mifosplatform.infrastructure.reportmailingjob.data;
 
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJobEmailAttachmentFileFormat;
+import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJobStretchyReportParamDateOption;
 
 public class ReportMailingJobEnumerations {
     public static EnumOptionData emailAttachementFileFormat(final Integer emailAttachementFileFormatId) {
@@ -23,6 +24,18 @@ public class ReportMailingJobEnumerations {
         if (emailAttachementFileFormat != null) {
             enumOptionData = new EnumOptionData(emailAttachementFileFormat.getId().longValue(), emailAttachementFileFormat.getCode(), 
                     emailAttachementFileFormat.getValue());
+        }
+        
+        return enumOptionData;
+    }
+    
+    public static EnumOptionData stretchyReportDateOption(final ReportMailingJobStretchyReportParamDateOption 
+            reportMailingJobStretchyReportParamDateOption) {
+        EnumOptionData enumOptionData = null;
+        
+        if (reportMailingJobStretchyReportParamDateOption != null) {
+            enumOptionData = new EnumOptionData(reportMailingJobStretchyReportParamDateOption.getId().longValue(), 
+                    reportMailingJobStretchyReportParamDateOption.getCode(), reportMailingJobStretchyReportParamDateOption.getValue());
         }
         
         return enumOptionData;

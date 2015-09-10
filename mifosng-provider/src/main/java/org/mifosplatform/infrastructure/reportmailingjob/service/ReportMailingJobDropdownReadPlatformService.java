@@ -14,4 +14,9 @@ public interface ReportMailingJobDropdownReadPlatformService {
      * retrieve a list of email attachment file format enumeration options  
      **/
     List<EnumOptionData> retrieveEmailAttachmentFileFormatOptions();
+    
+    /** 
+     * retrieve a list of stretchy report param date enumeration options 
+     **/
+    List<EnumOptionData> retrieveStretchyReportDateOptions();
 }
