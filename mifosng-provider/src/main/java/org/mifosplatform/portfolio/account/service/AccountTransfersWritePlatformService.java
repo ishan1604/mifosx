@@ -11,6 +11,8 @@ import org.mifosplatform.portfolio.account.PortfolioAccountType;
 import org.mifosplatform.portfolio.account.data.AccountTransferDTO;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
 
+import java.util.Collection;
+
 public interface AccountTransfersWritePlatformService {
 
     CommandProcessingResult create(JsonCommand command);
@@ -24,4 +26,6 @@ public interface AccountTransfersWritePlatformService {
     void updateLoanTransaction(Long loanTransactionId, LoanTransaction newLoanTransaction);
     
     CommandProcessingResult refundByTransfer(JsonCommand command);
+
+    void reverseTransfersWithFromAccountTransactions(Collection<Long> fromTransactionIds, PortfolioAccountType accountTypeId);
 }
