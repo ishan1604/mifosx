@@ -20,17 +20,17 @@
 	<http create-session="stateless" use-expressions="true" pattern="/api/**"
 		entry-point-ref="basicAuthenticationEntryPoint">
 		<intercept-url pattern="/api/*/authentication" access="permitAll"
-			method="POST" requires-channel="https" />
+			method="POST" requires-channel="http" />
 		<intercept-url pattern="/api/**" access="isFullyAuthenticated()"
-			method="GET" requires-channel="https" />
+			method="GET" requires-channel="http" />
 		<intercept-url pattern="/api/**" access="isFullyAuthenticated()"
-			method="POST" requires-channel="https" />
+			method="POST" requires-channel="http" />
 		<intercept-url pattern="/api/**" access="isFullyAuthenticated()"
-			method="PUT" requires-channel="https" />
+			method="PUT" requires-channel="http" />
 		<intercept-url pattern="/api/**" access="isFullyAuthenticated()"
-			method="DELETE" requires-channel="https" />
+			method="DELETE" requires-channel="http" />
 		<intercept-url pattern="/api/**" access="isFullyAuthenticated()"
-			method="HEAD" requires-channel="https" />
+			method="HEAD" requires-channel="http" />
 
 		<custom-filter after="SECURITY_CONTEXT_FILTER"
 			ref="basicAuthenticationProcessingFilter" />
