@@ -349,7 +349,7 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
         
         if (realCause.getMessage().contains(ReportMailingJobConstants.NAME_PARAM_NAME)) {
             final String name = jsonCommand.stringValueOfParameterNamed(ReportMailingJobConstants.NAME_PARAM_NAME);
-            throw new PlatformDataIntegrityException("error.msg.charge.duplicate.name", "Report mailing job with name `" + name + "` already exists",
+            throw new PlatformDataIntegrityException("error.msg.report.mailing.job.duplicate.name", "Report mailing job with name `" + name + "` already exists",
                     ReportMailingJobConstants.NAME_PARAM_NAME, name);
         }
 
