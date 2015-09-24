@@ -44,6 +44,7 @@ import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJob
 import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJobRunHistory;
 import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJobRunHistoryRepository;
 import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJobStretchyReportParamDateOption;
+import org.mifosplatform.infrastructure.reportmailingjob.helper.IPv4Helper;
 import org.mifosplatform.infrastructure.reportmailingjob.helper.ReportMailingJobStretchyReportDateHelper;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.portfolio.calendar.service.CalendarUtils;
@@ -211,54 +212,56 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
     @Override
     @CronTarget(jobName = JobName.EXECUTE_REPORT_MAILING_JOBS)
     public void executeReportMailingJobs() throws JobExecutionException {
-        final Collection<ReportMailingJob> reportMailingJobCollection = this.reportMailingJobRepository.findAll();
-        
-        for (ReportMailingJob reportMailingJob : reportMailingJobCollection) {
-            // get the tenant's date as a DateTime object
-            final DateTime localDateTimeOftenant = DateUtils.getLocalDateTimeOfTenant().toDateTime();
-            final DateTime nextRunDateTime = reportMailingJob.getNextRunDateTime();
+        if (IPv4Helper.applicationIsNotRunningOnLocalMachine()) {
+            final Collection<ReportMailingJob> reportMailingJobCollection = this.reportMailingJobRepository.findAll();
             
-            if (reportMailingJob.isActive() && reportMailingJob.isNotDeleted() && nextRunDateTime != null && nextRunDateTime.isBefore(localDateTimeOftenant)) {
-                // get the emailAttachmentFileFormat enum object
-                final ReportMailingJobEmailAttachmentFileFormat emailAttachmentFileFormat = ReportMailingJobEmailAttachmentFileFormat.
-                        instance(reportMailingJob.getEmailAttachmentFileFormat());
+            for (ReportMailingJob reportMailingJob : reportMailingJobCollection) {
+                // get the tenant's date as a DateTime object
+                final DateTime localDateTimeOftenant = DateUtils.getLocalDateTimeOfTenant().toDateTime();
+                final DateTime nextRunDateTime = reportMailingJob.getNextRunDateTime();
                 
-                if (emailAttachmentFileFormat != null && Arrays.asList(ReportMailingJobEmailAttachmentFileFormat.validValues()).
-                        contains(emailAttachmentFileFormat.getId())) {
-                    final Report stretchyReport = reportMailingJob.getStretchyReport();
-                    final String reportName = (stretchyReport != null) ? stretchyReport.getReportName() : null;
-                    final StringBuilder errorLog = new StringBuilder();
-                    final Map<String, String> validateStretchyReportParamMap = this.reportMailingJobValidator.
-                            validateStretchyReportParamMap(reportMailingJob.getStretchyReportParamMap());
-                    Map<String, String> reportParams = new HashMap<>();
+                if (reportMailingJob.isActive() && reportMailingJob.isNotDeleted() && nextRunDateTime != null && nextRunDateTime.isBefore(localDateTimeOftenant)) {
+                    // get the emailAttachmentFileFormat enum object
+                    final ReportMailingJobEmailAttachmentFileFormat emailAttachmentFileFormat = ReportMailingJobEmailAttachmentFileFormat.
+                            instance(reportMailingJob.getEmailAttachmentFileFormat());
                     
-                    if (validateStretchyReportParamMap != null) {
-                        Iterator<Map.Entry<String, String>> validateStretchyReportParamMapEntries = validateStretchyReportParamMap.entrySet().iterator();
+                    if (emailAttachmentFileFormat != null && Arrays.asList(ReportMailingJobEmailAttachmentFileFormat.validValues()).
+                            contains(emailAttachmentFileFormat.getId())) {
+                        final Report stretchyReport = reportMailingJob.getStretchyReport();
+                        final String reportName = (stretchyReport != null) ? stretchyReport.getReportName() : null;
+                        final StringBuilder errorLog = new StringBuilder();
+                        final Map<String, String> validateStretchyReportParamMap = this.reportMailingJobValidator.
+                                validateStretchyReportParamMap(reportMailingJob.getStretchyReportParamMap());
+                        Map<String, String> reportParams = new HashMap<>();
                         
-                        while (validateStretchyReportParamMapEntries.hasNext()) {
-                            Map.Entry<String, String> validateStretchyReportParamMapEntry = validateStretchyReportParamMapEntries.next();
-                            String key = validateStretchyReportParamMapEntry.getKey();
-                            String value = validateStretchyReportParamMapEntry.getValue();
-                            Object[] stretchyReportParamDateOptionsList = ReportMailingJobStretchyReportParamDateOption.validValues();
+                        if (validateStretchyReportParamMap != null) {
+                            Iterator<Map.Entry<String, String>> validateStretchyReportParamMapEntries = validateStretchyReportParamMap.entrySet().iterator();
                             
-                            if (StringUtils.containsIgnoreCase(key, "date")) {
-                                if (Arrays.asList(stretchyReportParamDateOptionsList).contains(value)) {
-                                    ReportMailingJobStretchyReportParamDateOption enumOption = ReportMailingJobStretchyReportParamDateOption.instance(value);
-                                    
-                                    value = ReportMailingJobStretchyReportDateHelper.getDateAsString(enumOption);
+                            while (validateStretchyReportParamMapEntries.hasNext()) {
+                                Map.Entry<String, String> validateStretchyReportParamMapEntry = validateStretchyReportParamMapEntries.next();
+                                String key = validateStretchyReportParamMapEntry.getKey();
+                                String value = validateStretchyReportParamMapEntry.getValue();
+                                Object[] stretchyReportParamDateOptionsList = ReportMailingJobStretchyReportParamDateOption.validValues();
+                                
+                                if (StringUtils.containsIgnoreCase(key, "date")) {
+                                    if (Arrays.asList(stretchyReportParamDateOptionsList).contains(value)) {
+                                        ReportMailingJobStretchyReportParamDateOption enumOption = ReportMailingJobStretchyReportParamDateOption.instance(value);
+                                        
+                                        value = ReportMailingJobStretchyReportDateHelper.getDateAsString(enumOption);
+                                    }
                                 }
+                                System.out.println("key: " + key);
+                                System.out.println("value: " + value);
+                                reportParams.put(key, value);
                             }
-                            System.out.println("key: " + key);
-                            System.out.println("value: " + value);
-                            reportParams.put(key, value);
                         }
+                        
+                        // generate the pentaho report output stream, method in turn call another that sends the file to the email recipients
+                        this.generatePentahoReportOutputStream(reportMailingJob, emailAttachmentFileFormat, reportParams, reportName, errorLog);
+                        
+                        // TODO - write a helper method to handle the generation of the pentaho report file
+                        this.updateReportMailingJobAfterJobExecution(reportMailingJob, errorLog, localDateTimeOftenant);
                     }
-                    
-                    // generate the pentaho report output stream, method in turn call another that sends the file to the email recipients
-                    this.generatePentahoReportOutputStream(reportMailingJob, emailAttachmentFileFormat, reportParams, reportName, errorLog);
-                    
-                    // TODO - write a helper method to handle the generation of the pentaho report file
-                    this.updateReportMailingJobAfterJobExecution(reportMailingJob, errorLog, localDateTimeOftenant);
                 }
             }
         }
