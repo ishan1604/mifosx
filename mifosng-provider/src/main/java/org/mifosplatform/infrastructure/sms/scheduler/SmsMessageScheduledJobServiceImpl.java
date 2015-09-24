@@ -23,6 +23,7 @@ import org.mifosplatform.infrastructure.core.domain.MifosPlatformTenant;
 import org.mifosplatform.infrastructure.core.service.ThreadLocalContextUtil;
 import org.mifosplatform.infrastructure.jobs.annotation.CronTarget;
 import org.mifosplatform.infrastructure.jobs.service.JobName;
+import org.mifosplatform.infrastructure.reportmailingjob.helper.IPv4Helper;
 import org.mifosplatform.infrastructure.sms.data.SmsConfigurationData;
 import org.mifosplatform.infrastructure.sms.data.SmsData;
 import org.mifosplatform.infrastructure.sms.data.SmsMessageApiQueueResourceData;
@@ -175,77 +176,79 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	@Transactional
 	@CronTarget(jobName = JobName.SEND_MESSAGES_TO_SMS_GATEWAY)
 	public void sendMessages() {
-		final TenantSmsConfiguration tenantSmsConfiguration = this.getTenantSmsConfiguration();
-		final String apiAuthUsername = tenantSmsConfiguration.getApiAuthUsername();
-		final String apiAuthPassword = tenantSmsConfiguration.getApiAuthPassword();
-		final String apiBaseUrl = tenantSmsConfiguration.getApiBaseUrl();
-		final String sourceAddress = tenantSmsConfiguration.getSourceAddress();
-		final String countryCallingCode = tenantSmsConfiguration.getCountryCallingCode();
-		final MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
-		final int httpEntityLimit = 500;
-		final int httpEntityLimitMinusOne = httpEntityLimit - 1;
-		
-		Integer smsCredits = tenantSmsConfiguration.getSmsCredits();
-		Integer smsSqlLimit = 5000;
-		
-		if(smsCredits > 0) {
-		    try{
-				smsSqlLimit = (smsSqlLimit > smsCredits) ? smsCredits : smsSqlLimit;
-				final Collection<SmsData> pendingMessages = this.smsReadPlatformService.retrieveAllPending(smsSqlLimit);
-				
-				if(pendingMessages.size() > 0) {
-					Iterator<SmsData> pendingMessageIterator = pendingMessages.iterator();
-					int index = 0;
-					
-					// ====================== start point json string ======================================
-					StringBuilder httpEntity = new StringBuilder("[");
-					
-					while(pendingMessageIterator.hasNext()) {
-						SmsData smsData = pendingMessageIterator.next();
-						SmsMessageApiQueueResourceData apiQueueResourceData = 
-								SmsMessageApiQueueResourceData.instance(smsData.getId(), tenant.getTenantIdentifier(), 
-										null, sourceAddress, formatDestinationPhoneNumber(smsData.getMobileNo(), countryCallingCode), 
-										smsData.getMessage());
-						
-						httpEntity.append(apiQueueResourceData.toJsonString());
-						
-						index++;
-                        
-                        if (index == httpEntityLimitMinusOne) {
-                            httpEntity.append("]");
-                            
-                            smsCredits = this.sendMessages(httpEntity, apiAuthUsername, apiAuthPassword, apiBaseUrl, smsCredits, 
-                                    sourceAddress);
-                            
-                            index = 0;
-                            httpEntity = new StringBuilder("[");
-                        }
-						
-						// add comma separation if iterator has more elements
-						if(pendingMessageIterator.hasNext() && (index > 0)) {
-							httpEntity.append(", ");
-						}
-					}
-					
-					httpEntity.append("]");
-					// ====================== end point json string ====================================
-					
-					smsCredits = this.sendMessages(httpEntity, apiAuthUsername, apiAuthPassword, apiBaseUrl, smsCredits, sourceAddress);
-					
-					logger.info(pendingMessages.size() + " pending message(s) successfully sent to the intermediate gateway - mlite-sms");
-					
-					SmsConfiguration smsConfiguration = this.smsConfigurationRepository.findByName("SMS_CREDITS");
-					smsConfiguration.setValue(smsCredits.toString());
-					
-					// save the SmsConfiguration entity
-					this.smsConfigurationRepository.save(smsConfiguration);
-				}
-			}
-			
-			catch(Exception e) {
-				logger.error(e.getMessage(), e);
-			}
-		}
+	    if (IPv4Helper.applicationIsNotRunningOnLocalMachine()) {
+	        final TenantSmsConfiguration tenantSmsConfiguration = this.getTenantSmsConfiguration();
+	        final String apiAuthUsername = tenantSmsConfiguration.getApiAuthUsername();
+	        final String apiAuthPassword = tenantSmsConfiguration.getApiAuthPassword();
+	        final String apiBaseUrl = tenantSmsConfiguration.getApiBaseUrl();
+	        final String sourceAddress = tenantSmsConfiguration.getSourceAddress();
+	        final String countryCallingCode = tenantSmsConfiguration.getCountryCallingCode();
+	        final MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
+	        final int httpEntityLimit = 500;
+	        final int httpEntityLimitMinusOne = httpEntityLimit - 1;
+	        
+	        Integer smsCredits = tenantSmsConfiguration.getSmsCredits();
+	        Integer smsSqlLimit = 5000;
+	        
+	        if(smsCredits > 0) {
+	            try{
+	                smsSqlLimit = (smsSqlLimit > smsCredits) ? smsCredits : smsSqlLimit;
+	                final Collection<SmsData> pendingMessages = this.smsReadPlatformService.retrieveAllPending(smsSqlLimit);
+	                
+	                if(pendingMessages.size() > 0) {
+	                    Iterator<SmsData> pendingMessageIterator = pendingMessages.iterator();
+	                    int index = 0;
+	                    
+	                    // ====================== start point json string ======================================
+	                    StringBuilder httpEntity = new StringBuilder("[");
+	                    
+	                    while(pendingMessageIterator.hasNext()) {
+	                        SmsData smsData = pendingMessageIterator.next();
+	                        SmsMessageApiQueueResourceData apiQueueResourceData = 
+	                                SmsMessageApiQueueResourceData.instance(smsData.getId(), tenant.getTenantIdentifier(), 
+	                                        null, sourceAddress, formatDestinationPhoneNumber(smsData.getMobileNo(), countryCallingCode), 
+	                                        smsData.getMessage());
+	                        
+	                        httpEntity.append(apiQueueResourceData.toJsonString());
+	                        
+	                        index++;
+	                        
+	                        if (index == httpEntityLimitMinusOne) {
+	                            httpEntity.append("]");
+	                            
+	                            smsCredits = this.sendMessages(httpEntity, apiAuthUsername, apiAuthPassword, apiBaseUrl, smsCredits, 
+	                                    sourceAddress);
+	                            
+	                            index = 0;
+	                            httpEntity = new StringBuilder("[");
+	                        }
+	                        
+	                        // add comma separation if iterator has more elements
+	                        if(pendingMessageIterator.hasNext() && (index > 0)) {
+	                            httpEntity.append(", ");
+	                        }
+	                    }
+	                    
+	                    httpEntity.append("]");
+	                    // ====================== end point json string ====================================
+	                    
+	                    smsCredits = this.sendMessages(httpEntity, apiAuthUsername, apiAuthPassword, apiBaseUrl, smsCredits, sourceAddress);
+	                    
+	                    logger.info(pendingMessages.size() + " pending message(s) successfully sent to the intermediate gateway - mlite-sms");
+	                    
+	                    SmsConfiguration smsConfiguration = this.smsConfigurationRepository.findByName("SMS_CREDITS");
+	                    smsConfiguration.setValue(smsCredits.toString());
+	                    
+	                    // save the SmsConfiguration entity
+	                    this.smsConfigurationRepository.save(smsConfiguration);
+	                }
+	            }
+	            
+	            catch(Exception e) {
+	                logger.error(e.getMessage(), e);
+	            }
+	        }
+	    }
 	}
 	
 	/**
@@ -328,79 +331,81 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 	@Transactional
 	@CronTarget(jobName = JobName.GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY)
 	public void getDeliveryReports() {
-		final TenantSmsConfiguration tenantSmsConfiguration = this.getTenantSmsConfiguration();
-        final String apiAuthUsername = tenantSmsConfiguration.getApiAuthUsername();
-        final String apiAuthPassword = tenantSmsConfiguration.getApiAuthPassword();
-        final String apiBaseUrl = tenantSmsConfiguration.getApiBaseUrl();
-		final MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
-		
-		try{
-			List<Long> smsMessageExternalIds = this.smsReadPlatformService.retrieveExternalIdsOfAllSent(0);
-			SmsMessageApiReportResourceData smsMessageApiReportResourceData = 
-					SmsMessageApiReportResourceData.instance(smsMessageExternalIds, tenant.getTenantIdentifier());
-			
-			// only proceed if there are sms message with status type enum 200
-			if(smsMessageExternalIds.size() > 0) {
-				// trust all SSL certificates
-				trustAllSSLCertificates();
-				
-				// make request
-				ResponseEntity<SmsMessageApiResponseData> entity = restTemplate.postForEntity(apiBaseUrl + "/report",
-					    getHttpEntity(smsMessageApiReportResourceData.toJsonString(), apiAuthUsername, apiAuthPassword), 
-					    SmsMessageApiResponseData.class);
-				
-				List<SmsMessageDeliveryReportData> smsMessageDeliveryReportDataList = entity.getBody().getData();
-				Iterator<SmsMessageDeliveryReportData> iterator1 = smsMessageDeliveryReportDataList.iterator();
-				
-				while(iterator1.hasNext()) {
-					SmsMessageDeliveryReportData smsMessageDeliveryReportData = iterator1.next();
-					Integer deliveryStatus = smsMessageDeliveryReportData.getDeliveryStatus();
-					
-					if(!smsMessageDeliveryReportData.getHasError() && (deliveryStatus != 100 && deliveryStatus != 200)) {
-						SmsMessage smsMessage = this.smsMessageRepository.findOne(smsMessageDeliveryReportData.getId());
-						Integer statusType = smsMessage.getStatusType();
-						boolean statusChanged = false;
-						
-						switch(deliveryStatus) {
-							case 0:
-								statusType = SmsMessageStatusType.INVALID.getValue();
-								break;
-							case 300:
-								statusType = SmsMessageStatusType.DELIVERED.getValue();
-								break;
-								
-							case 400:
-								statusType = SmsMessageStatusType.FAILED.getValue();
-								break;
-								
-							default:
-								statusType = smsMessage.getStatusType();
-								break;
-						}
-						
-						statusChanged = !statusType.equals(smsMessage.getStatusType());
-						
-						// update the status Type enum
-						smsMessage.setStatusType(statusType);
-						
-						// save the SmsMessage entity
-                        this.smsMessageRepository.save(smsMessage);
-                        
-                        if (statusChanged) {
-                            logger.info("Status of SMS message id: " + smsMessage.getId() + " successfully changed to " + statusType);
-                        }
-					}
-				}
-				
-				if(smsMessageDeliveryReportDataList.size() > 0) {
-					logger.info(smsMessageDeliveryReportDataList.size() + " "
-							+ "delivery report(s) successfully received from the intermediate gateway - mlite-sms");
-				}
-			}
-		}
-		
-		catch(Exception e) {
-			logger.error(e.getMessage(), e);
-		}
+	    if (IPv4Helper.applicationIsNotRunningOnLocalMachine()) {
+	        final TenantSmsConfiguration tenantSmsConfiguration = this.getTenantSmsConfiguration();
+	        final String apiAuthUsername = tenantSmsConfiguration.getApiAuthUsername();
+	        final String apiAuthPassword = tenantSmsConfiguration.getApiAuthPassword();
+	        final String apiBaseUrl = tenantSmsConfiguration.getApiBaseUrl();
+	        final MifosPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
+	        
+	        try{
+	            List<Long> smsMessageExternalIds = this.smsReadPlatformService.retrieveExternalIdsOfAllSent(0);
+	            SmsMessageApiReportResourceData smsMessageApiReportResourceData = 
+	                    SmsMessageApiReportResourceData.instance(smsMessageExternalIds, tenant.getTenantIdentifier());
+	            
+	            // only proceed if there are sms message with status type enum 200
+	            if(smsMessageExternalIds.size() > 0) {
+	                // trust all SSL certificates
+	                trustAllSSLCertificates();
+	                
+	                // make request
+	                ResponseEntity<SmsMessageApiResponseData> entity = restTemplate.postForEntity(apiBaseUrl + "/report",
+	                        getHttpEntity(smsMessageApiReportResourceData.toJsonString(), apiAuthUsername, apiAuthPassword), 
+	                        SmsMessageApiResponseData.class);
+	                
+	                List<SmsMessageDeliveryReportData> smsMessageDeliveryReportDataList = entity.getBody().getData();
+	                Iterator<SmsMessageDeliveryReportData> iterator1 = smsMessageDeliveryReportDataList.iterator();
+	                
+	                while(iterator1.hasNext()) {
+	                    SmsMessageDeliveryReportData smsMessageDeliveryReportData = iterator1.next();
+	                    Integer deliveryStatus = smsMessageDeliveryReportData.getDeliveryStatus();
+	                    
+	                    if(!smsMessageDeliveryReportData.getHasError() && (deliveryStatus != 100 && deliveryStatus != 200)) {
+	                        SmsMessage smsMessage = this.smsMessageRepository.findOne(smsMessageDeliveryReportData.getId());
+	                        Integer statusType = smsMessage.getStatusType();
+	                        boolean statusChanged = false;
+	                        
+	                        switch(deliveryStatus) {
+	                            case 0:
+	                                statusType = SmsMessageStatusType.INVALID.getValue();
+	                                break;
+	                            case 300:
+	                                statusType = SmsMessageStatusType.DELIVERED.getValue();
+	                                break;
+	                                
+	                            case 400:
+	                                statusType = SmsMessageStatusType.FAILED.getValue();
+	                                break;
+	                                
+	                            default:
+	                                statusType = smsMessage.getStatusType();
+	                                break;
+	                        }
+	                        
+	                        statusChanged = !statusType.equals(smsMessage.getStatusType());
+	                        
+	                        // update the status Type enum
+	                        smsMessage.setStatusType(statusType);
+	                        
+	                        // save the SmsMessage entity
+	                        this.smsMessageRepository.save(smsMessage);
+	                        
+	                        if (statusChanged) {
+	                            logger.info("Status of SMS message id: " + smsMessage.getId() + " successfully changed to " + statusType);
+	                        }
+	                    }
+	                }
+	                
+	                if(smsMessageDeliveryReportDataList.size() > 0) {
+	                    logger.info(smsMessageDeliveryReportDataList.size() + " "
+	                            + "delivery report(s) successfully received from the intermediate gateway - mlite-sms");
+	                }
+	            }
+	        }
+	        
+	        catch(Exception e) {
+	            logger.error(e.getMessage(), e);
+	        }
+	    }
 	}
 }
