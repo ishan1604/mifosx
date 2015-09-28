@@ -5,16 +5,17 @@
  */
 package org.mifosplatform.portfolio.loanaccount.domain;
 
-import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
-import org.mifosplatform.organisation.monetary.domain.Money;
-import org.springframework.data.jpa.domain.AbstractPersistable;
+import java.math.BigDecimal;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import java.math.BigDecimal;
+
+import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
+import org.mifosplatform.organisation.monetary.domain.Money;
+import org.springframework.data.jpa.domain.AbstractPersistable;
 
 @Entity
 @Table(name = "m_loan_installment_charge")
@@ -120,7 +121,7 @@ public class LoanInstallmentCharge extends AbstractPersistable<Long> {
         return Money.of(currency, this.amount);
     }
 
-    public Money getAmountPaid(final MonetaryCurrency currency) {
+    private Money getAmountPaid(final MonetaryCurrency currency) {
         return Money.of(currency, this.amountPaid);
     }
 
