@@ -31,6 +31,7 @@ public class AccountNumberGenerator {
     private final static String ID = "id";
     private final static String CLIENT_TYPE = "clientType";
     private final static String OFFICE_NAME = "officeName";
+    private final static String OFFICE_EXTERNAL_ID = "officeExternalId";
     private final static String LOAN_PRODUCT_SHORT_NAME = "loanProductShortName";
     private final static String SAVINGS_PRODUCT_SHORT_NAME = "savingsProductShortName";
 
@@ -41,6 +42,10 @@ public class AccountNumberGenerator {
         CodeValue clientType = client.clientType();
         if (clientType != null) {
             propertyMap.put(CLIENT_TYPE, clientType.label());
+        }
+        String externalId = client.getOffice().getExternalId();
+        if(externalId !=null){
+            propertyMap.put(OFFICE_EXTERNAL_ID,externalId);
         }
         return generateAccountNumber(propertyMap, accountNumberFormat);
     }
@@ -122,7 +127,11 @@ public class AccountNumberGenerator {
     }
 
     private String generateAccountNumber(Map<String, String> propertyMap, AccountNumberFormat accountNumberFormat) {
-        String accountNumber = StringUtils.leftPad(propertyMap.get(ID), AccountNumberGenerator.maxLength, '0');
+        int maxLength = AccountNumberGenerator.maxLength;
+        if(accountNumberFormat !=null && accountNumberFormat.getZeroPadding() !=null){
+            maxLength =  accountNumberFormat.getZeroPadding();
+        }
+        String accountNumber = StringUtils.leftPad(propertyMap.get(ID), maxLength, '0');
         if (accountNumberFormat != null && accountNumberFormat.getPrefixEnum() != null) {
             AccountNumberPrefixType accountNumberPrefixType = AccountNumberPrefixType.fromInt(accountNumberFormat.getPrefixEnum());
             String prefix = null;
@@ -141,6 +150,10 @@ public class AccountNumberGenerator {
 
                 case SAVINGS_PRODUCT_SHORT_NAME:
                     prefix = propertyMap.get(SAVINGS_PRODUCT_SHORT_NAME);
+                break;
+
+                case OFFICE_EXTERNAL_ID:
+                    prefix = propertyMap.get(OFFICE_EXTERNAL_ID);
                 break;
 
                 default:
