@@ -127,7 +127,10 @@ public class AccountNumberGenerator {
     }
 
     private String generateAccountNumber(Map<String, String> propertyMap, AccountNumberFormat accountNumberFormat) {
-        int maxLength  = (accountNumberFormat.getZeroPadding() !=null) ? accountNumberFormat.getZeroPadding() : AccountNumberGenerator.maxLength;
+        int maxLength = AccountNumberGenerator.maxLength;
+        if(accountNumberFormat !=null && accountNumberFormat.getZeroPadding() !=null){
+            maxLength =  accountNumberFormat.getZeroPadding();
+        }
         String accountNumber = StringUtils.leftPad(propertyMap.get(ID), maxLength, '0');
         if (accountNumberFormat != null && accountNumberFormat.getPrefixEnum() != null) {
             AccountNumberPrefixType accountNumberPrefixType = AccountNumberPrefixType.fromInt(accountNumberFormat.getPrefixEnum());
