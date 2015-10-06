@@ -249,7 +249,7 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
 
     private static final class GLJournalEntryMapper implements RowMapper<JournalEntryData> {
 
-        private final String selectRunningBalanceSqlLimit = "limit 0, 10000";
+        private final String selectRunningBalanceSqlLimit = " limit 0, 10000";
 
         public String officeRunningBalanceSchema() {
             return "select je.id as id,je.account_id as glAccountId,je.type_enum as entryType,je.amount as amount, "
