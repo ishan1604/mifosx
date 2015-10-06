@@ -35,6 +35,7 @@ public class ReportMailingJobData {
     private final Integer numberOfRuns;
     private final boolean isActive;
     private final List<EnumOptionData> emailAttachmentFileFormatOptions;
+    private final List<EnumOptionData> stretchyReportParamDateOptions;
     private final Long runAsUserId;
     
     private ReportMailingJobData(final Long id, final String name, final String description, final DateTime startDateTime, 
@@ -42,7 +43,7 @@ public class ReportMailingJobData {
             final String emailMessage, final EnumOptionData emailAttachmentFileFormat, final ReportData stretchyReport, final String stretchyReportParamMap, 
             final DateTime previousRunDateTime, final DateTime nextRunDateTime, final String previousRunStatus, final String previousRunErrorLog, 
             final String previousRunErrorMessage, final Integer numberOfRuns, final boolean isActive, final List<EnumOptionData> emailAttachmentFileFormatOptions, 
-            final Long runAsUserId) {
+            final List<EnumOptionData> stretchyReportParamDateOptions, final Long runAsUserId) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -63,6 +64,7 @@ public class ReportMailingJobData {
         this.isActive = isActive;
         this.numberOfRuns = numberOfRuns;
         this.emailAttachmentFileFormatOptions = emailAttachmentFileFormatOptions;
+        this.stretchyReportParamDateOptions = stretchyReportParamDateOptions;
         this.runAsUserId = runAsUserId;
     }
     
@@ -76,15 +78,16 @@ public class ReportMailingJobData {
             final String previousRunErrorMessage, final Integer numberOfRuns, final boolean isActive, final Long runAsUserId) {
         return new ReportMailingJobData(id, name, description, startDateTime, recurrence, timeline, emailRecipients, emailSubject, 
                 emailMessage, emailAttachmentFileFormat, stretchyReport, stretchyReportParamMap, previousRunDateTime, nextRunDateTime, 
-                previousRunStatus, previousRunErrorLog, previousRunErrorMessage, numberOfRuns, isActive, null, runAsUserId);
+                previousRunStatus, previousRunErrorLog, previousRunErrorMessage, numberOfRuns, isActive, null, null, runAsUserId);
     }
     
     /** 
      * @return an instance of the ReportMailingJobData class 
      **/
-    public static ReportMailingJobData instance(final List<EnumOptionData> emailAttachmentFileFormatOptions) {
+    public static ReportMailingJobData instance(final List<EnumOptionData> emailAttachmentFileFormatOptions, 
+            final List<EnumOptionData> stretchyReportParamDateOptions) {
         return new ReportMailingJobData(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 
-                null, false, emailAttachmentFileFormatOptions, null);
+                null, false, emailAttachmentFileFormatOptions, stretchyReportParamDateOptions, null);
     }
     
     /** 
@@ -97,7 +100,7 @@ public class ReportMailingJobData {
                 dataWithoutEnumOptions.stretchyReportParamMap, dataWithoutEnumOptions.previousRunDateTime, dataWithoutEnumOptions.nextRunDateTime, 
                 dataWithoutEnumOptions.previousRunStatus, dataWithoutEnumOptions.previousRunErrorLog, dataWithoutEnumOptions.previousRunErrorMessage, 
                 dataWithoutEnumOptions.numberOfRuns, dataWithoutEnumOptions.isActive, dataWithEnumOptions.emailAttachmentFileFormatOptions, 
-                dataWithoutEnumOptions.runAsUserId);
+                dataWithEnumOptions.stretchyReportParamDateOptions, dataWithoutEnumOptions.runAsUserId);
     }
 
     /**
@@ -232,6 +235,13 @@ public class ReportMailingJobData {
     public List<EnumOptionData> getEmailAttachmentFileFormatOptions() {
         return emailAttachmentFileFormatOptions;
     }
+    
+    /** 
+     * @return the stretchyReportParamDateOptions
+     **/
+    public List<EnumOptionData> getStretchyReportParamDateOptions() {
+        return this.stretchyReportParamDateOptions;
+    }
 
     /**
      * @return the numberOfRuns
@@ -247,17 +257,21 @@ public class ReportMailingJobData {
         return runAsUserId;
     }
     
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
     @Override
     public String toString() {
         return "ReportMailingJobData [id=" + id + ", name=" + name + ", description=" + description
                 + ", startDateTime=" + startDateTime + ", recurrence=" + recurrence + ", timeline=" + timeline
                 + ", emailRecipients=" + emailRecipients + ", emailSubject=" + emailSubject + ", emailMessage="
                 + emailMessage + ", emailAttachmentFileFormat=" + emailAttachmentFileFormat + ", stretchyReport="
-                + stretchyReport.toString() + ", stretchyReportParamMap=" + stretchyReportParamMap + ", previousRunDateTime="
+                + stretchyReport + ", stretchyReportParamMap=" + stretchyReportParamMap + ", previousRunDateTime="
                 + previousRunDateTime + ", nextRunDateTime=" + nextRunDateTime + ", previousRunStatus="
                 + previousRunStatus + ", previousRunErrorLog=" + previousRunErrorLog + ", previousRunErrorMessage="
                 + previousRunErrorMessage + ", numberOfRuns=" + numberOfRuns + ", isActive=" + isActive
-                + ", emailAttachmentFileFormatOptions=" + emailAttachmentFileFormatOptions + ", runAsUserId="
-                + runAsUserId + "]";
+                + ", emailAttachmentFileFormatOptions=" + emailAttachmentFileFormatOptions
+                + ", stretchyReportParamDateOptions=" + stretchyReportParamDateOptions + ", runAsUserId=" + runAsUserId
+                + "]";
     }
 }

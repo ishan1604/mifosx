@@ -1058,7 +1058,10 @@ public class Loan extends AbstractPersistable<Long> {
         Money unrecognizedIncome = amountWaived.zero();
         Money chargeComponent = amountWaived;
         if (isPeriodicAccrualAccountingEnabledOnLoanProduct()) {
-            Money receivableCharge = accruedCharge.minus(loanCharge.getAmountPaid(getCurrency()));
+            Money receivableCharge = Money.zero(getCurrency());
+            if(loanInstallmentNumber !=null){
+                receivableCharge = accruedCharge.minus(loanCharge.getInstallmentLoanCharge(loanInstallmentNumber).getAmountPaid(getCurrency()));
+            }else{ receivableCharge = accruedCharge.minus(loanCharge.getAmountPaid(getCurrency()));}
             if (receivableCharge.isLessThanZero()) {
                 receivableCharge = amountWaived.zero();
             }
@@ -1074,7 +1077,7 @@ public class Loan extends AbstractPersistable<Long> {
             feeChargesWaived = Money.zero(loanCurrency());
         }
 
-        LocalDate transactionDate = getDisbursementDate();
+        LocalDate transactionDate = DateUtils.getLocalDateOfTenant();
         if (loanCharge.isSpecifiedDueDate() || loanCharge.isPenaltyCharge()) {
             transactionDate = loanCharge.getDueLocalDate();
         }
@@ -1366,6 +1369,10 @@ public class Loan extends AbstractPersistable<Long> {
             }
             updateLoanOutstandingBalaces();
         }
+    }
+    public void updateLoanSummarAndStatus(){
+        updateLoanSummaryDerivedFields();
+        doPostLoanTransactionChecks(getLastUserTransactionDate(), loanLifecycleStateMachine);
     }
 
     public Map<String, Object> loanApplicationModification(final JsonCommand command, final Set<LoanCharge> possiblyModifedLoanCharges,

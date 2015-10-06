@@ -11,6 +11,7 @@ import java.util.List;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.infrastructure.reportmailingjob.data.ReportMailingJobEnumerations;
 import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJobEmailAttachmentFileFormat;
+import org.mifosplatform.infrastructure.reportmailingjob.domain.ReportMailingJobStretchyReportParamDateOption;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -29,5 +30,21 @@ public class ReportMailingJobDropdownReadPlatformServiceImpl implements ReportMa
         }
         
         return emailAttachementFileFormatOptions;
+    }
+
+    @Override
+    public List<EnumOptionData> retrieveStretchyReportDateOptions() {
+        final List<EnumOptionData> stretchyReportParamDateOptions = new ArrayList<>();
+        
+        for (ReportMailingJobStretchyReportParamDateOption reportMailingJobStretchyReportParamDateOption : 
+            ReportMailingJobStretchyReportParamDateOption.values()) {
+            if (ReportMailingJobStretchyReportParamDateOption.INVALID.equals(reportMailingJobStretchyReportParamDateOption)) {
+                continue;
+            }
+            
+            stretchyReportParamDateOptions.add(ReportMailingJobEnumerations.stretchyReportDateOption(reportMailingJobStretchyReportParamDateOption));
+        }
+        
+        return stretchyReportParamDateOptions;
     }
 }

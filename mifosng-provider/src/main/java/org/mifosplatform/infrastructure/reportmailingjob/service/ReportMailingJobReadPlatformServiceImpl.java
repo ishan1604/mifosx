@@ -72,8 +72,9 @@ public class ReportMailingJobReadPlatformServiceImpl implements ReportMailingJob
     @Override
     public ReportMailingJobData retrieveReportMailingJobEnumOptions() {
         final List<EnumOptionData> emailAttachmentFileFormatOptions = this.reportMailingJobDropdownReadPlatformService.retrieveEmailAttachmentFileFormatOptions();
+        final List<EnumOptionData> stretchyReportParamDateOptions = this.reportMailingJobDropdownReadPlatformService.retrieveStretchyReportDateOptions();
         
-        return ReportMailingJobData.instance(emailAttachmentFileFormatOptions);
+        return ReportMailingJobData.instance(emailAttachmentFileFormatOptions, stretchyReportParamDateOptions);
     }
     
     private static final class ReportMailingJobMapper implements RowMapper<ReportMailingJobData> {
