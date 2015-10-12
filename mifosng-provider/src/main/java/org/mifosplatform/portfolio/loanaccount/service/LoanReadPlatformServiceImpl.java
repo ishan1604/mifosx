@@ -1376,7 +1376,8 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                 .append(rm.schema())
                 .append(" where DATE_SUB(CURDATE(),INTERVAL ? DAY) > ls.duedate ")
                 .append( " and ls.completed_derived <> 1 and mc.charge_applies_to_enum =1 ")
-                .append(" and mc.charge_time_enum = 9 and ml.loan_status_id = 300 ");
+                .append(" and mc.charge_time_enum = 9 and ml.loan_status_id = 300 ")
+                .append(" and mc.id not in (select m_loan_charge.charge_id from m_loan_charge where m_loan_charge.loan_id = ml.id and m_loan_charge.due_for_collection_as_of_date = ls.duedate)");
 
 
         if(backdatePenalties)

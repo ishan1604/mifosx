@@ -743,6 +743,8 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         if(this.loanRepository.doNonClosedLoanAccountsExistForClient(clientId)){
             for(final Loan loan : this.loanRepository.findLoanByClientId(clientId)){
                 if(loan.isDisbursed() && !loan.isClosed()){
+                    List<Long> existingTransactionIds = new ArrayList<Long>(loan.findExistingTransactionIds());
+                    List<Long> existingReversedTransactionIds = new ArrayList<Long>(loan.findExistingReversedTransactionIds());
                     for(final LoanTransaction loanTransaction :this.loanTransactionRepository.currentTransferTransaction(loan.getId())){
                         if(loanTransaction.getTypeOf().equals(LoanTransactionType.INITIATE_TRANSFER)){
                             loanTransaction.reverse();
@@ -751,8 +753,6 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                             loanTransaction.reverse();
                         }
                     }
-                    List<Long> existingTransactionIds = new ArrayList<Long>();
-                    List<Long> existingReversedTransactionIds = new ArrayList<Long>();
                     this.postJournalEntriesLoan(loan,existingTransactionIds,existingReversedTransactionIds);
                 }
 
@@ -761,6 +761,8 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         if(this.savingsAccountRepository.doNonClosedSavingAccountsExistForClient(clientId)) {
             for(final SavingsAccount savingsAccount: this.savingsAccountRepository.findSavingAccountByClientId(clientId)){
                 if(!savingsAccount.isClosed()){
+                    Set<Long> existingTransactionIds = new HashSet<Long>(savingsAccount.findExistingTransactionIds());
+                    Set<Long> existingReversedTransactionIds = new HashSet<Long>(savingsAccount.findExistingReversedTransactionIds());
                     for(SavingsAccountTransaction savingsAccountTransaction: this.savingsAccountTransactionRepository.currentTransferTransaction(savingsAccount.getId())){
                         if(savingsAccountTransaction.isTransferInitiation()){
                             savingsAccountTransaction.reverse();
@@ -769,8 +771,7 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                             savingsAccountTransaction.reverse();
                         }
                     }
-                    Set<Long> existingTransactionIds = new HashSet<Long>();
-                    Set<Long> existingReversedTransactionIds = new HashSet<Long>();
+
                     this.postJournalEntries(savingsAccount, existingTransactionIds, existingReversedTransactionIds);
                 }
             }
