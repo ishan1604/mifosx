@@ -5,6 +5,26 @@
  */
 package org.mifosplatform.portfolio.loanaccount.domain;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+import javax.persistence.UniqueConstraint;
+
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
 import org.joda.time.LocalDate;
@@ -22,25 +42,6 @@ import org.mifosplatform.portfolio.paymentdetail.data.PaymentDetailData;
 import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
 import org.mifosplatform.useradministration.domain.AppUser;
 import org.springframework.data.jpa.domain.AbstractPersistable;
-
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.persistence.UniqueConstraint;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * All monetary transactions against a loan are modelled through this entity.
@@ -93,15 +94,6 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
 
     @Column(name = "unrecognized_income_portion", scale = 6, precision = 19, nullable = true)
     private BigDecimal unrecognizedIncomePortion;
-
-    @Column(name = "suspended_interest_portion_derived", scale = 6, precision = 19, nullable = true)
-    private BigDecimal suspendedInterestPortion;
-
-    @Column(name = "suspended_fee_charges_portion_derived", scale = 6, precision = 19, nullable = true)
-    private BigDecimal suspendedFeePortion;
-
-    @Column(name = "suspended_penalty_charges_portion_derived", scale = 6, precision = 19, nullable = true)
-    private BigDecimal suspendedPenaltyPortion;
 
     @Column(name = "is_reversed", nullable = false)
     private boolean reversed;
@@ -330,9 +322,6 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
         this.penaltyChargesPortion = null;
         this.overPaymentPortion = null;
         this.outstandingLoanBalance = null;
-        this.suspendedFeePortion = null;
-        this.suspendedInterestPortion = null;
-        this.suspendedPenaltyPortion = null;
     }
 
     public void updateLoan(final Loan loan) {
@@ -573,9 +562,6 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
         thisTransactionData.put("feeChargesPortion", this.feeChargesPortion);
         thisTransactionData.put("penaltyChargesPortion", this.penaltyChargesPortion);
         thisTransactionData.put("overPaymentPortion", this.overPaymentPortion);
-        thisTransactionData.put("suspendedInterestPortion",this.suspendedInterestPortion);
-        thisTransactionData.put("suspendedFeePortion",this.suspendedFeePortion);
-        thisTransactionData.put("suspendedPenaltyPortion",this.suspendedPenaltyPortion);
 
         if (this.paymentDetail != null) {
             thisTransactionData.put("paymentTypeId", this.paymentDetail.getPaymentType().getId());
@@ -625,10 +611,6 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
     public boolean isAccrual() {
         return LoanTransactionType.ACCRUAL.equals(getTypeOf()) && isNotReversed();
     }
-
-    public boolean isSuspendIncome() { return LoanTransactionType.SUSPENDED_INCOME.equals(getTypeOf()) && isNotReversed();}
-
-    public boolean isReverseSuspendedIncome () { return LoanTransactionType.REVERSE_SUSPENDED_INCOME.equals(getTypeOf()) && isNotReversed();}
 
     public void updateOutstandingLoanBalance(BigDecimal outstandingLoanBalance) {
         this.outstandingLoanBalance = outstandingLoanBalance;
@@ -680,38 +662,9 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
         }
         return isLatest;
     }
-
     
     public PaymentDetail getPaymentDetail() {
         return this.paymentDetail;
     }
-
-    public Money getSuspendedPenaltyPortion(MonetaryCurrency currency) {
-        return Money.of(currency, this.suspendedPenaltyPortion);
-    }
-
-
-    public Money getSuspendedFeePortion(MonetaryCurrency currency) {
-        return Money.of(currency, this.suspendedFeePortion);
-    }
-
-
-    public Money getSuspendedInterestPortion(MonetaryCurrency currency) {
-        return Money.of(currency, this.suspendedInterestPortion);
-    }
-
-    public void updateSuspendInterestComponents(final MonetaryCurrency currency,final Money interest){
-        this.suspendedInterestPortion = defaultToNullIfZero(getSuspendedInterestPortion(currency).plus(interest).getAmount());
-    }
-
-    public void updateSuspendedFeeComponents(final MonetaryCurrency currency,final Money feeCharges){
-        this.suspendedFeePortion    =  defaultToNullIfZero(getSuspendedFeePortion(currency).plus(feeCharges).getAmount());
-    }
-
-    public void updateSuspendedPenaltyComponents(final MonetaryCurrency currency,final Money penaltyCharges){
-        this.suspendedPenaltyPortion = defaultToNullIfZero(getSuspendedPenaltyPortion(currency).plus(penaltyCharges).getAmount());
-    }
-
-
 }
-
+   

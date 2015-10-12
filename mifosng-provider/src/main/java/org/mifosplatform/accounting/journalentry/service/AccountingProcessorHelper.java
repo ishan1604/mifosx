@@ -5,6 +5,13 @@
  */
 package org.mifosplatform.accounting.journalentry.service;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.closure.domain.GLClosure;
@@ -37,24 +44,14 @@ import org.mifosplatform.organisation.office.domain.OfficeRepository;
 import org.mifosplatform.portfolio.account.PortfolioAccountType;
 import org.mifosplatform.portfolio.account.service.AccountTransfersReadPlatformService;
 import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionEnumData;
-import org.mifosplatform.portfolio.loanaccount.domain.Loan;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanRepository;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionRepository;
-import org.mifosplatform.portfolio.loanaccount.service.LoanReadPlatformService;
 import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountTransactionEnumData;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransaction;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 @Service
 public class AccountingProcessorHelper {
@@ -69,15 +66,14 @@ public class AccountingProcessorHelper {
     private final LoanTransactionRepository loanTransactionRepository;
     private final SavingsAccountTransactionRepository savingsAccountTransactionRepository;
     private final AccountTransfersReadPlatformService accountTransfersReadPlatformService;
-    private final LoanReadPlatformService loanReadPlatformService;
+
     @Autowired
     public AccountingProcessorHelper(final JournalEntryRepository glJournalEntryRepository,
             final ProductToGLAccountMappingRepository accountMappingRepository, final GLClosureRepository closureRepository,
             final OfficeRepository officeRepository, final LoanTransactionRepository loanTransactionRepository,
             final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
             final FinancialActivityAccountRepositoryWrapper financialActivityAccountRepository,
-            final AccountTransfersReadPlatformService accountTransfersReadPlatformService,
-            final LoanReadPlatformService loanReadPlatformService) {
+            final AccountTransfersReadPlatformService accountTransfersReadPlatformService) {
         this.glJournalEntryRepository = glJournalEntryRepository;
         this.accountMappingRepository = accountMappingRepository;
         this.closureRepository = closureRepository;
@@ -86,7 +82,6 @@ public class AccountingProcessorHelper {
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
         this.financialActivityAccountRepository = financialActivityAccountRepository;
         this.accountTransfersReadPlatformService = accountTransfersReadPlatformService;
-        this.loanReadPlatformService = loanReadPlatformService;
     }
 
     public LoanDTO populateLoanDtoFromMap(final Map<String, Object> accountingBridgeData, final boolean cashBasedAccountingEnabled,
@@ -112,9 +107,6 @@ public class AccountingProcessorHelper {
             final BigDecimal fees = (BigDecimal) map.get("feeChargesPortion");
             final BigDecimal penalties = (BigDecimal) map.get("penaltyChargesPortion");
             final BigDecimal overPayments = (BigDecimal) map.get("overPaymentPortion");
-            final BigDecimal suspendedFeePortion = (BigDecimal) map.get("suspendedFeePortion");
-            final BigDecimal suspendedPenaltyPortion = (BigDecimal) map.get("suspendedPenaltyPortion");
-            final BigDecimal suspendedInterestPortion = (BigDecimal) map.get("suspendedInterestPortion");
             final boolean reversed = (Boolean) map.get("reversed");
             final Long paymentTypeId = (Long) map.get("paymentTypeId");
 
@@ -144,7 +136,7 @@ public class AccountingProcessorHelper {
             }
             final LoanTransactionDTO transaction = new LoanTransactionDTO(transactionOfficeId, paymentTypeId, transactionId,
                     transactionDate, transactionType, amount, principal, interest, fees, penalties, overPayments, reversed,
-                    feePaymentDetails, penaltyPaymentDetails, isAccountTransfer, suspendedFeePortion, suspendedPenaltyPortion, suspendedInterestPortion);
+                    feePaymentDetails, penaltyPaymentDetails, isAccountTransfer);
 
             newLoanTransactions.add(transaction);
 
@@ -748,10 +740,5 @@ public class AccountingProcessorHelper {
             isOrganizationAccount = true;
         }
         return isOrganizationAccount;
-    }
-
-    public boolean doesLoanHaveSuspendedIncomeAndIsNpa(final Long loanId){
-        boolean loanIsNPAWithSuspendedIncome = this.loanReadPlatformService.doesLoanHaveSuspendedIncomeAndIsNpa(loanId);
-        return loanIsNPAWithSuspendedIncome;
     }
 }

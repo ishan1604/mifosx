@@ -5,7 +5,12 @@
  */
 package org.mifosplatform.accounting.producttoaccountmapping.service;
 
-import com.google.gson.JsonElement;
+import static org.mifosplatform.portfolio.savings.SavingsApiConstants.accountingRuleParamName;
+
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
 import org.mifosplatform.accounting.common.AccountingConstants.ACCRUAL_ACCOUNTS_FOR_LOAN;
 import org.mifosplatform.accounting.common.AccountingConstants.CASH_ACCOUNTS_FOR_LOAN;
 import org.mifosplatform.accounting.common.AccountingConstants.CASH_ACCOUNTS_FOR_SAVINGS;
@@ -20,11 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-
-import static org.mifosplatform.portfolio.savings.SavingsApiConstants.accountingRuleParamName;
+import com.google.gson.JsonElement;
 
 @Service
 public class ProductToGLAccountMappingWritePlatformServiceImpl implements ProductToGLAccountMappingWritePlatformService {
@@ -141,9 +142,6 @@ public class ProductToGLAccountMappingWritePlatformServiceImpl implements Produc
                 this.loanProductToGLAccountMappingHelper.saveLoanToLiabilityAccountMapping(element,
                         LOAN_PRODUCT_ACCOUNTING_PARAMS.OVERPAYMENT.getValue(), loanProductId,
                         ACCRUAL_ACCOUNTS_FOR_LOAN.OVERPAYMENT.getValue());
-                //for suspended income on NPA loans
-                this.loanProductToGLAccountMappingHelper.saveLoanToLiabilityAccountMapping(element,
-                        LOAN_PRODUCT_ACCOUNTING_PARAMS.SUSPENDED_INCOME.getValue(),loanProductId,ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue());
 
                 // advanced accounting mappings
                 this.loanProductToGLAccountMappingHelper.savePaymentChannelToFundSourceMappings(command, element, loanProductId, null);

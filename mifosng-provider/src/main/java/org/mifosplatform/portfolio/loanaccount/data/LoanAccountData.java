@@ -10,6 +10,14 @@
  */
 package org.mifosplatform.portfolio.loanaccount.data;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.persistence.Transient;
+
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.codes.data.CodeValueData;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
@@ -1744,11 +1752,5 @@ public class LoanAccountData {
      **/
     public LoanStatusEnumData getStatus() {
         return this.status;
-    }
-
-    public Boolean isNPA() {return this.isNPA;}
-
-    public Collection<LoanTransactionData> getTransactions() {
-        return transactions;
     }
 }

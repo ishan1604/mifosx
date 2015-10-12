@@ -5,7 +5,9 @@
  */
 package org.mifosplatform.accounting.producttoaccountmapping.service;
 
-import com.google.gson.JsonElement;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.mifosplatform.accounting.common.AccountingConstants.ACCRUAL_ACCOUNTS_FOR_LOAN;
 import org.mifosplatform.accounting.common.AccountingConstants.CASH_ACCOUNTS_FOR_LOAN;
 import org.mifosplatform.accounting.common.AccountingConstants.LOAN_PRODUCT_ACCOUNTING_PARAMS;
@@ -22,8 +24,7 @@ import org.mifosplatform.portfolio.charge.domain.ChargeRepositoryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.gson.JsonElement;
 
 @Component
 public class LoanProductToGLAccountMappingHelper extends ProductToGLAccountMappingHelper {
@@ -278,13 +279,9 @@ public class LoanProductToGLAccountMappingHelper extends ProductToGLAccountMappi
                         loanProductId, ACCRUAL_ACCOUNTS_FOR_LOAN.LOSSES_WRITTEN_OFF.getValue(),
                         ACCRUAL_ACCOUNTS_FOR_LOAN.LOSSES_WRITTEN_OFF.toString(), changes);
 
-                /* liabilities */
+                // liabilities
                 mergeLoanToLiabilityAccountMappingChanges(element, LOAN_PRODUCT_ACCOUNTING_PARAMS.OVERPAYMENT.getValue(), loanProductId,
                         CASH_ACCOUNTS_FOR_LOAN.OVERPAYMENT.getValue(), CASH_ACCOUNTS_FOR_LOAN.OVERPAYMENT.toString(), changes);
-                //for suspended interest on NPA
-                mergeLoanToLiabilityAccountMappingChanges(element, LOAN_PRODUCT_ACCOUNTING_PARAMS.SUSPENDED_INCOME.getValue(), loanProductId,
-                       ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue(), ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.toString(), changes);
-                /* liabilities end */
             break;
         }
     }

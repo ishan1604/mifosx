@@ -5,6 +5,14 @@
  */
 package org.mifosplatform.portfolio.loanaccount.domain;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalDateTime;
@@ -50,7 +58,6 @@ import org.mifosplatform.portfolio.loanaccount.data.ScheduleGeneratorDTO;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanScheduleGeneratorFactory;
 import org.mifosplatform.portfolio.loanaccount.service.LoanAccrualWritePlatformService;
 import org.mifosplatform.portfolio.loanaccount.service.LoanAssembler;
-import org.mifosplatform.portfolio.loanaccount.service.LoanSuspendAccruedIncomeWritePlatformService;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductRelatedDetail;
 import org.mifosplatform.portfolio.note.domain.Note;
 import org.mifosplatform.portfolio.note.domain.NoteRepository;
@@ -60,14 +67,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @Service
 public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
@@ -91,7 +90,6 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
     private final PlatformSecurityContext context;
     private final BusinessEventNotifierService businessEventNotifierService;
     private final StandingInstructionRepository standingInstructionRepository;
-    private final LoanSuspendAccruedIncomeWritePlatformService loanSuspendAccruedIncomeWritePlatformService;
 
     @Autowired
     public LoanAccountDomainServiceJpa(final LoanAssembler loanAccountAssembler, final LoanRepository loanRepository,
@@ -106,7 +104,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository,
             final LoanAccrualWritePlatformService accrualWritePlatformService, final PlatformSecurityContext context,
             final BusinessEventNotifierService businessEventNotifierService, 
-            final StandingInstructionRepository standingInstructionRepository,final LoanSuspendAccruedIncomeWritePlatformService loanSuspendAccruedIncomeWritePlatformService) {
+            final StandingInstructionRepository standingInstructionRepository) {
         this.loanAccountAssembler = loanAccountAssembler;
         this.loanRepository = loanRepository;
         this.loanTransactionRepository = loanTransactionRepository;
@@ -125,7 +123,6 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
         this.context = context;
         this.businessEventNotifierService = businessEventNotifierService;
         this.standingInstructionRepository = standingInstructionRepository;
-        this.loanSuspendAccruedIncomeWritePlatformService = loanSuspendAccruedIncomeWritePlatformService;
     }
 
     @Transactional
@@ -229,13 +226,6 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
         postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
 
         recalculateAccruals(loan);
-        /**
-         * calculate suspended income to (opposite booking) if loan has suspended income (interest + fees + penalties)
-         */
-        this.loanSuspendAccruedIncomeWritePlatformService.suspendedIncomeOutOfNPA(loan);
-
-
-
 
         this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_MAKE_REPAYMENT, newRepaymentTransaction);
 
@@ -246,7 +236,6 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
                 .withOfficeId(loan.getOfficeId()) //
                 .withClientId(loan.getClientId()) //
                 .withGroupId(loan.getGroupId()); //
-
 
         return newRepaymentTransaction;
     }
@@ -530,18 +519,6 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
         }
     }
 
-    /**
-     * reverse a suspended income when a repayment comes in a loan that is npa
-     * @param loan
-     */
-    private void reverseSuspendedIncome(final Loan loan){
-        if (!loan.isPeriodicAccrualAccountingEnabledOnLoanProduct() || !loan.repaymentScheduleDetail().isInterestRecalculationEnabled() || !loan.status().isActive()) { return; }
-        if(loan.isSuspendedIncome()){
-            Collection<LoanScheduleAccrualData> loanScheduleAccrualDatas = new ArrayList<>();
-            List<LoanRepaymentScheduleInstallment> installments = loan.fetchRepaymentScheduleInstallments();
-        }
-    }
-
     private void updateLoanTransaction(final Long loanTransactionId, final LoanTransaction newLoanTransaction) {
         final AccountTransferTransaction transferTransaction = this.accountTransferRepository.findByToLoanTransactionId(loanTransactionId);
         if (transferTransaction != null) {
@@ -647,7 +624,4 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             }
         }
     }
-
-
-
 }

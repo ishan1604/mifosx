@@ -203,7 +203,6 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     private final GuarantorDomainService guarantorDomainService;
     private final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService;
     private final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService;
-    private final LoanSuspendAccruedIncomeWritePlatformService loanSuspendAccruedIncomeWritePlatformService;
 
     @Autowired
     public LoanWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -231,8 +230,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             final AccountTransferDetailRepository accountTransferDetailRepository,
             final BusinessEventNotifierService businessEventNotifierService, final GuarantorDomainService guarantorDomainService, 
             final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService, 
-            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,
-            final LoanSuspendAccruedIncomeWritePlatformService loanSuspendAccruedIncomeWritePlatformService) {
+            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService) {
         this.context = context;
         this.loanEventApiJsonValidator = loanEventApiJsonValidator;
         this.loanAssembler = loanAssembler;
@@ -269,7 +267,6 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         this.guarantorDomainService = guarantorDomainService;
         this.loanCreditCheckWritePlatformService = loanCreditCheckWritePlatformService;
         this.entityDatatableChecksWritePlatformService = entityDatatableChecksWritePlatformService;
-        this.loanSuspendAccruedIncomeWritePlatformService = loanSuspendAccruedIncomeWritePlatformService;
     }
 
     private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
@@ -968,11 +965,6 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
 
         this.loanAccountDomainService.recalculateAccruals(loan);
-        /**
-         * reverse suspended income when repayment is reversed or adjusted
-         */
-        this.loanSuspendAccruedIncomeWritePlatformService.reverseSuspendedIncomeWhenRepaymentIsReversed(loan,transactionId);
-
         this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_UNDO_TRANSACTION, transactionToAdjust);
         if (newTransactionDetail.isRepayment() && newTransactionDetail.isGreaterThanZero(loan.getPrincpal().getCurrency())) {
             this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_MAKE_REPAYMENT, newTransactionDetail);

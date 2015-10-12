@@ -59,7 +59,6 @@ public final class LoanProductDataValidator {
             LOAN_PRODUCT_ACCOUNTING_PARAMS.PAYMENT_CHANNEL_FUND_SOURCE_MAPPING.getValue(),
             LOAN_PRODUCT_ACCOUNTING_PARAMS.FEE_INCOME_ACCOUNT_MAPPING.getValue(),
             LOAN_PRODUCT_ACCOUNTING_PARAMS.INCOME_FROM_RECOVERY.getValue(),
-            LOAN_PRODUCT_ACCOUNTING_PARAMS.SUSPENDED_INCOME.getValue(),
             LOAN_PRODUCT_ACCOUNTING_PARAMS.PENALTY_INCOME_ACCOUNT_MAPPING.getValue(), LoanProductConstants.useBorrowerCycleParameterName,
             LoanProductConstants.principalVariationsForBorrowerCycleParameterName,
             LoanProductConstants.interestRateVariationsForBorrowerCycleParameterName,
@@ -74,11 +73,9 @@ public final class LoanProductDataValidator {
             LoanProductConstants.recalculationRestFrequencyIntervalParameterName,
             LoanProductConstants.recalculationRestFrequencyTypeParameterName, LoanProductConstants.minimumDaysBetweenDisbursalAndFirstRepayment, LoanProductConstants.mandatoryGuaranteeParamName,
             LoanProductConstants.holdGuaranteeFundsParamName, LoanProductConstants.minimumGuaranteeFromGuarantorParamName,
-            LoanProductConstants.minimumGuaranteeFromOwnFundsParamName, CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME,
+            LoanProductConstants.minimumGuaranteeFromOwnFundsParamName, CreditCheckConstants.CREDIT_CHECKS_PARAM_NAME, 
             LoanProductConstants.configurableAttributesParameterName,
-            LoanProductConstants.splitInterestAmongGuarantorsParamName,
-            LoanProductConstants.configurableAttributesParameterName,LoanProductConstants.reverseOverdueDaysNPAInterestParameterName));
-
+            LoanProductConstants.splitInterestAmongGuarantorsParamName));
 
     private final FromJsonHelper fromApiJsonHelper;
 
@@ -402,11 +399,6 @@ public final class LoanProductDataValidator {
                     LOAN_PRODUCT_ACCOUNTING_PARAMS.PENALTIES_RECEIVABLE.getValue(), element);
             baseDataValidator.reset().parameter(LOAN_PRODUCT_ACCOUNTING_PARAMS.PENALTIES_RECEIVABLE.getValue())
                     .value(receivablePenaltyAccountId).notNull().integerGreaterThanZero();
-
-            final Long suspendedIncomeAccountId = this.fromApiJsonHelper.extractLongNamed(
-                    LOAN_PRODUCT_ACCOUNTING_PARAMS.SUSPENDED_INCOME.getValue(), element);
-            baseDataValidator.reset().parameter(LOAN_PRODUCT_ACCOUNTING_PARAMS.SUSPENDED_INCOME.getValue()).value(suspendedIncomeAccountId)
-                    .notNull().integerGreaterThanZero();
         }
 
         if (this.fromApiJsonHelper.parameterExists(LoanProductConstants.useBorrowerCycleParameterName, element)) {
@@ -418,14 +410,6 @@ public final class LoanProductDataValidator {
                 validateBorrowerCycleVariations(element, baseDataValidator);
             }
         }
-        //is reverseOverdueDaysNPAInterest
-        if (this.fromApiJsonHelper.parameterExists(LoanProductConstants.reverseOverdueDaysNPAInterestParameterName, element)) {
-            final Boolean isReverseOverdueDaysNPAInterestEnabled= this.fromApiJsonHelper.extractBooleanNamed(
-                    LoanProductConstants.reverseOverdueDaysNPAInterestParameterName,element);
-            baseDataValidator.reset().parameter(LoanProductConstants.reverseOverdueDaysNPAInterestParameterName).value(
-                    isReverseOverdueDaysNPAInterestEnabled).notNull().isOneOfTheseValues(true,false);
-        }
-
 
         validateMultiDisburseLoanData(baseDataValidator, element);
         
@@ -870,15 +854,6 @@ public final class LoanProductDataValidator {
         baseDataValidator.reset().parameter(LOAN_PRODUCT_ACCOUNTING_PARAMS.PENALTIES_RECEIVABLE.getValue())
                 .value(receivablePenaltyAccountId).ignoreIfNull().integerGreaterThanZero();
 
-
-
-        if(this.fromApiJsonHelper.parameterExists(LOAN_PRODUCT_ACCOUNTING_PARAMS.SUSPENDED_INCOME.getValue(), element)){
-            final Long suspendedIncomeAccountId = this.fromApiJsonHelper.extractLongNamed(
-                    LOAN_PRODUCT_ACCOUNTING_PARAMS.SUSPENDED_INCOME.getValue(), element);
-            baseDataValidator.reset().parameter(LOAN_PRODUCT_ACCOUNTING_PARAMS.SUSPENDED_INCOME.getValue()).value(suspendedIncomeAccountId)
-                    .notNull().integerGreaterThanZero();
-        }
-
         validatePaymentChannelFundSourceMappings(baseDataValidator, element);
         validateChargeToIncomeAccountMappings(baseDataValidator, element);
 
@@ -893,14 +868,6 @@ public final class LoanProductDataValidator {
                 validateBorrowerCycleVariations(element, baseDataValidator);
             }
         }
-        //is reverseOverdueDaysNPAInterest
-        if (this.fromApiJsonHelper.parameterExists(LoanProductConstants.reverseOverdueDaysNPAInterestParameterName, element)) {
-            final Boolean isReverseOverdueDaysNPAInterestEnabled= this.fromApiJsonHelper.extractBooleanNamed(
-                    LoanProductConstants.reverseOverdueDaysNPAInterestParameterName,element);
-            baseDataValidator.reset().parameter(LoanProductConstants.reverseOverdueDaysNPAInterestParameterName).value(
-                    isReverseOverdueDaysNPAInterestEnabled).notNull().isOneOfTheseValues(true,false);
-        }
-
 
         validateMultiDisburseLoanData(baseDataValidator, element);
         
@@ -1449,7 +1416,7 @@ public final class LoanProductDataValidator {
 
         if(loanProduct == null
                 || this.fromApiJsonHelper.parameterExists(LoanProductConstants.splitInterestAmongGuarantorsParamName,element)){
-            splitInterestAmongGuarantors = this.fromApiJsonHelper.extractBooleanNamed(LoanProductConstants.splitInterestAmongGuarantorsParamName, element);
+            splitInterestAmongGuarantors = this.fromApiJsonHelper.extractBooleanNamed(LoanProductConstants.splitInterestAmongGuarantorsParamName,element);
             baseDataValidator.reset().parameter(LoanProductConstants.splitInterestAmongGuarantorsParamName)
                     .value(splitInterestAmongGuarantors).notNull().isOneOfTheseValues(true, false);
         }

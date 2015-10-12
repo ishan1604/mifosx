@@ -5,15 +5,6 @@
  */
 package org.mifosplatform.template.service;
 
-import com.github.mustachejava.DefaultMustacheFactory;
-import com.github.mustachejava.Mustache;
-import com.github.mustachejava.MustacheFactory;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
-import org.mifosplatform.template.domain.Template;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,10 +22,34 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.google.common.io.CharStreams;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
+import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
+import org.mifosplatform.infrastructure.dataqueries.service.GenericDataService;
+import org.mifosplatform.infrastructure.dataqueries.service.ReadReportingService;
+import org.mifosplatform.template.domain.Template;
+import org.mifosplatform.useradministration.domain.AppUser;
+import org.pentaho.reporting.libraries.base.util.LinkedMap;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
+import com.github.mustachejava.DefaultMustacheFactory;
+import com.github.mustachejava.Mustache;
+import com.github.mustachejava.MustacheFactory;
 
 @Service
 public class TemplateMergeService {
@@ -78,6 +93,7 @@ public class TemplateMergeService {
 
                 final Mustache mappersMustache = mf.compile(new StringReader(entry.getValue()), "");
                 final StringWriter stringWriter = new StringWriter();
+                System.out.println("see whats in scopes " + this.scopes);
                 mappersMustache.execute(stringWriter, this.scopes);
                 String url = stringWriter.toString();
                 if (!url.startsWith("http")) {

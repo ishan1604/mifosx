@@ -175,7 +175,6 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     + "lpr.rest_freqency_date as restFrequencyDate, "
                     + "lp.hold_guarantee_funds as holdGuaranteeFunds, "
                     + "lpg.id as lpgId, lpg.mandatory_guarantee as mandatoryGuarantee,lpg.split_interest_among_guarantors as splitInterestAmongGuarantors, "
-                    + "lp.hold_guarantee_funds as holdGuaranteeFunds,lp.reverse_overduedays_npa_interest as reverseOverdueDaysNpaInterest, "
                     + "lpg.minimum_guarantee_from_own_funds as minimumGuaranteeFromOwnFunds, lpg.minimum_guarantee_from_guarantor_funds as minimumGuaranteeFromGuarantor, "
                     + "curr.name as currencyName, curr.internationalized_name_code as currencyNameCode, curr.display_symbol as currencyDisplaySymbol, lp.external_id as externalId, "
                     + "lca.id as lcaId, lca.allow_attribute_configuration as allowAttributeConfiguration, lca.amortization as configureAmortization, lca.interest_method as configureInterestMethod, "
@@ -333,7 +332,6 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
             final boolean configureRepaymentFrequency = rs.getBoolean("configureRepaymentFrequency");
             final boolean configureMoratorium = rs.getBoolean("configureMoratorium");
             final boolean configureGraceOnArrearsAging = rs.getBoolean("configureGraceOnArrearsAging");
-            final boolean reverseOverdueDaysNPAInterest = rs.getBoolean("reverseOverdueDaysNpaInterest");
 
 
             LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
@@ -350,8 +348,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     closeDate, status, externalId, principalVariationsForBorrowerCycle, interestRateVariationsForBorrowerCycle,
                     numberOfRepaymentVariationsForBorrowerCycle, multiDisburseLoan, maxTrancheCount, outstandingLoanBalance,
                     graceOnArrearsAgeing, overdueDaysForNPA, daysInMonthType, daysInYearType, isInterestRecalculationEnabled, interestRecalculationData, 
-                    minimumDaysBetweenDisbursalAndFirstRepayment, holdGuaranteeFunds, loanProductGuaranteeData, this.creditChecks, loanProductConfigurableAttributes,
-                    reverseOverdueDaysNPAInterest);
+                    minimumDaysBetweenDisbursalAndFirstRepayment, holdGuaranteeFunds, loanProductGuaranteeData, this.creditChecks, loanProductConfigurableAttributes);
         }
 
     }
