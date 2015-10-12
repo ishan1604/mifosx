@@ -150,7 +150,7 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
             }
         }
 
-        List<JournalEntryData> entryDatas = jdbcTemplate.query(entryMapper.organizationRunningBalanceSchema(), entryMapper,
+        List<JournalEntryData> entryDatas = jdbcTemplate.query( entryMapper.organizationRunningBalanceSchema(), entryMapper,
                 new Object[] { entityDate });
         if (entryDatas.size() > 0) {
             String[] updateSql = new String[1000];
@@ -249,18 +249,20 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
 
     private static final class GLJournalEntryMapper implements RowMapper<JournalEntryData> {
 
+        private final String selectRunningBalanceSqlLimit = " limit 0, 10000";
+
         public String officeRunningBalanceSchema() {
             return "select je.id as id,je.account_id as glAccountId,je.type_enum as entryType,je.amount as amount, "
                     + "glAccount.classification_enum as classification,je.office_id as officeId "
                     + "from acc_gl_journal_entry je , acc_gl_account glAccount " + "where je.account_id = glAccount.id "
-                    + "and je.office_id=? and je.entry_date >= ? order by je.entry_date,je.id";
+                    + "and je.office_id=? and je.entry_date >= ? order by je.entry_date,je.id" + selectRunningBalanceSqlLimit;
         }
 
         public String organizationRunningBalanceSchema() {
             return "select je.id as id,je.account_id as glAccountId," + "je.type_enum as entryType,je.amount as amount, "
                     + "glAccount.classification_enum as classification,je.office_id as officeId  "
                     + "from acc_gl_journal_entry je , acc_gl_account glAccount " + "where je.account_id = glAccount.id "
-                    + "and je.entry_date >= ? order by je.entry_date,je.id";
+                    + "and je.entry_date >= ? order by je.entry_date,je.id" + selectRunningBalanceSqlLimit;
         }
 
         @Override
