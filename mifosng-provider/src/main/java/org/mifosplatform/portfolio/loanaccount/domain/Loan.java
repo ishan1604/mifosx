@@ -5,38 +5,9 @@
  */
 package org.mifosplatform.portfolio.loanaccount.domain;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Embedded;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.OrderBy;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.persistence.Transient;
-import javax.persistence.UniqueConstraint;
-import javax.persistence.Version;
-
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.annotations.LazyCollection;
@@ -109,9 +80,36 @@ import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
 import org.mifosplatform.useradministration.domain.AppUser;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Embedded;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.OrderBy;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+import javax.persistence.Transient;
+import javax.persistence.UniqueConstraint;
+import javax.persistence.Version;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 @Entity
 @Table(name = "m_loan", uniqueConstraints = { @UniqueConstraint(columnNames = { "account_no" }, name = "loan_account_no_UNIQUE"),
@@ -341,6 +339,9 @@ public class Loan extends AbstractPersistable<Long> {
 
     @Column(name = "is_npa", nullable = false)
     private boolean isNpa;
+
+    @Column(name = "is_suspended_income", nullable = false)
+    private boolean isSuspendedIncome;
 
     @Temporal(TemporalType.DATE)
     @Column(name = "accrued_till")
@@ -1072,6 +1073,7 @@ public class Loan extends AbstractPersistable<Long> {
             penaltyChargesWaived = chargeComponent;
             feeChargesWaived = Money.zero(loanCurrency());
         }
+
 
         LocalDate transactionDate = getDisbursementDate();
         if (loanCharge.isSpecifiedDueDate() || loanCharge.isPenaltyCharge()) {
@@ -2927,6 +2929,7 @@ public class Loan extends AbstractPersistable<Long> {
                 .getTransactionDate());
         boolean reprocess = true;
 
+
         if (isTransactionChronologicallyLatest && adjustedTransaction == null
                 && loanTransaction.getTransactionDate().isEqual(LocalDate.now()) && currentInstallment != null
                 && currentInstallment.getTotalOutstanding(getCurrency()).isEqualTo(loanTransaction.getAmount(getCurrency()))) {
@@ -2968,6 +2971,9 @@ public class Loan extends AbstractPersistable<Long> {
              */
             this.loanTransactions.addAll(changedTransactionDetail.getNewTransactionMappings().values());
         }
+
+
+
 
         updateLoanSummaryDerivedFields();
 
@@ -5019,6 +5025,8 @@ public class Loan extends AbstractPersistable<Long> {
         return this.isNpa;
     }
 
+    public boolean isSuspendedIncome() { return this.isSuspendedIncome;}
+
     /**
      * @return List of loan repayments schedule objects
      **/
@@ -5404,6 +5412,7 @@ public class Loan extends AbstractPersistable<Long> {
     public LoanProduct getLoanProduct() {
         return this.loanProduct;
     }
+
     
     /** 
      * get a {@link LoanRepaymentScheduleInstallment} object by due date
@@ -5413,18 +5422,22 @@ public class Loan extends AbstractPersistable<Long> {
      **/
     public LoanRepaymentScheduleInstallment getInstallmentDueOndate(final LocalDate dueDate) {
         LoanRepaymentScheduleInstallment installment = null;
-        
+
         if (dueDate != null) {
             for (LoanRepaymentScheduleInstallment scheduleInstallment : this.repaymentScheduleInstallments) {
                 LocalDate installmentDueDate = scheduleInstallment.getDueDate();
-                
+
                 if (installmentDueDate != null && installmentDueDate.isEqual(dueDate)) {
                     installment = scheduleInstallment;
                     break;
                 }
             }
         }
-        
+
         return installment;
+
+    }
+    public void updateSuspendIncome(boolean isSuspended){
+        this.isSuspendedIncome = isSuspended;
     }
 }
