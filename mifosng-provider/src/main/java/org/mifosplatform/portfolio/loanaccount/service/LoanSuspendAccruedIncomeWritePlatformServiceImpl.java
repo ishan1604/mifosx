@@ -10,15 +10,14 @@ import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
-import org.mifosplatform.organisation.monetary.domain.ApplicationCurrency;
 import org.mifosplatform.organisation.monetary.domain.ApplicationCurrencyRepositoryWrapper;
-import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargeData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanInstallmentChargeData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanScheduleSuspendedAccruedIncomeData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionEnumData;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallmentRepository;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanRepository;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionType;
 import org.mifosplatform.portfolio.loanproduct.service.LoanEnumerations;
 import org.slf4j.Logger;
@@ -55,13 +54,17 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
     private final JpaTransactionManager transactionManager;
     private final JournalEntryWritePlatformService journalEntryWritePlatformService;
     private final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository;
+    private final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository;
+    private final LoanRepository loanRepository;
+
 
 
 
     @Autowired
     public LoanSuspendAccruedIncomeWritePlatformServiceImpl(final LoanReadPlatformService loanReadPlatformService, final LoanChargeReadPlatformService loanChargeReadPlatformService,
             final RoutingDataSource dataSource,final JpaTransactionManager transactionManager,final JournalEntryWritePlatformService journalEntryWritePlatformService,
-            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository) {
+            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository,final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository,
+            final LoanRepository loanRepository) {
         this.loanReadPlatformService = loanReadPlatformService;
         this.loanChargeReadPlatformService = loanChargeReadPlatformService;
         this.dataSource = dataSource;
@@ -69,6 +72,8 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
         this.transactionManager = transactionManager;
         this.journalEntryWritePlatformService = journalEntryWritePlatformService;
         this.applicationCurrencyRepository = applicationCurrencyRepository;
+        this.repaymentScheduleInstallmentRepository = repaymentScheduleInstallmentRepository;
+        this.loanRepository = loanRepository;
 
     }
 
@@ -83,15 +88,35 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
         if(npaLoansToSuspendAccruedIncome != null && !npaLoansToSuspendAccruedIncome.isEmpty()){
             for (final LoanScheduleSuspendedAccruedIncomeData accrualData : npaLoansToSuspendAccruedIncome) {
                 try {
-                if (!loansIds.contains(accrualData.getLoanId())) {
-                    if (!loanChargeMap.containsKey(accrualData.getLoanId())) {
-                        Collection<LoanChargeData> chargeData = this.loanChargeReadPlatformService
-                                .retrieveLoanChargesForAccural(accrualData.getLoanId());
-                        loanChargeMap.put(accrualData.getLoanId(), chargeData);
+
+                    // There is more suspended income to be booked on this loan, therefore make those bookings:
+                    if(accrualData.getIsReverse() == false) {
+
+                        if (!loansIds.contains(accrualData.getLoanId())) {
+                            if (!loanChargeMap.containsKey(accrualData.getLoanId())) {
+                                Collection<LoanChargeData> chargeData = this.loanChargeReadPlatformService
+                                        .retrieveLoanChargesForAccural(accrualData.getLoanId());
+                                loanChargeMap.put(accrualData.getLoanId(), chargeData);
+                            }
+                            updateLoanChargeAmountAccrued(loanChargeMap.get(accrualData.getLoanId()), accrualData);
+                            addSuspendedIncomeAccounting(accrualData);
+                        }
                     }
-                    updateLoanChargeAmountAccrued(loanChargeMap.get(accrualData.getLoanId()),accrualData);
-                    addSuspendedIncomeAccounting(accrualData);
+
+                    // There has been interest/Fees suspended on this loan, that needs to be unsuspended:
+                    if(accrualData.getIsReverse() == true) {
+
+                        if (!loansIds.contains(accrualData.getLoanId())) {
+                            if (!loanChargeMap.containsKey(accrualData.getLoanId())) {
+                                Collection<LoanChargeData> chargeData = this.loanChargeReadPlatformService
+                                        .retrieveLoanChargesForAccural(accrualData.getLoanId());
+                                loanChargeMap.put(accrualData.getLoanId(), chargeData);
+                            }
+                            updateLoanChargeAmountAccrued(loanChargeMap.get(accrualData.getLoanId()), accrualData);
+                            reverseSuspendedIncomeAccounting(accrualData);
+                        }
                     }
+
 
                 } catch (Exception e) {
                     loansIds.add(accrualData.getLoanId());
@@ -115,17 +140,49 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
             String transactionSql = "INSERT INTO m_loan_transaction  (loan_id,office_id,is_reversed,transaction_type_enum,transaction_date,amount,suspended_interest_portion_derived,"
                     + "suspended_fee_charges_portion_derived,suspended_penalty_charges_portion_derived, submitted_on_date) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?)";
             this.jdbcTemplate.update(transactionSql, loanScheduleSuspendedAccruedIncomeData.getLoanId(), loanScheduleSuspendedAccruedIncomeData.getOfficeId(),
-                    LoanTransactionType.SUSPENDED_INCOME.getValue(), DateUtils.getLocalDateOfTenant().toDate(), amount, interestPortion, feePortion, penaltyPortion,
+                    LoanTransactionType.SUSPENDED_ACCRUED_INCOME.getValue(), DateUtils.getLocalDateOfTenant().toDate(), amount, interestPortion, feePortion, penaltyPortion,
                     DateUtils.getDateOfTenant());
             @SuppressWarnings("deprecation")
             final Long transactionId = this.jdbcTemplate.queryForLong("SELECT LAST_INSERT_ID()");
 
             Map<String, Object> transactionMap = toMapData(transactionId, amount, interestPortion, feePortion, penaltyPortion,
-                    loanScheduleSuspendedAccruedIncomeData, DateUtils.getLocalDateOfTenant(),LoanTransactionType.SUSPENDED_INCOME.getValue());
+                    loanScheduleSuspendedAccruedIncomeData, DateUtils.getLocalDateOfTenant(),LoanTransactionType.SUSPENDED_ACCRUED_INCOME.getValue());
 
             String repaymentUpdateSql = "UPDATE m_loan_repayment_schedule SET suspended_interest_derived=?, suspended_fee_charges_derived=?, "
                     + "suspended_penalty_charges_derived=? WHERE  id=?";
-            this.jdbcTemplate.update(repaymentUpdateSql, interestPortion, feePortion, penaltyPortion,
+            this.jdbcTemplate.update(repaymentUpdateSql, loanScheduleSuspendedAccruedIncomeData.getSuspendedInterest().add(interestPortion), loanScheduleSuspendedAccruedIncomeData.getSuspendedFee().add(feePortion), loanScheduleSuspendedAccruedIncomeData.getSuspendedPenalty().add(penaltyPortion),
+                    loanScheduleSuspendedAccruedIncomeData.getRepaymentScheduleId());
+            String updateLoan = "UPDATE m_loan  SET is_suspended_income=?  WHERE  id=?";
+            boolean isSuspendedIncome = true;
+            this.jdbcTemplate.update(updateLoan,isSuspendedIncome, loanScheduleSuspendedAccruedIncomeData.getLoanId());
+            final Map<String, Object> accountingBridgeData = deriveAccountingBridgeData(loanScheduleSuspendedAccruedIncomeData, transactionMap);
+            this.journalEntryWritePlatformService.createJournalEntriesForLoan(accountingBridgeData);
+
+        }catch(Exception e){
+            this.transactionManager.rollback(transactionStatus);
+            throw e;
+        }
+        this.transactionManager.commit(transactionStatus);
+    }
+
+    private void reverseSuspendedIncomeTransaction(LoanScheduleSuspendedAccruedIncomeData loanScheduleSuspendedAccruedIncomeData,BigDecimal amount,BigDecimal interestPortion,
+                                               BigDecimal feePortion, BigDecimal penaltyPortion){
+        TransactionStatus transactionStatus = this.transactionManager.getTransaction(new DefaultTransactionDefinition());
+        try{
+            String transactionSql = "INSERT INTO m_loan_transaction  (loan_id,office_id,is_reversed,transaction_type_enum,transaction_date,amount,suspended_interest_portion_derived,"
+                    + "suspended_fee_charges_portion_derived,suspended_penalty_charges_portion_derived, submitted_on_date) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?)";
+            this.jdbcTemplate.update(transactionSql, loanScheduleSuspendedAccruedIncomeData.getLoanId(), loanScheduleSuspendedAccruedIncomeData.getOfficeId(),
+                    LoanTransactionType.REVERSE_SUSPENDED_ACCRUED_INCOME.getValue(), DateUtils.getLocalDateOfTenant().toDate(), amount, interestPortion, feePortion, penaltyPortion,
+                    DateUtils.getDateOfTenant());
+            @SuppressWarnings("deprecation")
+            final Long transactionId = this.jdbcTemplate.queryForLong("SELECT LAST_INSERT_ID()");
+
+            Map<String, Object> transactionMap = toMapData(transactionId, amount, interestPortion, feePortion, penaltyPortion,
+                    loanScheduleSuspendedAccruedIncomeData, DateUtils.getLocalDateOfTenant(),LoanTransactionType.REVERSE_SUSPENDED_ACCRUED_INCOME.getValue());
+
+            String repaymentUpdateSql = "UPDATE m_loan_repayment_schedule SET suspended_interest_derived=?, suspended_fee_charges_derived=?, "
+                    + "suspended_penalty_charges_derived=? WHERE  id=?";
+            this.jdbcTemplate.update(repaymentUpdateSql, loanScheduleSuspendedAccruedIncomeData.getSuspendedInterest().subtract(interestPortion), loanScheduleSuspendedAccruedIncomeData.getSuspendedFee().subtract(feePortion), loanScheduleSuspendedAccruedIncomeData.getSuspendedPenalty().subtract(penaltyPortion),
                     loanScheduleSuspendedAccruedIncomeData.getRepaymentScheduleId());
             String updateLoan = "UPDATE m_loan  SET is_suspended_income=?  WHERE  id=?";
             boolean isSuspendedIncome = true;
@@ -142,59 +199,29 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
 
     @Transactional
     private void addSuspendedIncomeAccounting(LoanScheduleSuspendedAccruedIncomeData scheduleAccrualData) throws Exception{
-        BigDecimal amount = BigDecimal.ZERO;
-        BigDecimal interestPortion = null;
-        BigDecimal feePortion = null;
-        BigDecimal penaltyPortion = null;
 
-        interestPortion = scheduleAccrualData.getAccruedInterestIncome();
+        BigDecimal interestPortion = scheduleAccrualData.getInterestToSuspend();
+        BigDecimal feePortion = scheduleAccrualData.getFeesToSuspend() ;
+        BigDecimal penaltyPortion = scheduleAccrualData.getPenaltyToSuspend();
 
-        if(scheduleAccrualData.getWaivedInterestIncome() !=null){
-            interestPortion = interestPortion.subtract(scheduleAccrualData.getWaivedInterestIncome());
-        }
-        if(scheduleAccrualData.getInterestCompletedDerived() != null){
-            interestPortion = interestPortion.subtract(scheduleAccrualData.getInterestCompletedDerived());
-        }
-        amount = amount.add(interestPortion);
-
-        if (interestPortion.compareTo(BigDecimal.ZERO) == 0) {
-            interestPortion = null;
-        }
-
-
-        feePortion = scheduleAccrualData.getFeeIncome();
-        if(feePortion !=null){
-            if(scheduleAccrualData.getFeeChargesWaivedDerived() != null){
-                feePortion = feePortion.subtract(scheduleAccrualData.getFeeChargesWaivedDerived());
-            }
-            if(scheduleAccrualData.getFeeChargesCompletedDerived() != null){
-                feePortion = feePortion.subtract(scheduleAccrualData.getFeeChargesCompletedDerived());
-            }
-            amount = amount.add(feePortion);
-
-            if (feePortion.compareTo(BigDecimal.ZERO) == 0) {
-                feePortion = null;
-            }
-        }
-
-
-        penaltyPortion = scheduleAccrualData.getPenaltyIncome();
-
-        if(penaltyPortion !=null){
-            if(scheduleAccrualData.getPenaltyChargesWaivedDerived() !=null){
-                penaltyPortion = penaltyPortion.subtract(scheduleAccrualData.getPenaltyChargesWaivedDerived());
-            }
-            if(scheduleAccrualData.getPenaltyChargesCompletedDerived() !=null){
-                penaltyPortion = penaltyPortion.subtract(scheduleAccrualData.getPenaltyChargesCompletedDerived());
-            }
-            amount = amount.add(penaltyPortion);
-            if (penaltyPortion.compareTo(BigDecimal.ZERO) == 0) {
-               penaltyPortion = null;
-            }
-        }
+        BigDecimal amount = interestPortion.add(feePortion).add(penaltyPortion);
 
         if (amount.compareTo(BigDecimal.ZERO) == 1) {
-            addSuspendedIncomeTransaction(scheduleAccrualData,amount,interestPortion,feePortion,penaltyPortion);
+            addSuspendedIncomeTransaction(scheduleAccrualData, amount, interestPortion, feePortion, penaltyPortion);
+        }
+
+    }
+
+    @Transactional
+    private void reverseSuspendedIncomeAccounting(LoanScheduleSuspendedAccruedIncomeData scheduleAccrualData) throws Exception{
+
+        BigDecimal interestPortion = scheduleAccrualData.getInterestToSuspend().abs();
+        BigDecimal feePortion = scheduleAccrualData.getFeesToSuspend().abs();
+        BigDecimal penaltyPortion = scheduleAccrualData.getPenaltyToSuspend().abs();
+        BigDecimal amount = interestPortion.add(feePortion).add(penaltyPortion);
+
+        if (amount.compareTo(BigDecimal.ZERO) == 1) {
+            reverseSuspendedIncomeTransaction(scheduleAccrualData, amount, interestPortion, feePortion, penaltyPortion);
         }
 
     }
@@ -340,198 +367,90 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
 
 
 
-    /**
-     * When loan is NPA all (interest + fees + penalties) accrued are suspended in suspendedIncome
-     * This function books the opposite of suspended income i.e.(interest + fees + penalties) when
-     * loan is out of NPA
-     */
-    @Transactional
-    private void reverseSuspendedIncomeOutOfNPA(LoanScheduleSuspendedAccruedIncomeData loanScheduleSuspendedAccruedIncomeData,BigDecimal amount,BigDecimal interestPortion,
-                                                BigDecimal feePortion, BigDecimal penaltyPortion){
-        TransactionStatus transactionStatus = this.transactionManager.getTransaction(new DefaultTransactionDefinition());
-        try{
-            String transactionSql = "INSERT INTO m_loan_transaction  (loan_id,office_id,is_reversed,transaction_type_enum,transaction_date,amount,suspended_interest_portion_derived,"
-                    + "suspended_fee_charges_portion_derived,suspended_penalty_charges_portion_derived, submitted_on_date) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?)";
-            this.jdbcTemplate.update(transactionSql, loanScheduleSuspendedAccruedIncomeData.getLoanId(), loanScheduleSuspendedAccruedIncomeData.getOfficeId(),
-                    LoanTransactionType.REVERSE_SUSPENDED_INCOME.getValue(), DateUtils.getLocalDateOfTenant().toDate(), amount, interestPortion, feePortion, penaltyPortion,
-                    DateUtils.getDateOfTenant());
-            @SuppressWarnings("deprecation")
-            final Long transactionId = this.jdbcTemplate.queryForLong("SELECT LAST_INSERT_ID()");
-
-            Map<String, Object> transactionMap = toMapDatas(transactionId, amount, interestPortion, feePortion, penaltyPortion,
-                    loanScheduleSuspendedAccruedIncomeData, DateUtils.getLocalDateOfTenant(), LoanTransactionType.REVERSE_SUSPENDED_INCOME.getValue());
-
-            /**
-             * don't book remaining cos this figure will be in the interest completed column
-             */
-        /**
-            String repaymentUpdateSql = "UPDATE m_loan_repayment_schedule SET suspended_interest_derived=?, suspended_fee_charges_derived=?, "
-                    + "suspended_penalty_charges_derived=? WHERE  id=?";
-            BigDecimal remainingSuspendedFeePortion = null;
-            if(loanScheduleSuspendedAccruedIncomeData.getSuspendedFee() !=null){
-                remainingSuspendedFeePortion = loanScheduleSuspendedAccruedIncomeData.getSuspendedFee().subtract(feePortion);
-                if(remainingSuspendedFeePortion.signum() == -1 || remainingSuspendedFeePortion.signum() == 0){remainingSuspendedFeePortion = null;}
-            }
-            BigDecimal remainingSuspendedInterestPortion = null;
-            if(loanScheduleSuspendedAccruedIncomeData.getSuspendedInterest() !=null){
-                remainingSuspendedInterestPortion = loanScheduleSuspendedAccruedIncomeData.getSuspendedInterest().subtract(interestPortion);
-                if(remainingSuspendedInterestPortion.signum() == -1 || remainingSuspendedInterestPortion.signum() == 0){ remainingSuspendedInterestPortion = null;}
-            }
-            BigDecimal remainingSuspendedPenaltyPortion = null;
-            if(loanScheduleSuspendedAccruedIncomeData.getSuspendedPenalty()  !=null){
-                remainingSuspendedPenaltyPortion = loanScheduleSuspendedAccruedIncomeData.getSuspendedPenalty().subtract(penaltyPortion);
-                if(remainingSuspendedPenaltyPortion.signum() == -1 || remainingSuspendedPenaltyPortion.signum() == 0){remainingSuspendedPenaltyPortion = null;}
-            }
-
-            this.jdbcTemplate.update(repaymentUpdateSql, remainingSuspendedInterestPortion,remainingSuspendedFeePortion, remainingSuspendedPenaltyPortion,
-                    loanScheduleSuspendedAccruedIncomeData.getRepaymentScheduleId());
-        **/
-            String updateLoan = "UPDATE m_loan  SET is_suspended_income=?  WHERE  id=?";
-            boolean isSuspendedIncome = false;
-            this.jdbcTemplate.update(updateLoan, isSuspendedIncome, loanScheduleSuspendedAccruedIncomeData.getLoanId());
-            final Map<String, Object> accountingBridgeData = deriveAccountingBridgeData(loanScheduleSuspendedAccruedIncomeData, transactionMap);
-            this.journalEntryWritePlatformService.createJournalEntriesForLoan(accountingBridgeData);
-
-        }catch(Exception e){
-            this.transactionManager.rollback(transactionStatus);
-            throw e;
-        }
-        this.transactionManager.commit(transactionStatus);
-    }
-
-    private void addSuspendIncomeOutOfNPAAccounting(LoanScheduleSuspendedAccruedIncomeData scheduleAccrualData) throws Exception {
-        BigDecimal amount = BigDecimal.ZERO;
-        BigDecimal interestPortion = null;
-        BigDecimal feePortion = null;
-        BigDecimal penaltyPortion = null;
-
-        interestPortion = scheduleAccrualData.getSuspendedInterest();
-
-        if(scheduleAccrualData.getWaivedInterestIncome() !=null){
-            interestPortion = interestPortion.subtract(scheduleAccrualData.getWaivedInterestIncome());
-        }
-        if(scheduleAccrualData.getInterestCompletedDerived() != null){
-            interestPortion = interestPortion.subtract(scheduleAccrualData.getInterestCompletedDerived());
-        }
-        amount = amount.add(interestPortion);
-
-        if (interestPortion.compareTo(BigDecimal.ZERO) == 0) {
-            interestPortion = null;
-        }
-
-
-        feePortion = scheduleAccrualData.getSuspendedFee();
-        if(feePortion !=null){
-            if(scheduleAccrualData.getFeeChargesWaivedDerived() != null){
-                feePortion = feePortion.subtract(scheduleAccrualData.getFeeChargesWaivedDerived());
-            }
-            if(scheduleAccrualData.getFeeChargesCompletedDerived() != null){
-                feePortion = feePortion.subtract(scheduleAccrualData.getFeeChargesCompletedDerived());
-            }
-            amount = amount.add(feePortion);
-
-            if (feePortion.compareTo(BigDecimal.ZERO) == 0) {
-                feePortion = null;
-            }
-        }
-
-
-        penaltyPortion = scheduleAccrualData.getSuspendedPenalty();
-
-        if(penaltyPortion !=null){
-            if(scheduleAccrualData.getPenaltyChargesWaivedDerived() !=null){
-                penaltyPortion = penaltyPortion.subtract(scheduleAccrualData.getPenaltyChargesWaivedDerived());
-            }
-            if(scheduleAccrualData.getPenaltyChargesCompletedDerived() !=null){
-                penaltyPortion = penaltyPortion.subtract(scheduleAccrualData.getPenaltyChargesCompletedDerived());
-            }
-            amount = amount.add(penaltyPortion);
-            if (penaltyPortion.compareTo(BigDecimal.ZERO) == 0) {
-                penaltyPortion = null;
-            }
-        }
-
-        if (amount.compareTo(BigDecimal.ZERO) == 1) {
-            reverseSuspendedIncomeOutOfNPA(scheduleAccrualData, amount,interestPortion,feePortion,penaltyPortion);
-        }
-
-    }
-
     @Override
     public void suspendedIncomeOutOfNPA(Loan loan) {
-        if(!this.loanReadPlatformService.doesLoanHaveSuspendedIncomeAndIsNpa(loan.getId())){
-            if (loan.isSuspendedIncome()){
-                Collection<LoanScheduleSuspendedAccruedIncomeData> npaLoansSuspendedIncomeOutOfNPA  = this.loanReadPlatformService.retrieveLoanScheduleForSuspendLoanOutOfNPA(loan.getId());
-                StringBuilder sb = new StringBuilder();
-                Map<Long, Collection<LoanChargeData>> loanChargeMap = new HashMap<>();
-                Set<Long> loansIds = new HashSet<>();
 
-                if(npaLoansSuspendedIncomeOutOfNPA !=null  && !npaLoansSuspendedIncomeOutOfNPA.isEmpty()) {
-                    for (final LoanScheduleSuspendedAccruedIncomeData accrualData : npaLoansSuspendedIncomeOutOfNPA) {
-                        try {
-                            if (!loansIds.contains(accrualData.getLoanId())) {
-                                if (!loanChargeMap.containsKey(accrualData.getLoanId())) {
-                                    Collection<LoanChargeData> chargeData = this.loanChargeReadPlatformService
-                                            .retrieveLoanChargesForAccural(accrualData.getLoanId());
-                                    loanChargeMap.put(accrualData.getLoanId(), chargeData);
-                                }
-                                updateLoanChargeAmountAccrued(loanChargeMap.get(accrualData.getLoanId()), accrualData);
-                                addSuspendIncomeOutOfNPAAccounting(accrualData);
+        this.updateNPAStatus(loan.getId());
+
+        Collection<LoanScheduleSuspendedAccruedIncomeData> npaLoansToSuspendAccruedIncome = this.loanReadPlatformService.retrieveLoanScheduleForNPASuspendedIncome(loan.getId());
+        StringBuilder sb = new StringBuilder();
+        Set<Long> loansIds = new HashSet<>();
+        Map<Long, Collection<LoanChargeData>> loanChargeMap = new HashMap<>();
+        if(npaLoansToSuspendAccruedIncome != null && !npaLoansToSuspendAccruedIncome.isEmpty()){
+            for (final LoanScheduleSuspendedAccruedIncomeData accrualData : npaLoansToSuspendAccruedIncome) {
+                try {
+
+                    // There is more suspended income to be booked on this loan, therefore make those bookings:
+                    if(!accrualData.getIsReverse()) {
+
+                        if (!loansIds.contains(accrualData.getLoanId())) {
+                            if (!loanChargeMap.containsKey(accrualData.getLoanId())) {
+                                Collection<LoanChargeData> chargeData = this.loanChargeReadPlatformService
+                                        .retrieveLoanChargesForAccural(accrualData.getLoanId());
+                                loanChargeMap.put(accrualData.getLoanId(), chargeData);
                             }
-                        } catch (Exception e) {
-                            loansIds.add(accrualData.getLoanId());
-                            Throwable realCause = e;
-                            if (e.getCause() != null) {
-                                realCause = e.getCause();
-                            }
-                            sb.append("failed to add suspended transaction for repayment with id " + accrualData.getRepaymentScheduleId()
-                                    + " with message " + realCause.getMessage());
-                        }
-
-                    }
-                }  /** end of this function  **/
-            }
-        }
-    }
-
-    @Override
-    public void reverseSuspendedIncomeWhenRepaymentIsReversed(final Loan loan,final Long transactionId) {
-        if(this.loanReadPlatformService.isLoanBackToNPA(loan.getId())){
-            /**
-             * find the first transaction of type 20 and reverse it. using the repayment transaction id which was reversed.
-             */
-
-            final List<LoanTransaction> transactions = loan.getLoanTransactions();
-
-            List<LoanTransaction> allTransactionsAfterTransactionId = new ArrayList<>();
-            for(LoanTransaction transaction : transactions){
-                if(transactionId < transaction.getId() && transaction.getTypeOf().isReverseSuspendedIncome() && transaction.isNotReversed()){
-                    allTransactionsAfterTransactionId.add(transaction);
-                }
-            }
-            if(!allTransactionsAfterTransactionId.isEmpty()){
-                for(LoanTransaction transaction : transactions){
-                    if(transaction.getId().longValue() == transactionId){
-                        if(transaction.getTypeOf().isRepayment() && transaction.isReversed()){
-                            final Collection<Long> existingTransactionsIds = loan.findExistingTransactionIds();
-                            final Collection<Long> existingReversedTransactionIds = loan.findExistingReversedTransactionIds();
-                            allTransactionsAfterTransactionId.get(0).reverse();
-                            this.postJournalEntries(loan,(List)existingTransactionsIds,(List)existingReversedTransactionIds);
-                            loan.updateSuspendIncome(true);
-                            break;
+                            updateLoanChargeAmountAccrued(loanChargeMap.get(accrualData.getLoanId()), accrualData);
+                            addSuspendedIncomeAccounting(accrualData);
                         }
                     }
+
+                    // There has been interest/Fees suspended on this loan, that needs to be unsuspended:
+                    if(accrualData.getIsReverse()) {
+
+                        if (!loansIds.contains(accrualData.getLoanId())) {
+                            if (!loanChargeMap.containsKey(accrualData.getLoanId())) {
+                                Collection<LoanChargeData> chargeData = this.loanChargeReadPlatformService
+                                        .retrieveLoanChargesForAccural(accrualData.getLoanId());
+                                loanChargeMap.put(accrualData.getLoanId(), chargeData);
+                            }
+                            updateLoanChargeAmountAccrued(loanChargeMap.get(accrualData.getLoanId()), accrualData);
+                            reverseSuspendedIncomeAccounting(accrualData);
+                        }
+                    }
+
+
+                } catch (Exception e) {
+                    loansIds.add(accrualData.getLoanId());
+                    Throwable realCause = e;
+                    if (e.getCause() != null) {
+                        realCause = e.getCause();
+                    }
+                    sb.append("failed to add accural transaction for repayment with id " + accrualData.getRepaymentScheduleId()
+                            + " with message " + realCause.getMessage());
                 }
             }
+
         }
+
+        // Update NPA status again:
+        this.resetNPAStatus(loan.getId());
+        this.updateNPAStatus(loan.getId());
     }
 
-    private void postJournalEntries(final Loan loan, final List<Long> existingTransactionIds, final List<Long> existingReversedTransactionIds) {
-        final MonetaryCurrency currency = loan.getCurrency();
-        final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepository.findOneWithNotFoundDetection(currency);
-        boolean isAccountTransfer = false;
-        final Map<String, Object> accountingBridgeData = loan.deriveAccountingBridgeData(applicationCurrency.toData(),
-                existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
-        this.journalEntryWritePlatformService.createJournalEntriesForLoan(accountingBridgeData);
+    public void updateNPAStatus(Long loanId) {
+        final StringBuilder updateSqlBuilder = new StringBuilder(900);
+
+        updateSqlBuilder.append("UPDATE m_loan as ml,");
+        updateSqlBuilder.append(" (select loan.id from m_loan_repayment_schedule mr ");
+        updateSqlBuilder
+                .append(" INNER JOIN  m_loan loan on mr.loan_id = loan.id INNER JOIN m_product_loan mpl on mpl.id = loan.product_id AND mpl.overdue_days_for_npa is not null ");
+        updateSqlBuilder.append("WHERE loan.loan_status_id = 300 and mr.completed_derived is false ");
+        updateSqlBuilder
+                .append(" and mr.duedate < SUBDATE(CURDATE(),INTERVAL  ifnull(mpl.overdue_days_for_npa,0) day) group by loan.id)  as sl ");
+        updateSqlBuilder.append("SET ml.is_npa=1 where ml.id=sl.id and ml.id = ?");
+
+        final int result = jdbcTemplate.update(updateSqlBuilder.toString(), loanId);
     }
+
+    public void resetNPAStatus(Long loanId)
+    {
+        final StringBuilder updateSqlBuilder = new StringBuilder(900);
+
+        updateSqlBuilder.append("UPDATE m_loan ml SET ml.is_npa=0");
+        updateSqlBuilder.append(" and ml.id = ?");
+
+        final int result = jdbcTemplate.update(updateSqlBuilder.toString(), loanId);
+    }
+
+
 }

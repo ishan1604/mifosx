@@ -250,7 +250,8 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
                 && loanTransaction.getInterestPortion(currency).isEqualTo(newLoanTransaction.getInterestPortion(currency))
                 && loanTransaction.getFeeChargesPortion(currency).isEqualTo(newLoanTransaction.getFeeChargesPortion(currency))
                 && loanTransaction.getPenaltyChargesPortion(currency).isEqualTo(newLoanTransaction.getPenaltyChargesPortion(currency))
-                && loanTransaction.getOverPaymentPortion(currency).isEqualTo(newLoanTransaction.getOverPaymentPortion(currency))) { return true; }
+                && loanTransaction.getOverPaymentPortion(currency).isEqualTo(newLoanTransaction.getOverPaymentPortion(currency))
+        ) { return true; }
         return false;
     }
 
@@ -330,9 +331,6 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
         this.penaltyChargesPortion = null;
         this.overPaymentPortion = null;
         this.outstandingLoanBalance = null;
-        this.suspendedFeePortion = null;
-        this.suspendedInterestPortion = null;
-        this.suspendedPenaltyPortion = null;
     }
 
     public void updateLoan(final Loan loan) {
@@ -573,9 +571,6 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
         thisTransactionData.put("feeChargesPortion", this.feeChargesPortion);
         thisTransactionData.put("penaltyChargesPortion", this.penaltyChargesPortion);
         thisTransactionData.put("overPaymentPortion", this.overPaymentPortion);
-        thisTransactionData.put("suspendedInterestPortion",this.suspendedInterestPortion);
-        thisTransactionData.put("suspendedFeePortion",this.suspendedFeePortion);
-        thisTransactionData.put("suspendedPenaltyPortion",this.suspendedPenaltyPortion);
 
         if (this.paymentDetail != null) {
             thisTransactionData.put("paymentTypeId", this.paymentDetail.getPaymentType().getId());
@@ -626,9 +621,9 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
         return LoanTransactionType.ACCRUAL.equals(getTypeOf()) && isNotReversed();
     }
 
-    public boolean isSuspendIncome() { return LoanTransactionType.SUSPENDED_INCOME.equals(getTypeOf()) && isNotReversed();}
+    public boolean isSuspendIncome() { return LoanTransactionType.SUSPENDED_ACCRUED_INCOME.equals(getTypeOf()) && isNotReversed();}
 
-    public boolean isReverseSuspendedIncome () { return LoanTransactionType.REVERSE_SUSPENDED_INCOME.equals(getTypeOf()) && isNotReversed();}
+    public boolean isReverseSuspendedIncome () { return LoanTransactionType.REVERSE_SUSPENDED_ACCRUED_INCOME.equals(getTypeOf()) && isNotReversed();}
 
     public void updateOutstandingLoanBalance(BigDecimal outstandingLoanBalance) {
         this.outstandingLoanBalance = outstandingLoanBalance;
@@ -684,32 +679,6 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
     
     public PaymentDetail getPaymentDetail() {
         return this.paymentDetail;
-    }
-
-    public Money getSuspendedPenaltyPortion(MonetaryCurrency currency) {
-        return Money.of(currency, this.suspendedPenaltyPortion);
-    }
-
-
-    public Money getSuspendedFeePortion(MonetaryCurrency currency) {
-        return Money.of(currency, this.suspendedFeePortion);
-    }
-
-
-    public Money getSuspendedInterestPortion(MonetaryCurrency currency) {
-        return Money.of(currency, this.suspendedInterestPortion);
-    }
-
-    public void updateSuspendInterestComponents(final MonetaryCurrency currency,final Money interest){
-        this.suspendedInterestPortion = defaultToNullIfZero(getSuspendedInterestPortion(currency).plus(interest).getAmount());
-    }
-
-    public void updateSuspendedFeeComponents(final MonetaryCurrency currency,final Money feeCharges){
-        this.suspendedFeePortion    =  defaultToNullIfZero(getSuspendedFeePortion(currency).plus(feeCharges).getAmount());
-    }
-
-    public void updateSuspendedPenaltyComponents(final MonetaryCurrency currency,final Money penaltyCharges){
-        this.suspendedPenaltyPortion = defaultToNullIfZero(getSuspendedPenaltyPortion(currency).plus(penaltyCharges).getAmount());
     }
 
 

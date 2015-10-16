@@ -1074,6 +1074,7 @@ public class Loan extends AbstractPersistable<Long> {
             feeChargesWaived = Money.zero(loanCurrency());
         }
 
+
         LocalDate transactionDate = getDisbursementDate();
         if (loanCharge.isSpecifiedDueDate() || loanCharge.isPenaltyCharge()) {
             transactionDate = loanCharge.getDueLocalDate();
@@ -2927,6 +2928,7 @@ public class Loan extends AbstractPersistable<Long> {
         final LoanRepaymentScheduleInstallment currentInstallment = fetchLoanRepaymentScheduleInstallment(loanTransaction
                 .getTransactionDate());
         boolean reprocess = true;
+
 
         if (isTransactionChronologicallyLatest && adjustedTransaction == null
                 && loanTransaction.getTransactionDate().isEqual(LocalDate.now()) && currentInstallment != null

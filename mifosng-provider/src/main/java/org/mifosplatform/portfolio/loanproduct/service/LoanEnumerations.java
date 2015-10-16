@@ -340,13 +340,13 @@ public class LoanEnumerations {
                 optionData = new LoanTransactionEnumData(LoanTransactionType.ACCRUAL.getValue().longValue(),
                         LoanTransactionType.ACCRUAL.getCode(), "Accrual");
             break;
-            case SUSPENDED_INCOME:
-                optionData = new LoanTransactionEnumData(LoanTransactionType.SUSPENDED_INCOME.getValue().longValue(),
-                        LoanTransactionType.SUSPENDED_INCOME.getCode(),"Suspended Income");
+            case SUSPENDED_ACCRUED_INCOME:
+                optionData = new LoanTransactionEnumData(LoanTransactionType.SUSPENDED_ACCRUED_INCOME.getValue().longValue(),
+                        LoanTransactionType.SUSPENDED_ACCRUED_INCOME.getCode(),"Suspended Accrued Income");
             break;
-            case REVERSE_SUSPENDED_INCOME:
-                optionData = new LoanTransactionEnumData(LoanTransactionType.REVERSE_SUSPENDED_INCOME.getValue().longValue(),
-                        LoanTransactionType.REVERSE_SUSPENDED_INCOME.getCode(),"Reverse Suspended Income");
+            case REVERSE_SUSPENDED_ACCRUED_INCOME:
+                optionData = new LoanTransactionEnumData(LoanTransactionType.REVERSE_SUSPENDED_ACCRUED_INCOME.getValue().longValue(),
+                        LoanTransactionType.REVERSE_SUSPENDED_ACCRUED_INCOME.getCode(),"Reverse Suspended Income");
             break;
             case APPROVE_TRANSFER:
                 optionData = new LoanTransactionEnumData(LoanTransactionType.APPROVE_TRANSFER.getValue().longValue(),

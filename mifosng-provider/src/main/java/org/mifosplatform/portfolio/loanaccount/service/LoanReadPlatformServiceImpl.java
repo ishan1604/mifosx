@@ -1589,7 +1589,10 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     .append("ls.suspended_interest_derived as suspended_interest_derived,ls.suspended_fee_charges_derived as suspended_fee_charges_derived, ls.suspended_penalty_charges_derived as suspended_penalty_charges_derived, ")
                     .append("ls.accrual_interest_derived as accinterest,ls.accrual_fee_charges_derived as accfeecharege,ls.accrual_penalty_charges_derived as accpenalty,")
                     .append(" loan.currency_code as currencyCode,loan.currency_digits as currencyDigits,loan.currency_multiplesof as inMultiplesOf,")
-                    .append("curr.display_symbol as currencyDisplaySymbol,curr.name as currencyName,curr.internationalized_name_code as currencyNameCode")
+                    .append("curr.display_symbol as currencyDisplaySymbol,curr.name as currencyName,curr.internationalized_name_code as currencyNameCode,")
+                    .append(" IFNULL(ls.interest_amount,0) - IFNULL(ls.interest_completed_derived,0) - IFNULL(ls.interest_waived_derived,0) - IFNULL(ls.interest_writtenoff_derived,0) - IFNULL(ls.suspended_interest_derived,0) as interestToSuspend,")
+                    .append(" IFNULL(ls.`fee_charges_amount`,0) - IFNULL(ls.fee_charges_completed_derived,0) - IFNULL(ls.fee_charges_waived_derived,0) - IFNULL(ls.fee_charges_writtenoff_derived,0) - IFNULL(ls.suspended_fee_charges_derived,0) as feesToSuspend,")
+                    .append(" IFNULL(ls.`penalty_charges_amount`,0) - IFNULL(ls.penalty_charges_completed_derived,0) - IFNULL(ls.penalty_charges_waived_derived,0) - IFNULL(ls.penalty_charges_writtenoff_derived,0) - IFNULL(ls.suspended_penalty_charges_derived,0) as penaltyToSuspend")
                     .append(" from m_loan_repayment_schedule ls ").append(" left join m_loan loan on loan.id=ls.loan_id ")
                     .append(" left join m_product_loan mpl on mpl.id = loan.product_id")
                     .append(" left join m_client mc on mc.id = loan.client_id ").append(" left join m_group mg on mg.id = loan.group_id")
@@ -1627,22 +1630,31 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
             final Integer repayEvery = null;
             final LocalDate interestCalculatedFrom = null;
 
-            final BigDecimal suspendedInterest = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "suspended_interest_derived");
-            final BigDecimal suspendedPenalty =JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "suspended_penalty_charges_derived");
-            final BigDecimal suspendedFees = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "suspended_fee_charges_derived");
+            final BigDecimal suspendedInterest =  JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "suspended_interest_derived");
+            final BigDecimal suspendedPenalty = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "suspended_penalty_charges_derived");
+            final BigDecimal suspendedFees =  JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "suspended_fee_charges_derived");
 
 
-            final BigDecimal interestCompleteDerived = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "interest_completed_derived");
-            final BigDecimal interestWaivedDerived = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "interest_waived_derived");
-            final BigDecimal feeChargesCompleteDerived = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "fee_charges_completed_derived");
-            final BigDecimal feeChargesWaivedDerived = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "fee_charges_waived_derived");
-            final BigDecimal penaltyChargesCompleteDerived = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "penalty_charges_completed_derived");
-            final BigDecimal penaltyWaivedCompleteDerived = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "penalty_charges_waived_derived");
+            final BigDecimal interestCompleteDerived =  JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "interest_completed_derived");
+            final BigDecimal interestWaivedDerived =  JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "interest_waived_derived");
+            final BigDecimal feeChargesCompleteDerived =  JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "fee_charges_completed_derived");
+            final BigDecimal feeChargesWaivedDerived =  JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "fee_charges_waived_derived");
+            final BigDecimal penaltyChargesCompleteDerived = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "penalty_charges_completed_derived");
+            final BigDecimal penaltyWaivedCompleteDerived =  JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "penalty_charges_waived_derived");
+
+            final BigDecimal interestToSuspend =  JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "interestToSuspend");
+            final BigDecimal penaltyToSuspend =  JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "penaltyToSuspend");
+            final BigDecimal feesToSuspend =  JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "feesToSuspend");
+
+
+
+
 
             return new LoanScheduleSuspendedAccruedIncomeData(loanId,officeId,accruedTill,frequency,repayEvery,installmentNumber,dueDate,fromdate,
                     repaymentScheduleId,loanProductId,interestIncome,feeIncome,penaltyIncome,interestIncomeWaived,accruedInterestIncome,accruedFeeIncome,
                     accruedPenaltyIncome,currencyData,interestCalculatedFrom,suspendedInterest,suspendedFees,suspendedPenalty,interestCompleteDerived,
-                    interestWaivedDerived,feeChargesCompleteDerived,feeChargesWaivedDerived,penaltyChargesCompleteDerived,penaltyWaivedCompleteDerived);
+                    interestWaivedDerived,feeChargesCompleteDerived,feeChargesWaivedDerived,penaltyChargesCompleteDerived,penaltyWaivedCompleteDerived,
+                    interestToSuspend,feesToSuspend,penaltyToSuspend);
 
         }
     }
@@ -1968,14 +1980,15 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                 .append(" where ((ls.fee_charges_amount = if(ls.accrual_fee_charges_derived is null,0, ls.accrual_fee_charges_derived))")
                 .append(" or ( ls.penalty_charges_amount = if(ls.accrual_penalty_charges_derived is null,0,ls.accrual_penalty_charges_derived))")
                 .append(" or ( ls.interest_amount = if(ls.accrual_interest_derived is null,0,ls.accrual_interest_derived)))")
-                .append(" and ((ls.suspended_interest_derived is null) and (ls.suspended_fee_charges_derived is null) and (ls.suspended_penalty_charges_derived is null))")
-                .append("  and ls.completed_derived is false and loan.loan_status_id=? and mpl.accounting_type=? and loan.is_npa=1 and mpl.reverse_overduedays_npa_interest=1 and ls.duedate <= CURDATE() order by loan.id,ls.duedate");
+                .append(" and ((IFNULL(ls.suspended_interest_derived,0) <> (IFNULL(ls.interest_amount,0) - IFNULL(ls.interest_completed_derived,0) - IFNULL(ls.interest_waived_derived,0) - IFNULL(ls.interest_writtenoff_derived,0)))")
+                .append(" OR (IFNULL(ls.suspended_fee_charges_derived,0) <> (IFNULL(ls.`fee_charges_amount`,0) - IFNULL(ls.fee_charges_completed_derived,0) - IFNULL(ls.fee_charges_waived_derived,0) - IFNULL(ls.fee_charges_writtenoff_derived,0)))")
+                .append(" OR (IFNULL(ls.suspended_penalty_charges_derived,0) <> (IFNULL(ls.`penalty_charges_amount`,0) - IFNULL(ls.penalty_charges_completed_derived,0) - IFNULL(ls.penalty_charges_waived_derived,0) - IFNULL(ls.penalty_charges_writtenoff_derived,0))))")
+                .append(" and loan.loan_status_id=? and mpl.accounting_type=? and loan.is_npa=1 and mpl.reverse_overduedays_npa_interest=1 and ls.duedate <= CURDATE() order by loan.id,ls.duedate");
         return this.jdbcTemplate.query(sqlBuilder.toString(), mapper, new Object[] { LoanStatus.ACTIVE.getValue(),
                 AccountingRuleType.ACCRUAL_PERIODIC.getValue() });
     }
 
-    @Override
-    public Collection<LoanScheduleSuspendedAccruedIncomeData> retrieveLoanScheduleForSuspendedIncomeOutOfNPA() {
+    public Collection<LoanScheduleSuspendedAccruedIncomeData> retrieveLoanScheduleForNPASuspendedIncome(Long loanId) {
         LoanScheduleSuspendIncomeMapper mapper = new LoanScheduleSuspendIncomeMapper();
         final StringBuilder sqlBuilder = new StringBuilder(400);
         sqlBuilder
@@ -1984,10 +1997,12 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                 .append(" where ((ls.fee_charges_amount = if(ls.accrual_fee_charges_derived is null,0, ls.accrual_fee_charges_derived))")
                 .append(" or ( ls.penalty_charges_amount = if(ls.accrual_penalty_charges_derived is null,0,ls.accrual_penalty_charges_derived))")
                 .append(" or ( ls.interest_amount = if(ls.accrual_interest_derived is null,0,ls.accrual_interest_derived)))")
-                .append(" and ((ls.suspended_interest_derived is not null) or (ls.suspended_fee_charges_derived is not null) or (ls.suspended_penalty_charges_derived is not null))")
-                .append("  and ls.completed_derived is false and loan.loan_status_id=? and mpl.accounting_type=? and loan.is_npa=1 and loan.is_suspended_income = 1 and ls.duedate <= CURDATE() order by loan.id,ls.duedate");
+                .append(" and ((IFNULL(ls.suspended_interest_derived,0) <> (IFNULL(ls.interest_amount,0) - IFNULL(ls.interest_completed_derived,0) - IFNULL(ls.interest_waived_derived,0) - IFNULL(ls.interest_writtenoff_derived,0)))")
+                .append(" OR (IFNULL(ls.suspended_fee_charges_derived,0) <> (IFNULL(ls.`fee_charges_amount`,0) - IFNULL(ls.fee_charges_completed_derived,0) - IFNULL(ls.fee_charges_waived_derived,0) - IFNULL(ls.fee_charges_writtenoff_derived,0)))")
+                .append(" OR (IFNULL(ls.suspended_penalty_charges_derived,0) <> (IFNULL(ls.`penalty_charges_amount`,0) - IFNULL(ls.penalty_charges_completed_derived,0) - IFNULL(ls.penalty_charges_waived_derived,0) - IFNULL(ls.penalty_charges_writtenoff_derived,0))))")
+                .append(" and loan.loan_status_id=? and mpl.accounting_type=? and loan.is_npa=1 and loan.id = ? and mpl.reverse_overduedays_npa_interest=1 and ls.duedate <= CURDATE() order by loan.id,ls.duedate");
         return this.jdbcTemplate.query(sqlBuilder.toString(), mapper, new Object[] { LoanStatus.ACTIVE.getValue(),
-                AccountingRuleType.ACCRUAL_PERIODIC.getValue() });
+                AccountingRuleType.ACCRUAL_PERIODIC.getValue(), loanId });
     }
 
     @Override
@@ -2007,35 +2022,6 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
             return result;
         }
         return result;
-
-    }
-
-    @Override
-    public Collection<LoanScheduleSuspendedAccruedIncomeData> retrieveLoanScheduleForSuspendLoanOutOfNPA(Long loanId) {
-        LoanScheduleSuspendIncomeMapper mapper = new LoanScheduleSuspendIncomeMapper();
-        StringBuilder sqlBuilder = new StringBuilder(600);
-        sqlBuilder
-                .append("select ")
-                .append(mapper.schema())
-                .append(" where ((ls.fee_charges_amount = if(ls.accrual_fee_charges_derived is null,0, ls.accrual_fee_charges_derived))")
-                .append(" or ( ls.penalty_charges_amount = if(ls.accrual_penalty_charges_derived is null,0,ls.accrual_penalty_charges_derived))")
-                .append(" or ( ls.interest_amount = if(ls.accrual_interest_derived is null,0,ls.accrual_interest_derived)))")
-                .append(" and ((ls.suspended_interest_derived is not null) or (ls.suspended_fee_charges_derived is not null) or (ls.suspended_penalty_charges_derived is not null))")
-                .append("  and ls.completed_derived is false and loan.loan_status_id=? and mpl.accounting_type=? and loan.id=? and loan.is_suspended_income = 1 and ls.duedate <= CURDATE() order by loan.id,ls.duedate");
-        return this.jdbcTemplate.query(sqlBuilder.toString(), mapper, new Object[] { LoanStatus.ACTIVE.getValue(),
-                AccountingRuleType.ACCRUAL_PERIODIC.getValue(),loanId});
-    }
-
-    @Override
-    public boolean isLoanBackToNPA(Long loanId) {
-        StringBuilder sqlBuilder = new StringBuilder(100);
-        sqlBuilder.append("select case when (count(loan.id) = 1) then true else false end  ")
-                .append("from m_loan_repayment_schedule mr ")
-                .append("INNER JOIN  m_loan loan on mr.loan_id = loan.id INNER JOIN m_product_loan mpl on mpl.id = loan.product_id AND mpl.overdue_days_for_npa is not null ")
-                .append("WHERE loan.loan_status_id = 300 and mr.completed_derived is false and mpl.reverse_overduedays_npa_interest is not null   ")
-                .append("and mr.duedate < SUBDATE(CURDATE(),INTERVAL ifnull(mpl.overdue_days_for_npa,0) day) ")
-                .append("and loan.id =? ");
-        return this.jdbcTemplate.queryForObject(sqlBuilder.toString(),Boolean.class,loanId);
 
     }
 }

@@ -20,10 +20,7 @@ public interface LoanSuspendAccruedIncomeWritePlatformService {
      */
     void suspendedIncomeOutOfNPA(Loan loan);
 
-    /**
-     * when repayment is reverse and loan is back to npa reverse the remaining corrected booking that
-     * corrects all suspended income. The booking is of the transaction type 20
-     * @param loan
-     */
-    void reverseSuspendedIncomeWhenRepaymentIsReversed(Loan loan,Long transactionId);
+    void updateNPAStatus(Long loanId);
+
+    void resetNPAStatus(Long loanId);
 }
