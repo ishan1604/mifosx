@@ -250,7 +250,11 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
                 && loanTransaction.getInterestPortion(currency).isEqualTo(newLoanTransaction.getInterestPortion(currency))
                 && loanTransaction.getFeeChargesPortion(currency).isEqualTo(newLoanTransaction.getFeeChargesPortion(currency))
                 && loanTransaction.getPenaltyChargesPortion(currency).isEqualTo(newLoanTransaction.getPenaltyChargesPortion(currency))
-                && loanTransaction.getOverPaymentPortion(currency).isEqualTo(newLoanTransaction.getOverPaymentPortion(currency))) { return true; }
+                && loanTransaction.getOverPaymentPortion(currency).isEqualTo(newLoanTransaction.getOverPaymentPortion(currency))
+                && loanTransaction.getSuspendedInterestPortion(currency).isEqualTo(newLoanTransaction.getSuspendedInterestPortion(currency))
+                && loanTransaction.getSuspendedFeePortion(currency).isEqualTo(newLoanTransaction.getSuspendedFeePortion(currency))
+                && loanTransaction.getSuspendedPenaltyPortion(currency).isEqualTo(newLoanTransaction.getSuspendedPenaltyPortion(currency))
+        ) { return true; }
         return false;
     }
 
@@ -626,7 +630,7 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
         return LoanTransactionType.ACCRUAL.equals(getTypeOf()) && isNotReversed();
     }
 
-    public boolean isSuspendIncome() { return LoanTransactionType.SUSPENDED_INCOME.equals(getTypeOf()) && isNotReversed();}
+    public boolean isSuspendIncome() { return LoanTransactionType.SUSPENDED_ACCRUED_INCOME.equals(getTypeOf()) && isNotReversed();}
 
     public boolean isReverseSuspendedIncome () { return LoanTransactionType.REVERSE_SUSPENDED_INCOME.equals(getTypeOf()) && isNotReversed();}
 

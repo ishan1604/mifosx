@@ -26,4 +26,7 @@ public interface LoanSuspendAccruedIncomeWritePlatformService {
      * @param loan
      */
     void reverseSuspendedIncomeWhenRepaymentIsReversed(Loan loan,Long transactionId);
+
+    void handleTransactionsOnSuspendedIncomeOutNPA(Loan loan);
+
 }

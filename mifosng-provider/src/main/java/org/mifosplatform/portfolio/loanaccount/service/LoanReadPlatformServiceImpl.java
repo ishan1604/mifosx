@@ -1483,7 +1483,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                 .append(" where ((ls.fee_charges_amount <> if(ls.accrual_fee_charges_derived is null,0, ls.accrual_fee_charges_derived))")
                 .append(" or ( ls.penalty_charges_amount <> if(ls.accrual_penalty_charges_derived is null,0,ls.accrual_penalty_charges_derived))")
                 .append(" or ( ls.interest_amount <> if(ls.accrual_interest_derived is null,0,ls.accrual_interest_derived)))")
-                .append("  and (loan.loan_status_id=? or loan.expected_maturedon_date >= CURDATE() or loan.expected_maturedon_date > IFNULL(loan.accrued_till, '1900-01-01')) and mpl.accounting_type=? and loan.is_npa=0 and ls.duedate <= CURDATE() order by loan.id,ls.duedate");
+                .append("  and (loan.loan_status_id=? or loan.expected_maturedon_date >= CURDATE() or loan.expected_maturedon_date > IFNULL(loan.accrued_till, '1900-01-01')) and mpl.accounting_type=? and loan.is_npa=0 and ls.duedate <= SUBDATE(CURDATE(),INTERVAL  ifnull(mpl.overdue_days_for_npa,0) day) order by loan.id,ls.duedate");
         return this.jdbcTemplate.query(sqlBuilder.toString(), mapper, new Object[] { LoanStatus.ACTIVE.getValue(),
                 AccountingRuleType.ACCRUAL_PERIODIC.getValue() });
     }

@@ -697,8 +697,6 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
 
     private void handleSuspendedIncome(final LoanRepaymentScheduleInstallment currentInstallment, final LoanTransaction loanTransaction, final MonetaryCurrency currency,final boolean isWriteOff,final boolean amountUnprocessed) {
 //        if(currentInstallment.getLoan().isSuspendedIncome()){
-        List<LoanRepaymentScheduleInstallment> repaymentScheduleInstallments =currentInstallment.getLoan().getRepaymentScheduleInstallments();
-        if(currentInstallment.getLoan().isSuspendedIncome()){
             if(!currentInstallment.getSuspendedInterest(currency).isZero())
             {
                 // If we have suspended interest on this instalment, let's make sure we also capture it here:
@@ -751,7 +749,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                 }
                 loanTransaction.updateSuspendedPenaltyComponents(currency,suspendedPenaltyPortion);
             }
-        }
+//        }
 
     }
 

@@ -2954,6 +2954,7 @@ public class Loan extends AbstractPersistable<Long> {
             }
         }
         if (reprocess) {
+            this.isSuspendedIncome = true;
             if (this.repaymentScheduleDetail().isInterestRecalculationEnabled()) {
                 regenerateRepaymentScheduleWithInterestRecalculation(scheduleGeneratorDTO, currentUser);
             }

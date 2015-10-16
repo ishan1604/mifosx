@@ -974,7 +974,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         /**
          * reverse suspended income when repayment is reversed or adjusted
          */
-        this.loanSuspendAccruedIncomeWritePlatformService.reverseSuspendedIncomeWhenRepaymentIsReversed(loan,transactionId);
+//        this.loanSuspendAccruedIncomeWritePlatformService.reverseSuspendedIncomeWhenRepaymentIsReversed(loan,transactionId);
 
 
 

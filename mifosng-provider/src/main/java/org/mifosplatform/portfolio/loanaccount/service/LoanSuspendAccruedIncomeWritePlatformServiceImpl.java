@@ -128,13 +128,13 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
             String transactionSql = "INSERT INTO m_loan_transaction  (loan_id,office_id,is_reversed,transaction_type_enum,transaction_date,amount,suspended_interest_portion_derived,"
                     + "suspended_fee_charges_portion_derived,suspended_penalty_charges_portion_derived, submitted_on_date) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?)";
             this.jdbcTemplate.update(transactionSql, loanScheduleSuspendedAccruedIncomeData.getLoanId(), loanScheduleSuspendedAccruedIncomeData.getOfficeId(),
-                    LoanTransactionType.SUSPENDED_INCOME.getValue(), DateUtils.getLocalDateOfTenant().toDate(), amount, interestPortion, feePortion, penaltyPortion,
+                    LoanTransactionType.SUSPENDED_ACCRUED_INCOME.getValue(), DateUtils.getLocalDateOfTenant().toDate(), amount, interestPortion, feePortion, penaltyPortion,
                     DateUtils.getDateOfTenant());
             @SuppressWarnings("deprecation")
             final Long transactionId = this.jdbcTemplate.queryForLong("SELECT LAST_INSERT_ID()");
 
             Map<String, Object> transactionMap = toMapData(transactionId, amount, interestPortion, feePortion, penaltyPortion,
-                    loanScheduleSuspendedAccruedIncomeData, DateUtils.getLocalDateOfTenant(),LoanTransactionType.SUSPENDED_INCOME.getValue());
+                    loanScheduleSuspendedAccruedIncomeData, DateUtils.getLocalDateOfTenant(),LoanTransactionType.SUSPENDED_ACCRUED_INCOME.getValue());
 
             String repaymentUpdateSql = "UPDATE m_loan_repayment_schedule SET suspended_interest_derived=?, suspended_fee_charges_derived=?, "
                     + "suspended_penalty_charges_derived=? WHERE  id=?";
@@ -566,5 +566,10 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
             if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist",
                     "Validation errors exist.", dataValidationErrors); }
         }
+    }
+
+    @Override
+    public void handleTransactionsOnSuspendedIncomeOutNPA(Loan loan) {
+
     }
 }
