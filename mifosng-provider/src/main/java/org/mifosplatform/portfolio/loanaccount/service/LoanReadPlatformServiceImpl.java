@@ -1590,6 +1590,9 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     .append("ls.accrual_interest_derived as accinterest,ls.accrual_fee_charges_derived as accfeecharege,ls.accrual_penalty_charges_derived as accpenalty,")
                     .append(" loan.currency_code as currencyCode,loan.currency_digits as currencyDigits,loan.currency_multiplesof as inMultiplesOf,")
                     .append("curr.display_symbol as currencyDisplaySymbol,curr.name as currencyName,curr.internationalized_name_code as currencyNameCode")
+                    .append(" IFNULL(ls.interest_amount,0) - IFNULL(ls.interest_completed_derived,0) - IFNULL(ls.interest_waived_derived,0) - IFNULL(ls.interest_writtenoff_derived,0) - ls.suspended_interest_derived as interestToSuspend,")
+                    .append(" IFNULL(ls.`fee_charges_amount`,0) - IFNULL(ls.fee_charges_completed_derived,0) - IFNULL(ls.fee_charges_waived_derived,0) - IFNULL(ls.fee_charges_writtenoff_derived,0) - ls.suspended_fee_charges_derived as feesToSuspend,")
+                    .append(" IFNULL(ls.`penalty_charges_amount`,0) - IFNULL(ls.penalty_charges_completed_derived,0) - IFNULL(ls.penalty_charges_waived_derived,0) - IFNULL(ls.penalty_charges_writtenoff_derived,0) - ls.suspended_penalty_charges_derived as penaltyToSuspend")
                     .append(" from m_loan_repayment_schedule ls ").append(" left join m_loan loan on loan.id=ls.loan_id ")
                     .append(" left join m_product_loan mpl on mpl.id = loan.product_id")
                     .append(" left join m_client mc on mc.id = loan.client_id ").append(" left join m_group mg on mg.id = loan.group_id")
@@ -1968,7 +1971,9 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                 .append(" where ((ls.fee_charges_amount = if(ls.accrual_fee_charges_derived is null,0, ls.accrual_fee_charges_derived))")
                 .append(" or ( ls.penalty_charges_amount = if(ls.accrual_penalty_charges_derived is null,0,ls.accrual_penalty_charges_derived))")
                 .append(" or ( ls.interest_amount = if(ls.accrual_interest_derived is null,0,ls.accrual_interest_derived)))")
-                .append(" and ((ls.suspended_interest_derived is null) and (ls.suspended_fee_charges_derived is null) and (ls.suspended_penalty_charges_derived is null))")
+                .append(" and ((ls.suspended_interest_derived <> (IFNULL(ls.interest_amount,0) - IFNULL(ls.interest_completed_derived,0) - IFNULL(ls.interest_waived_derived,0) - IFNULL(ls.interest_writtenoff_derived,0)))")
+                .append(" OR (ls.suspended_fee_charges_derived <> (IFNULL(ls.`fee_charges_amount`,0) - IFNULL(ls.fee_charges_completed_derived,0) - IFNULL(ls.fee_charges_waived_derived,0) - IFNULL(ls.fee_charges_writtenoff_derived,0)))")
+                .append(" OR (ls.suspended_penalty_charges_derived <> (IFNULL(ls.`penalty_charges_amount`,0) - IFNULL(ls.penalty_charges_completed_derived,0) - IFNULL(ls.penalty_charges_waived_derived,0) - IFNULL(ls.penalty_charges_writtenoff_derived,0))))")
                 .append("  and ls.completed_derived is false and loan.loan_status_id=? and mpl.accounting_type=? and loan.is_npa=1 and mpl.reverse_overduedays_npa_interest=1 and ls.duedate <= CURDATE() order by loan.id,ls.duedate");
         return this.jdbcTemplate.query(sqlBuilder.toString(), mapper, new Object[] { LoanStatus.ACTIVE.getValue(),
                 AccountingRuleType.ACCRUAL_PERIODIC.getValue() });

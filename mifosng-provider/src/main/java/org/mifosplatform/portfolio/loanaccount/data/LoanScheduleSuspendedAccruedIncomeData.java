@@ -46,6 +46,11 @@ public class LoanScheduleSuspendedAccruedIncomeData {
     private final BigDecimal penaltyChargesCompletedDerived;
     private final BigDecimal penaltyChargesWaivedDerived;
 
+    private final BigDecimal interestToSuspend;
+    private final BigDecimal feesToSuspend;
+    private final BigDecimal penaltyToSuspend;
+
+
     private Map<LoanChargeData, BigDecimal> appliedCharge;
 
 
@@ -56,7 +61,7 @@ public class LoanScheduleSuspendedAccruedIncomeData {
                                                   BigDecimal accruedPenaltyIncome, CurrencyData currencyData, LocalDate interestCalculatedFrom, BigDecimal suspendedInterest,
                                                   BigDecimal suspendedFee, BigDecimal suspendedPenalty, BigDecimal interestCompletedDerived, BigDecimal interestWaivedDerived,
                                                   BigDecimal feeChargesCompletedDerived, BigDecimal feeChargesWaivedDerived, BigDecimal penaltyChargesCompletedDerived,
-                                                  BigDecimal penaltyChargesWaivedDerived) {
+                                                  BigDecimal penaltyChargesWaivedDerived, BigDecimal interestToSuspend, BigDecimal feesToSuspend, BigDecimal penaltyToSuspend) {
         this.loanId = loanId;
         this.officeId = officeId;
         this.accruedTill = accruedTill;
@@ -85,6 +90,9 @@ public class LoanScheduleSuspendedAccruedIncomeData {
         this.feeChargesWaivedDerived = feeChargesWaivedDerived;
         this.penaltyChargesCompletedDerived = penaltyChargesCompletedDerived;
         this.penaltyChargesWaivedDerived = penaltyChargesWaivedDerived;
+        this.interestToSuspend = interestToSuspend;
+        this.feesToSuspend = feesToSuspend;
+        this.penaltyToSuspend = penaltyToSuspend;
     }
 
     public BigDecimal getSuspendedFee() {return this.suspendedFee;}
@@ -147,6 +155,18 @@ public class LoanScheduleSuspendedAccruedIncomeData {
     public Map<LoanChargeData, BigDecimal> getAppliedCharge() {return this.appliedCharge;}
 
     public void updateAppliedCharge(Map<LoanChargeData, BigDecimal> appliedCharge) {this.appliedCharge = appliedCharge;}
+
+    public BigDecimal getInterestToSuspend() {
+        return interestToSuspend;
+    }
+
+    public BigDecimal getFeesToSuspend() {
+        return feesToSuspend;
+    }
+
+    public BigDecimal getPenaltyToSuspend() {
+        return penaltyToSuspend;
+    }
 
     @Override
     public String toString() {
