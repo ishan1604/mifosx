@@ -298,7 +298,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                                 loanTransaction, transactionAmountUnprocessed);
                     }
                     boolean isTransactionAmountToProcessGreaterThanZero = transactionAmountUnprocessed.isGreaterThanZero() ? true : false;
-                    handleSuspendedIncome(currentInstallment, loanTransaction, currency,false,isTransactionAmountToProcessGreaterThanZero);
+               //     handleSuspendedIncome(currentInstallment, loanTransaction, currency,false,isTransactionAmountToProcessGreaterThanZero);
 
 
                 }

@@ -98,9 +98,7 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
                 try {
 
                     // There is more suspended income to be booked on this loan, therefore make those bookings:
-                    if(accrualData.getInterestToSuspend().compareTo(BigDecimal.ZERO) == 1 ||
-                            accrualData.getFeesToSuspend().compareTo(BigDecimal.ZERO) == 1 ||
-                            accrualData.getPenaltyToSuspend().compareTo(BigDecimal.ZERO) == 1) {
+                    if(accrualData.getIsReverse() == false) {
 
                         if (!loansIds.contains(accrualData.getLoanId())) {
                             if (!loanChargeMap.containsKey(accrualData.getLoanId())) {
@@ -114,9 +112,7 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
                     }
 
                     // There has been interest/Fees suspended on this loan, that needs to be unsuspended:
-                    if(accrualData.getInterestToSuspend().compareTo(BigDecimal.ZERO) == -1 ||
-                            accrualData.getFeesToSuspend().compareTo(BigDecimal.ZERO) == -1 ||
-                            accrualData.getPenaltyToSuspend().compareTo(BigDecimal.ZERO) == -1) {
+                    if(accrualData.getIsReverse() == true) {
 
                         if (!loansIds.contains(accrualData.getLoanId())) {
                             if (!loanChargeMap.containsKey(accrualData.getLoanId())) {
@@ -162,7 +158,7 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
 
             String repaymentUpdateSql = "UPDATE m_loan_repayment_schedule SET suspended_interest_derived=?, suspended_fee_charges_derived=?, "
                     + "suspended_penalty_charges_derived=? WHERE  id=?";
-            this.jdbcTemplate.update(repaymentUpdateSql, interestPortion, feePortion, penaltyPortion,
+            this.jdbcTemplate.update(repaymentUpdateSql, loanScheduleSuspendedAccruedIncomeData.getSuspendedInterest().add(interestPortion), loanScheduleSuspendedAccruedIncomeData.getSuspendedFee().add(feePortion), loanScheduleSuspendedAccruedIncomeData.getSuspendedPenalty().add(penaltyPortion),
                     loanScheduleSuspendedAccruedIncomeData.getRepaymentScheduleId());
             String updateLoan = "UPDATE m_loan  SET is_suspended_income=?  WHERE  id=?";
             boolean isSuspendedIncome = true;
@@ -194,7 +190,7 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
 
             String repaymentUpdateSql = "UPDATE m_loan_repayment_schedule SET suspended_interest_derived=?, suspended_fee_charges_derived=?, "
                     + "suspended_penalty_charges_derived=? WHERE  id=?";
-            this.jdbcTemplate.update(repaymentUpdateSql, interestPortion, feePortion, penaltyPortion,
+            this.jdbcTemplate.update(repaymentUpdateSql, loanScheduleSuspendedAccruedIncomeData.getSuspendedInterest().min(interestPortion), loanScheduleSuspendedAccruedIncomeData.getSuspendedFee().min(feePortion), loanScheduleSuspendedAccruedIncomeData.getSuspendedPenalty().min(penaltyPortion),
                     loanScheduleSuspendedAccruedIncomeData.getRepaymentScheduleId());
             String updateLoan = "UPDATE m_loan  SET is_suspended_income=?  WHERE  id=?";
             boolean isSuspendedIncome = true;
@@ -213,8 +209,9 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
     private void addSuspendedIncomeAccounting(LoanScheduleSuspendedAccruedIncomeData scheduleAccrualData) throws Exception{
 
         BigDecimal interestPortion = scheduleAccrualData.getInterestToSuspend();
-        BigDecimal feePortion = scheduleAccrualData.getFeesToSuspend();
+        BigDecimal feePortion = scheduleAccrualData.getFeesToSuspend() ;
         BigDecimal penaltyPortion = scheduleAccrualData.getPenaltyToSuspend();
+
         BigDecimal amount = interestPortion.add(feePortion).add(penaltyPortion);
 
         if (amount.compareTo(BigDecimal.ZERO) == 1) {

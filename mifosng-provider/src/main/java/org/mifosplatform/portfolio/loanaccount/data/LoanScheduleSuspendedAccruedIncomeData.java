@@ -46,9 +46,11 @@ public class LoanScheduleSuspendedAccruedIncomeData {
     private final BigDecimal penaltyChargesCompletedDerived;
     private final BigDecimal penaltyChargesWaivedDerived;
 
-    private final BigDecimal interestToSuspend;
-    private final BigDecimal feesToSuspend;
-    private final BigDecimal penaltyToSuspend;
+    private  BigDecimal interestToSuspend;
+    private BigDecimal feesToSuspend;
+    private  BigDecimal penaltyToSuspend;
+
+    private Boolean isReverse;
 
 
     private Map<LoanChargeData, BigDecimal> appliedCharge;
@@ -90,9 +92,19 @@ public class LoanScheduleSuspendedAccruedIncomeData {
         this.feeChargesWaivedDerived = feeChargesWaivedDerived;
         this.penaltyChargesCompletedDerived = penaltyChargesCompletedDerived;
         this.penaltyChargesWaivedDerived = penaltyChargesWaivedDerived;
-        this.interestToSuspend = interestToSuspend;
-        this.feesToSuspend = feesToSuspend;
-        this.penaltyToSuspend = penaltyToSuspend;
+        this.interestToSuspend = interestToSuspend.abs();
+        this.feesToSuspend = feesToSuspend.abs();
+        this.penaltyToSuspend = penaltyToSuspend.abs();
+        this.isReverse = false;
+        if (interestToSuspend.compareTo(BigDecimal.ZERO) == -1 || feesToSuspend.compareTo(BigDecimal.ZERO) == -1 || penaltyToSuspend.compareTo(BigDecimal.ZERO) == -1)
+        {
+            this.isReverse = true;
+        }
+
+    }
+
+    public Boolean getIsReverse() {
+        return isReverse;
     }
 
     public BigDecimal getSuspendedFee() {return this.suspendedFee;}
@@ -157,11 +169,31 @@ public class LoanScheduleSuspendedAccruedIncomeData {
     public void updateAppliedCharge(Map<LoanChargeData, BigDecimal> appliedCharge) {this.appliedCharge = appliedCharge;}
 
     public BigDecimal getInterestToSuspend() {
-        return interestToSuspend;
+        return this.interestToSuspend;
     }
 
     public BigDecimal getFeesToSuspend() {
-        return feesToSuspend;
+        return this.feesToSuspend;
+    }
+
+
+    public void updateInterestToSuspend(){
+        if(this.interestToSuspend == null ){
+            this.interestToSuspend = BigDecimal.ZERO;
+        }
+    }
+
+    public void updateFeesToSuspend() {
+        if(this.feesToSuspend == null){
+            this.feesToSuspend = BigDecimal.ZERO;
+        }
+    }
+
+    public void updatePenaltyToSuspend() {
+        if(this.penaltyToSuspend == null){
+            this.penaltyToSuspend = BigDecimal.ZERO;
+        }
+
     }
 
     public BigDecimal getPenaltyToSuspend() {
