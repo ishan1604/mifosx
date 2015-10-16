@@ -283,7 +283,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 
         final JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource());
 
-        // jdbcTemplate.update("UPDATE m_loan ml SET ml.is_npa=0");
+        jdbcTemplate.update("UPDATE m_loan ml SET ml.is_npa=0");
 
         final StringBuilder updateSqlBuilder = new StringBuilder(900);
 
@@ -302,26 +302,6 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
          * suspend all income accrued when loan goes into NPA
          */
         this.loanSuspendAccruedIncomeWritePlatformService.suspendAccruedIncome();
-
-//        jdbcTemplate.update("UPDATE m_loan ml SET ml.is_npa=0");
-//
-//        final StringBuilder SecondupdateSqlBuilder = new StringBuilder(900);
-//
-//        SecondupdateSqlBuilder.append("UPDATE m_loan as ml,");
-//        SecondupdateSqlBuilder.append(" (select loan.id from m_loan_repayment_schedule mr ");
-//        SecondupdateSqlBuilder
-//                .append(" INNER JOIN  m_loan loan on mr.loan_id = loan.id INNER JOIN m_product_loan mpl on mpl.id = loan.product_id AND mpl.overdue_days_for_npa is not null ");
-//        SecondupdateSqlBuilder.append("WHERE loan.loan_status_id = 300 and mr.completed_derived is false ");
-//        SecondupdateSqlBuilder
-//                .append(" and mr.duedate < SUBDATE(CURDATE(),INTERVAL  ifnull(mpl.overdue_days_for_npa,0) day) group by loan.id)  as sl ");
-//        SecondupdateSqlBuilder.append("SET ml.is_npa=1 where ml.id=sl.id");
-//
-//        final int secondResult = jdbcTemplate.update(SecondupdateSqlBuilder.toString());
-
-        /**
-         * reverse book all suspended income when loan comes out of NPA
-         */
-       // this.loanSuspendAccruedIncomeWritePlatformService.reverseSuspendedIncome(); uncomment for now remove to when goin to production
 
         logger.info(ThreadLocalContextUtil.getTenant().getName() + ": Results affected by update: " + result);
     }

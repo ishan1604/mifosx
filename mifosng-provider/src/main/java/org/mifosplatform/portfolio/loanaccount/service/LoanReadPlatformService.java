@@ -107,6 +107,8 @@ public interface LoanReadPlatformService {
 
     Collection<LoanScheduleSuspendedAccruedIncomeData> retrieveLoanScheduleForNPASuspendedIncome();
 
+    Collection<LoanScheduleSuspendedAccruedIncomeData> retrieveLoanScheduleForNPASuspendedIncome(Long loanId);
+
     Collection<LoanScheduleSuspendedAccruedIncomeData> retrieveLoanScheduleForSuspendedIncomeOutOfNPA();
 
     Collection<LoanScheduleSuspendedAccruedIncomeData> retrieveLoanScheduleForSuspendLoanOutOfNPA(Long loanId);

@@ -917,6 +917,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 this.paymentDetailWritePlatformService.persistPaymentDetail(paymentDetail);
             }
             this.loanTransactionRepository.save(newTransactionDetail);
+
+
         }
 
         /***
@@ -974,7 +976,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         /**
          * reverse suspended income when repayment is reversed or adjusted
          */
-//        this.loanSuspendAccruedIncomeWritePlatformService.reverseSuspendedIncomeWhenRepaymentIsReversed(loan,transactionId);
+        this.loanSuspendAccruedIncomeWritePlatformService.suspendedIncomeOutOfNPA(loan);
 
 
 
@@ -1091,6 +1093,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
         postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
         this.loanAccountDomainService.recalculateAccruals(loan);
+        this.loanSuspendAccruedIncomeWritePlatformService.suspendedIncomeOutOfNPA(loan);
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
                 .withEntityId(waiveInterestTransaction.getId()) //
@@ -1168,6 +1171,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
         postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
         this.loanAccountDomainService.recalculateAccruals(loan);
+        this.loanSuspendAccruedIncomeWritePlatformService.suspendedIncomeOutOfNPA(loan);
         this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_WRITTEN_OFF, writeoff);
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //

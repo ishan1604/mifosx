@@ -1988,6 +1988,23 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                 AccountingRuleType.ACCRUAL_PERIODIC.getValue() });
     }
 
+    public Collection<LoanScheduleSuspendedAccruedIncomeData> retrieveLoanScheduleForNPASuspendedIncome(Long loanId) {
+        LoanScheduleSuspendIncomeMapper mapper = new LoanScheduleSuspendIncomeMapper();
+        final StringBuilder sqlBuilder = new StringBuilder(400);
+        sqlBuilder
+                .append("select ")
+                .append(mapper.schema())
+                .append(" where ((ls.fee_charges_amount = if(ls.accrual_fee_charges_derived is null,0, ls.accrual_fee_charges_derived))")
+                .append(" or ( ls.penalty_charges_amount = if(ls.accrual_penalty_charges_derived is null,0,ls.accrual_penalty_charges_derived))")
+                .append(" or ( ls.interest_amount = if(ls.accrual_interest_derived is null,0,ls.accrual_interest_derived)))")
+                .append(" and ((IFNULL(ls.suspended_interest_derived,0) <> (IFNULL(ls.interest_amount,0) - IFNULL(ls.interest_completed_derived,0) - IFNULL(ls.interest_waived_derived,0) - IFNULL(ls.interest_writtenoff_derived,0)))")
+                .append(" OR (IFNULL(ls.suspended_fee_charges_derived,0) <> (IFNULL(ls.`fee_charges_amount`,0) - IFNULL(ls.fee_charges_completed_derived,0) - IFNULL(ls.fee_charges_waived_derived,0) - IFNULL(ls.fee_charges_writtenoff_derived,0)))")
+                .append(" OR (IFNULL(ls.suspended_penalty_charges_derived,0) <> (IFNULL(ls.`penalty_charges_amount`,0) - IFNULL(ls.penalty_charges_completed_derived,0) - IFNULL(ls.penalty_charges_waived_derived,0) - IFNULL(ls.penalty_charges_writtenoff_derived,0))))")
+                .append(" and loan.loan_status_id=? and mpl.accounting_type=? and loan.is_npa=1 and loan.id = ? and mpl.reverse_overduedays_npa_interest=1 and ls.duedate <= CURDATE() order by loan.id,ls.duedate");
+        return this.jdbcTemplate.query(sqlBuilder.toString(), mapper, new Object[] { LoanStatus.ACTIVE.getValue(),
+                AccountingRuleType.ACCRUAL_PERIODIC.getValue(), loanId });
+    }
+
     @Override
     public Collection<LoanScheduleSuspendedAccruedIncomeData> retrieveLoanScheduleForSuspendedIncomeOutOfNPA() {
         LoanScheduleSuspendIncomeMapper mapper = new LoanScheduleSuspendIncomeMapper();

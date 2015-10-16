@@ -427,9 +427,9 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
         // transaction properties
         final String transactionId = loanTransactionDTO.getTransactionId();
         final Date transactionDate = loanTransactionDTO.getTransactionDate();
-        final BigDecimal suspendedInterestPortion = loanTransactionDTO.getSuspendedInterestPortion();
-        final BigDecimal suspendedFeePortion    = loanTransactionDTO.getSuspendedFeePortion();
-        final BigDecimal suspendedPenaltyPortion = loanTransactionDTO.getSuspendedPenaltyPortion();
+        final BigDecimal suspendedInterestPortion = loanTransactionDTO.getInterest();
+        final BigDecimal suspendedFeePortion    = loanTransactionDTO.getFees();
+        final BigDecimal suspendedPenaltyPortion = loanTransactionDTO.getPenalties();
         final boolean isReversed = loanTransactionDTO.isReversed();
         final Long paymentTypeId = loanTransactionDTO.getPaymentTypeId();
 
