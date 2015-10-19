@@ -297,10 +297,6 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                         transactionAmountUnprocessed = handleTransactionThatIsOnTimePaymentOfInstallment(currentInstallment,
                                 loanTransaction, transactionAmountUnprocessed);
                     }
-                    boolean isTransactionAmountToProcessGreaterThanZero = transactionAmountUnprocessed.isGreaterThanZero() ? true : false;
-                    handleSuspendedIncome(currentInstallment, loanTransaction, currency,false,isTransactionAmountToProcessGreaterThanZero);
-
-
                 }
 
             }
@@ -415,7 +411,6 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                 feeChargesPortion = feeChargesPortion.plus(currentInstallment.writeOffOutstandingFeeCharges(transactionDate, currency));
                 penaltychargesPortion = penaltychargesPortion.plus(currentInstallment.writeOffOutstandingPenaltyCharges(transactionDate,
                         currency));
-                handleSuspendedIncome(currentInstallment,loanTransaction,currency,true,false);
             }
         }
 
@@ -653,7 +648,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                 reprocessCharges);
     }
     
-    	private LoanCharge findLatestPaidChargeFromUnOrderedSet(
+    private LoanCharge findLatestPaidChargeFromUnOrderedSet(
 			final Set<LoanCharge> charges, MonetaryCurrency currency) {
 		LoanCharge latestPaidCharge = null;
 		LoanCharge installemntCharge = null;
@@ -695,64 +690,5 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
 		return latestPaidCharge;
 	}
 
-    private void handleSuspendedIncome(final LoanRepaymentScheduleInstallment currentInstallment, final LoanTransaction loanTransaction, final MonetaryCurrency currency,final boolean isWriteOff,final boolean amountUnprocessed) {
-        if(currentInstallment.getLoan().isSuspendedIncome()){
-            if(!currentInstallment.getSuspendedInterest(currency).isZero())
-            {
-                // If we have suspended interest on this instalment, let's make sure we also capture it here:
-                Money suspendedInterestPortion = currentInstallment.getSuspendedInterest(currency);
-
-                if(loanTransaction.getInterestPortion(currency).isLessThan(suspendedInterestPortion) && !isWriteOff && loanTransaction.isNotInterestWaiver()) {
-                    suspendedInterestPortion = loanTransaction.getInterestPortion(currency);
-                }else if(currentInstallment.getInterestPaid(currency).isLessThan(suspendedInterestPortion) && !isWriteOff && loanTransaction.isNotInterestWaiver()){ //for partial interest payments in the next installment
-                    suspendedInterestPortion = currentInstallment.getInterestPaid(currency);
-                }else if(isWriteOff && !currentInstallment.getInterestPaid(currency).isZero()){  //means some have be partially paid and already booked so subtract and book remaining
-                    suspendedInterestPortion = suspendedInterestPortion.minus(currentInstallment.getInterestPaid(currency));
-                }else if (loanTransaction.isInterestWaiver() && loanTransaction.getInterestPortion(currency).isLessThan(suspendedInterestPortion)){//for interest waiving
-                    suspendedInterestPortion= loanTransaction.getInterestPortion(currency);
-                }
-
-                loanTransaction.updateSuspendInterestComponents(currency,suspendedInterestPortion);
-            }
-
-            if(!currentInstallment.getSuspendedFee(currency).isZero())
-            {
-                // If we have suspended fees on this instalment, let's make sure we also capture it here:
-                Money suspendedFeePortion = currentInstallment.getSuspendedFee(currency);
-                if(loanTransaction.getFeeChargesPortion(currency).isLessThan(suspendedFeePortion) && !isWriteOff && !loanTransaction.isChargesWaiver()) {
-                    suspendedFeePortion = loanTransaction.getFeeChargesPortion(currency);
-//                suspendedFeePortion = currentInstallment.getFeeChargesPaid(currency);
-                }else if(currentInstallment.getFeeChargesPaid(currency).isLessThan(suspendedFeePortion) && !isWriteOff){//for partial fee payments in the next installment
-                    suspendedFeePortion = currentInstallment.getFeeChargesPaid(currency);
-                }else if(isWriteOff && !currentInstallment.getFeeChargesPaid(currency).isZero() && !loanTransaction.isChargesWaiver()){
-                    suspendedFeePortion = suspendedFeePortion.minus(currentInstallment.getFeeChargesPaid(currency)) ;
-                }else if (loanTransaction.isChargesWaiver() && loanTransaction.getFeeChargesPortion(currency).isLessThan(suspendedFeePortion)){
-                    suspendedFeePortion = loanTransaction.getFeeChargesPortion(currency);
-                }
-
-                loanTransaction.updateSuspendedFeeComponents(currency,suspendedFeePortion);
-            }
-
-            if(!currentInstallment.getSuspendedPenalty(currency).isZero())
-            {
-                // If we have suspended penalty on this instalment, let's make sure we also capture it here:
-                Money suspendedPenaltyPortion = currentInstallment.getSuspendedPenalty(currency);
-                if(loanTransaction.getPenaltyChargesPortion(currency).isLessThan(suspendedPenaltyPortion) && !isWriteOff) {
-                    suspendedPenaltyPortion = loanTransaction.getPenaltyChargesPortion(currency);
-//                suspendedPenaltyPortion = currentInstallment.getPenaltyChargesPaid(currency);
-                }else if(currentInstallment.getPenaltyChargesPaid(currency).isLessThan(suspendedPenaltyPortion) && !isWriteOff){//for partial charges payments in the next installment
-                    suspendedPenaltyPortion = currentInstallment.getPenaltyChargesPaid(currency);
-                }else if(isWriteOff && !currentInstallment.getPenaltyChargesPaid(currency).isZero()){ //means some have be partially paid and already booked so subtract and book remaining
-                    suspendedPenaltyPortion = suspendedPenaltyPortion.minus(currentInstallment.getPenaltyChargesPaid(currency));
-                }
-
-                loanTransaction.updateSuspendedPenaltyComponents(currency,suspendedPenaltyPortion);
-            }
-        }
-
-    }
-
-
-    
 
 }

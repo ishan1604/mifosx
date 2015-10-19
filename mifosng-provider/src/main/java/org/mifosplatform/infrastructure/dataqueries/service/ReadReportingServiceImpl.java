@@ -294,6 +294,11 @@ public class ReadReportingServiceImpl implements ReadReportingService {
                     .header("Content-Disposition", "attachment;filename=" + reportName.replaceAll(" ", "") + ".xls").build();
         }
 
+        if ("XLSX".equalsIgnoreCase(outputType)) {
+            return Response.ok().entity(baos.toByteArray()).type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    .header("Content-Disposition", "attachment;filename=" + reportName.replaceAll(" ", "") + ".xlsx").build();
+        }
+
         if ("CSV".equalsIgnoreCase(outputType)) {
             return Response.ok().entity(baos.toByteArray()).type("application/x-msdownload")
                     .header("Content-Disposition", "attachment;filename=" + reportName.replaceAll(" ", "") + ".csv").build();
@@ -637,7 +642,7 @@ public class ReadReportingServiceImpl implements ReadReportingService {
             outputType = outputTypeParam;
         }
 
-        if (!(outputType.equalsIgnoreCase("HTML") || outputType.equalsIgnoreCase("PDF") || outputType.equalsIgnoreCase("XLS") || outputType
+        if (!(outputType.equalsIgnoreCase("HTML") || outputType.equalsIgnoreCase("PDF") || outputType.equalsIgnoreCase("XLS") || outputType.equalsIgnoreCase("XLSX") || outputType
                 .equalsIgnoreCase("CSV"))) { throw new PlatformDataIntegrityException("error.msg.invalid.outputType",
                 "No matching Output Type: " + outputType); }
 
@@ -672,6 +677,11 @@ public class ReadReportingServiceImpl implements ReadReportingService {
 
             if ("XLS".equalsIgnoreCase(outputType)) {
                 ExcelReportUtil.createXLS(masterReport, baos);
+                return baos;
+            }
+
+            if ("XLSX".equalsIgnoreCase(outputType)) {
+                ExcelReportUtil.createXLSX(masterReport, baos);
                 return baos;
             }
 

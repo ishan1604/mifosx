@@ -303,11 +303,6 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
          */
         this.loanSuspendAccruedIncomeWritePlatformService.suspendAccruedIncome();
 
-        /**
-         * reverse book all suspended income when loan comes out of NPA
-         */
-       // this.loanSuspendAccruedIncomeWritePlatformService.reverseSuspendedIncome(); uncomment for now remove to when goin to production
-
         logger.info(ThreadLocalContextUtil.getTenant().getName() + ": Results affected by update: " + result);
     }
 

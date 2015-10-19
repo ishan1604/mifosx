@@ -112,9 +112,6 @@ public class AccountingProcessorHelper {
             final BigDecimal fees = (BigDecimal) map.get("feeChargesPortion");
             final BigDecimal penalties = (BigDecimal) map.get("penaltyChargesPortion");
             final BigDecimal overPayments = (BigDecimal) map.get("overPaymentPortion");
-            final BigDecimal suspendedFeePortion = (BigDecimal) map.get("suspendedFeePortion");
-            final BigDecimal suspendedPenaltyPortion = (BigDecimal) map.get("suspendedPenaltyPortion");
-            final BigDecimal suspendedInterestPortion = (BigDecimal) map.get("suspendedInterestPortion");
             final boolean reversed = (Boolean) map.get("reversed");
             final Long paymentTypeId = (Long) map.get("paymentTypeId");
 
@@ -144,7 +141,7 @@ public class AccountingProcessorHelper {
             }
             final LoanTransactionDTO transaction = new LoanTransactionDTO(transactionOfficeId, paymentTypeId, transactionId,
                     transactionDate, transactionType, amount, principal, interest, fees, penalties, overPayments, reversed,
-                    feePaymentDetails, penaltyPaymentDetails, isAccountTransfer, suspendedFeePortion, suspendedPenaltyPortion, suspendedInterestPortion);
+                    feePaymentDetails, penaltyPaymentDetails, isAccountTransfer);
 
             newLoanTransactions.add(transaction);
 
@@ -278,7 +275,7 @@ public class AccountingProcessorHelper {
             BigDecimal chargeSpecificAmount = chargePaymentDTO.getAmount();
 
             // adjust net credit amount if the account is already present in the
-            // map
+             // map
             if (creditDetailsMap.containsKey(chargeSpecificAccount)) {
                 final BigDecimal existingAmount = creditDetailsMap.get(chargeSpecificAccount);
                 chargeSpecificAmount = chargeSpecificAmount.add(existingAmount);
@@ -481,10 +478,10 @@ public class AccountingProcessorHelper {
 
         // TODO: Vishwas Temporary validation to be removed before moving to
         // release branch
-        /*if (totalAmount.compareTo(totalCreditedAmount) != 0) { throw new PlatformDataIntegrityException(
+        if (totalAmount.compareTo(totalCreditedAmount) != 0) { throw new PlatformDataIntegrityException(
                 "Meltdown in advanced accounting...sum of all charges is not equal to the fee charge for a transaction",
                 "Meltdown in advanced accounting...sum of all charges is not equal to the fee charge for a transaction",
-                totalCreditedAmount, totalAmount); }*/
+                totalCreditedAmount, totalAmount); }
     }
 
     /**

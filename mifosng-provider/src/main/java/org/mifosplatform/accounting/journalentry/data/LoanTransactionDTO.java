@@ -29,11 +29,6 @@ public class LoanTransactionDTO {
     private final BigDecimal penalties;
     private final BigDecimal overPayment;
 
-    private final BigDecimal suspendedFeePortion;
-    private final BigDecimal suspendedPenaltyPortion;
-    private final BigDecimal suspendedInterestPortion;
-
-
 
     /*** Boolean values determines if the transaction is reversed ***/
     private final boolean reversed;
@@ -47,10 +42,7 @@ public class LoanTransactionDTO {
     public LoanTransactionDTO(final Long officeId, final Long paymentTypeId, final String transactionId, final Date transactionDate,
             final LoanTransactionEnumData transactionType, final BigDecimal amount, final BigDecimal principal, final BigDecimal interest,
             final BigDecimal fees, final BigDecimal penalties, final BigDecimal overPayment, final boolean reversed,
-            final List<ChargePaymentDTO> feePayments, final List<ChargePaymentDTO> penaltyPayments, boolean isAccountTransfer,
-             final BigDecimal suspendedFeePortion,
-             final BigDecimal suspendedPenaltyPortion,
-             final BigDecimal suspendedInterestPortion) {
+            final List<ChargePaymentDTO> feePayments, final List<ChargePaymentDTO> penaltyPayments, boolean isAccountTransfer) {
         this.paymentTypeId = paymentTypeId;
         this.transactionId = transactionId;
         this.transactionDate = transactionDate;
@@ -66,9 +58,6 @@ public class LoanTransactionDTO {
         this.overPayment = overPayment;
         this.officeId = officeId;
         this.isAccountTransfer = isAccountTransfer;
-        this.suspendedFeePortion = suspendedFeePortion;
-        this.suspendedInterestPortion = suspendedInterestPortion;
-        this.suspendedPenaltyPortion = suspendedPenaltyPortion;
     }
 
     public Long getOfficeId() {
@@ -131,15 +120,4 @@ public class LoanTransactionDTO {
         return this.isAccountTransfer;
     }
 
-    public BigDecimal getSuspendedFeePortion() {
-        return this.suspendedFeePortion;
-    }
-
-    public BigDecimal getSuspendedPenaltyPortion() {
-        return this.suspendedPenaltyPortion;
-    }
-
-    public BigDecimal getSuspendedInterestPortion() {
-        return this.suspendedInterestPortion;
-    }
 }

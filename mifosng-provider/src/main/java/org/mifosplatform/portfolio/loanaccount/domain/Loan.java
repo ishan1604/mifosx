@@ -1077,7 +1077,7 @@ public class Loan extends AbstractPersistable<Long> {
             feeChargesWaived = Money.zero(loanCurrency());
         }
 
-        LocalDate transactionDate = DateUtils.getLocalDateOfTenant();
+        LocalDate transactionDate = getDisbursementDate();
         if (loanCharge.isSpecifiedDueDate() || loanCharge.isPenaltyCharge()) {
             transactionDate = loanCharge.getDueLocalDate();
         }
@@ -2931,6 +2931,7 @@ public class Loan extends AbstractPersistable<Long> {
                 .getTransactionDate());
         boolean reprocess = true;
 
+
         if (isTransactionChronologicallyLatest && adjustedTransaction == null
                 && loanTransaction.getTransactionDate().isEqual(LocalDate.now()) && currentInstallment != null
                 && currentInstallment.getTotalOutstanding(getCurrency()).isEqualTo(loanTransaction.getAmount(getCurrency()))) {
@@ -4417,6 +4418,11 @@ public class Loan extends AbstractPersistable<Long> {
                         action = "refund";
                         postfix = "cannot.be.made.before.client.transfer.date";
                     break;
+                    case LOAN_RECOVERY_PAYMENT:
+                        errorMessage = "The date on which a recovery payment is made cannot be earlier than client's transfer date to this office";
+                        action = "recovery.payment";
+                        postfix = "cannot.be.made.before.client.transfer.date";
+                    break;
                     default:
                     break;
                 }
@@ -4448,6 +4454,11 @@ public class Loan extends AbstractPersistable<Long> {
                     errorMessage = "The date on which a charge payment is made cannot be earlier than last transaction date";
                     action = "charge.payment";
                     postfix = "cannot.be.made.before.last.transaction.date";
+                break;
+                case LOAN_RECOVERY_PAYMENT:
+                    errorMessage = "The date on which a recovery payment is made cannot be earlier than last transaction date";
+                    action = "recovery.payment";
+                    postfix = "cannot.be.made.before.client.transfer.date";
                 break;
                 default:
                 break;

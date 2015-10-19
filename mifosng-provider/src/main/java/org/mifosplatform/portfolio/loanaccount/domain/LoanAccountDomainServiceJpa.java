@@ -236,7 +236,6 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
 
 
 
-
         this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_MAKE_REPAYMENT, newRepaymentTransaction);
 
         // disable all active standing orders linked to this loan if status changes to closed

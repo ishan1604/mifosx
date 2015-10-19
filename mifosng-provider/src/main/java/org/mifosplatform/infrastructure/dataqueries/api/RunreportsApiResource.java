@@ -59,7 +59,7 @@ public class RunreportsApiResource {
     @GET
     @Path("{reportName}")
     @Consumes({ MediaType.APPLICATION_JSON })
-    @Produces({ MediaType.APPLICATION_JSON, "application/x-msdownload", "application/vnd.ms-excel", "application/pdf", "text/html" })
+    @Produces({ MediaType.APPLICATION_JSON, "application/x-msdownload", "application/vnd.ms-excel", "application/pdf", "text/html", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
     public Response runReport(@PathParam("reportName") final String reportName, @Context final UriInfo uriInfo) {
 
         final MultivaluedMap<String, String> queryParams = uriInfo.getQueryParameters();

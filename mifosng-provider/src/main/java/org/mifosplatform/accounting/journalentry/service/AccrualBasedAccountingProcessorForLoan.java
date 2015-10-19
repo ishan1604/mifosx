@@ -191,10 +191,6 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
         final Long paymentTypeId = loanTransactionDTO.getPaymentTypeId();
         final boolean isReversal = loanTransactionDTO.isReversed();
 
-        final BigDecimal suspendedInterestPortion = loanTransactionDTO.getSuspendedInterestPortion();
-        final BigDecimal suspendedFeePortion    = loanTransactionDTO.getSuspendedFeePortion();
-        final BigDecimal suspendedPenaltyPortion = loanTransactionDTO.getSuspendedPenaltyPortion();
-
         BigDecimal totalDebitAmount = new BigDecimal(0);
 
         // handle principal payment or writeOff (and reversals)
@@ -264,30 +260,6 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
                 }
             }
         }
-        /**
-         * if loan has suspended income and is NPA and repayment is made and suspendedInterestPortion is not null
-         * Dr Suspended income
-         * Cr Interest Income
-         */
-        if(suspendedInterestPortion !=null && !(suspendedInterestPortion.compareTo(BigDecimal.ZERO) == 0)){
-            this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
-                    ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue(),ACCRUAL_ACCOUNTS_FOR_LOAN.INTEREST_ON_LOANS.getValue(),
-                    loanProductId, paymentTypeId, loanId, transactionId, transactionDate, suspendedInterestPortion, isReversal);
-        }
-
-        if(suspendedPenaltyPortion !=null && !(suspendedPenaltyPortion.compareTo(BigDecimal.ZERO) == 0)){
-                this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, ACCRUAL_ACCOUNTS_FOR_LOAN.INCOME_FROM_PENALTIES,
-                        loanProductId, paymentTypeId, loanId, transactionId, transactionDate,suspendedPenaltyPortion, isReversal);
-                this.helper.createDebitJournalEntryOrReversalForLoan(office, currencyCode, ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue(),
-                        loanProductId, paymentTypeId, loanId, transactionId, transactionDate, suspendedPenaltyPortion, isReversal);
-        }
-        if(suspendedFeePortion !=null && !(suspendedFeePortion.compareTo(BigDecimal.ZERO) == 0)){
-                this.helper.createDebitJournalEntryOrReversalForLoan(office, currencyCode, ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue(),
-                        loanProductId, paymentTypeId, loanId, transactionId, transactionDate, suspendedFeePortion, isReversal);
-                this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, ACCRUAL_ACCOUNTS_FOR_LOAN.INCOME_FROM_FEES,
-                        loanProductId, paymentTypeId, loanId, transactionId, transactionDate,suspendedFeePortion, isReversal);
-        }
-
 
     }
 
@@ -403,20 +375,19 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
                     ACCRUAL_ACCOUNTS_FOR_LOAN.INTEREST_ON_LOANS.getValue(), ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue(),
                     loanProductId, paymentTypeId, loanId, transactionId, transactionDate, interestAmount, isReversed);
         }
-        // create journal entries for the fees application (or reversal)
-        if (feesAmount != null && !(feesAmount.compareTo(BigDecimal.ZERO) == 0)) {
-            this.helper.createAccrualBasedJournalEntriesAndReversalsForLoanCharges(office, currencyCode,
-                    ACCRUAL_ACCOUNTS_FOR_LOAN.INCOME_FROM_FEES.getValue(), ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue(),
-                    loanProductId, loanId, transactionId, transactionDate, feesAmount, isReversed, loanTransactionDTO.getFeePayments());
-        }
-        // create journal entries for the penalties application (or reversal)
-        if (penaltiesAmount != null && !(penaltiesAmount.compareTo(BigDecimal.ZERO) == 0)) {
 
-            this.helper.createAccrualBasedJournalEntriesAndReversalsForLoanCharges(office, currencyCode,
+        if(penaltiesAmount !=null && !(penaltiesAmount.compareTo(BigDecimal.ZERO) == 0)){
+            this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                     ACCRUAL_ACCOUNTS_FOR_LOAN.INCOME_FROM_PENALTIES.getValue(), ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue(),
-                    loanProductId, loanId, transactionId, transactionDate, penaltiesAmount, isReversed,
-                    loanTransactionDTO.getPenaltyPayments());
+                    loanProductId, paymentTypeId, loanId, transactionId, transactionDate, penaltiesAmount, isReversed);
         }
+
+        if(feesAmount !=null && !(feesAmount.compareTo(BigDecimal.ZERO) == 0)){
+            this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
+                    ACCRUAL_ACCOUNTS_FOR_LOAN.INCOME_FROM_FEES.getValue(), ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue(),
+                    loanProductId, paymentTypeId, loanId, transactionId, transactionDate, feesAmount, isReversed);
+        }
+
     }
     private void createJournalEntriesForReverseSuspendedIncome(final LoanDTO loanDTO, final LoanTransactionDTO loanTransactionDTO, final Office office){
         // loan properties
@@ -427,9 +398,9 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
         // transaction properties
         final String transactionId = loanTransactionDTO.getTransactionId();
         final Date transactionDate = loanTransactionDTO.getTransactionDate();
-        final BigDecimal suspendedInterestPortion = loanTransactionDTO.getSuspendedInterestPortion();
-        final BigDecimal suspendedFeePortion    = loanTransactionDTO.getSuspendedFeePortion();
-        final BigDecimal suspendedPenaltyPortion = loanTransactionDTO.getSuspendedPenaltyPortion();
+        final BigDecimal suspendedInterestPortion = loanTransactionDTO.getInterest();
+        final BigDecimal suspendedFeePortion    = loanTransactionDTO.getFees();
+        final BigDecimal suspendedPenaltyPortion = loanTransactionDTO.getPenalties();
         final boolean isReversed = loanTransactionDTO.isReversed();
         final Long paymentTypeId = loanTransactionDTO.getPaymentTypeId();
 
@@ -440,14 +411,17 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
                     loanProductId, paymentTypeId, loanId, transactionId, transactionDate, suspendedInterestPortion, isReversed);
         }
         if(suspendedPenaltyPortion !=null && !(suspendedPenaltyPortion.compareTo(BigDecimal.ZERO) == 0)){
-            this.helper.createAccrualBasedJournalEntriesAndReversalsForLoanCharges(office, currencyCode,
-                    ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue(),ACCRUAL_ACCOUNTS_FOR_LOAN.INCOME_FROM_PENALTIES.getValue(),
-                    loanProductId, loanId, transactionId, transactionDate, suspendedPenaltyPortion, isReversed, loanTransactionDTO.getPenaltyPayments());
+            this.helper.createDebitJournalEntryOrReversalForLoan(office, currencyCode, ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue(),
+                    loanProductId, paymentTypeId, loanId, transactionId, transactionDate, suspendedPenaltyPortion, isReversed);
+            this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, ACCRUAL_ACCOUNTS_FOR_LOAN.INCOME_FROM_PENALTIES,
+                    loanProductId, paymentTypeId, loanId, transactionId, transactionDate, suspendedPenaltyPortion, isReversed);
         }
-        if(suspendedFeePortion  !=null && !(suspendedFeePortion .compareTo(BigDecimal.ZERO) == 0)){
-            this.helper.createAccrualBasedJournalEntriesAndReversalsForLoanCharges(office, currencyCode,
-                    ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue(),ACCRUAL_ACCOUNTS_FOR_LOAN.INCOME_FROM_FEES.getValue(),
-                    loanProductId, loanId, transactionId, transactionDate, suspendedFeePortion , isReversed, loanTransactionDTO.getFeePayments());
+
+        if(suspendedFeePortion !=null && !(suspendedFeePortion.compareTo(BigDecimal.ZERO) == 0)){
+            this.helper.createDebitJournalEntryOrReversalForLoan(office, currencyCode, ACCRUAL_ACCOUNTS_FOR_LOAN.SUSPENDED_INCOME.getValue(),
+                    loanProductId, paymentTypeId, loanId, transactionId, transactionDate, suspendedFeePortion, isReversed);
+            this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, ACCRUAL_ACCOUNTS_FOR_LOAN.INCOME_FROM_FEES,
+                    loanProductId, paymentTypeId, loanId, transactionId, transactionDate,suspendedFeePortion,isReversed);
         }
     }
     private void createJournalEntriesForRefund(final LoanDTO loanDTO, final LoanTransactionDTO loanTransactionDTO, final Office office) {
