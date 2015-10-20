@@ -5,11 +5,11 @@
  */
 package org.mifosplatform.accounting.journalentry.data;
 
+import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionEnumData;
+
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
-
-import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionEnumData;
 
 public class LoanTransactionDTO {
 
@@ -28,6 +28,7 @@ public class LoanTransactionDTO {
     private final BigDecimal fees;
     private final BigDecimal penalties;
     private final BigDecimal overPayment;
+
 
     /*** Boolean values determines if the transaction is reversed ***/
     private final boolean reversed;

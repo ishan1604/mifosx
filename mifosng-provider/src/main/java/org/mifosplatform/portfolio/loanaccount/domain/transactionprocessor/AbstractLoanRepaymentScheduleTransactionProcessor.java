@@ -5,15 +5,6 @@
  */
 package org.mifosplatform.portfolio.loanaccount.domain.transactionprocessor;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
 import org.mifosplatform.organisation.monetary.domain.Money;
@@ -30,6 +21,15 @@ import org.mifosplatform.portfolio.loanaccount.domain.transactionprocessor.impl.
 import org.mifosplatform.portfolio.loanaccount.domain.transactionprocessor.impl.HeavensFamilyLoanRepaymentScheduleTransactionProcessor;
 import org.mifosplatform.portfolio.loanaccount.domain.transactionprocessor.impl.InterestPrincipalPenaltyFeesOrderLoanRepaymentScheduleTransactionProcessor;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.RecalculationDetail;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Abstract implementation of {@link LoanRepaymentScheduleTransactionProcessor}
@@ -259,6 +259,8 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                 updateChargesPaidAmountBy(loanTransaction, penaltyCharges, loanPenalties, installmentNumber);
             }
         }
+
+
         return transactionAmountUnprocessed;
     }
 
@@ -267,6 +269,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
         int installmentIndex = 0;
 
         final LocalDate transactionDate = loanTransaction.getTransactionDate();
+
         Money transactionAmountUnprocessed = loanTransaction.getAmount(currency);
         if (amountToProcess != null) {
             transactionAmountUnprocessed = amountToProcess;
@@ -288,12 +291,14 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                         // installment?
                         transactionAmountUnprocessed = handleTransactionThatIsALateRepaymentOfInstallment(currentInstallment, installments,
                                 loanTransaction, transactionAmountUnprocessed);
+
                     } else {
                         // standard transaction
                         transactionAmountUnprocessed = handleTransactionThatIsOnTimePaymentOfInstallment(currentInstallment,
                                 loanTransaction, transactionAmountUnprocessed);
                     }
                 }
+
             }
 
             installmentIndex++;
@@ -643,7 +648,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                 reprocessCharges);
     }
     
-    	private LoanCharge findLatestPaidChargeFromUnOrderedSet(
+    private LoanCharge findLatestPaidChargeFromUnOrderedSet(
 			final Set<LoanCharge> charges, MonetaryCurrency currency) {
 		LoanCharge latestPaidCharge = null;
 		LoanCharge installemntCharge = null;
@@ -684,6 +689,6 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
 
 		return latestPaidCharge;
 	}
-    
+
 
 }
