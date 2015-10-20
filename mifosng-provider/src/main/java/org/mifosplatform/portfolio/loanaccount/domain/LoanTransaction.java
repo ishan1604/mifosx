@@ -95,6 +95,15 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
     @Column(name = "unrecognized_income_portion", scale = 6, precision = 19, nullable = true)
     private BigDecimal unrecognizedIncomePortion;
 
+    @Column(name = "suspended_interest_portion_derived", scale = 6, precision = 19, nullable = true)
+    private BigDecimal suspendedInterestPortion;
+
+    @Column(name = "suspended_fee_charges_portion_derived", scale = 6, precision = 19, nullable = true)
+    private BigDecimal suspendedFeePortion;
+
+    @Column(name = "suspended_penalty_charges_portion_derived", scale = 6, precision = 19, nullable = true)
+    private BigDecimal suspendedPenaltyPortion;
+
     @Column(name = "is_reversed", nullable = false)
     private boolean reversed;
 
@@ -247,7 +256,8 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
                 && loanTransaction.getInterestPortion(currency).isEqualTo(newLoanTransaction.getInterestPortion(currency))
                 && loanTransaction.getFeeChargesPortion(currency).isEqualTo(newLoanTransaction.getFeeChargesPortion(currency))
                 && loanTransaction.getPenaltyChargesPortion(currency).isEqualTo(newLoanTransaction.getPenaltyChargesPortion(currency))
-                && loanTransaction.getOverPaymentPortion(currency).isEqualTo(newLoanTransaction.getOverPaymentPortion(currency))) { return true; }
+                && loanTransaction.getOverPaymentPortion(currency).isEqualTo(newLoanTransaction.getOverPaymentPortion(currency))
+        ) { return true; }
         return false;
     }
 
@@ -627,6 +637,10 @@ public final class LoanTransaction extends AbstractPersistable<Long> {
     					|| LoanTransactionType.REJECT_TRANSFER.equals(getTypeOf())
     					|| LoanTransactionType.WITHDRAW_TRANSFER.equals(getTypeOf()));
     }
+
+    public boolean isSuspendIncome() { return LoanTransactionType.SUSPENDED_ACCRUED_INCOME.equals(getTypeOf()) && isNotReversed();}
+
+    public boolean isReverseSuspendedIncome () { return LoanTransactionType.REVERSE_SUSPENDED_ACCRUED_INCOME.equals(getTypeOf()) && isNotReversed();}
 
     public void updateOutstandingLoanBalance(BigDecimal outstandingLoanBalance) {
         this.outstandingLoanBalance = outstandingLoanBalance;

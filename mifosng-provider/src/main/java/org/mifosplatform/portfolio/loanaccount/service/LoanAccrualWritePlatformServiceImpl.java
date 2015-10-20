@@ -22,11 +22,16 @@ import org.mifosplatform.accounting.journalentry.service.JournalEntryWritePlatfo
 import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.organisation.monetary.domain.MoneyHelper;
+import org.mifosplatform.organisation.monetary.domain.ApplicationCurrency;
+import org.mifosplatform.organisation.monetary.domain.ApplicationCurrencyRepositoryWrapper;
+import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargeData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanInstallmentChargeData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanScheduleAccrualData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionEnumData;
+import org.mifosplatform.portfolio.loanaccount.domain.Loan;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionType;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.data.LoanSchedulePeriodData;
 import org.mifosplatform.portfolio.loanproduct.service.LoanEnumerations;
@@ -43,6 +48,8 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
     private final JdbcTemplate jdbcTemplate;
     private final DataSource dataSource;
     private final JournalEntryWritePlatformService journalEntryWritePlatformService;
+    private LoanAssembler loanAssembler;
+    private ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository;
 
     @Autowired
     public LoanAccrualWritePlatformServiceImpl(final RoutingDataSource dataSource, final LoanReadPlatformService loanReadPlatformService,
@@ -460,4 +467,37 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
         accrualData.updateAccruableIncome(interestIncome);
     }
 
+    @Override
+    public void reverseInterestAccruedOnNPALoans() {
+        final Collection<Long> npaLoans = this.loanReadPlatformService.fetchNPALoans();
+        if(npaLoans !=null && !npaLoans.isEmpty()){
+            for(Long id: npaLoans){
+                final Loan loan  = this.loanAssembler.assembleFrom(id);
+                for(LoanTransaction transaction : loan.getLoanTransactions()){
+                    LocalDate today = DateUtils.getLocalDateOfTenant();
+                    //all loans id retrieved  of npa type meaning getOverdueDaysForNpa is not null
+                    LocalDate interestTransactionBeforeNPA= today.minusDays(loan.getLoanProduct().getOverdueDaysForNPA());
+                    if(transaction.isAccrual() && (transaction.getTransactionDate().isBefore(interestTransactionBeforeNPA))){
+                        //post journalEntries to reverse bookings
+                        final Collection<Long> existingTransactionsIds = loan.findExistingTransactionIds();
+                        final Collection<Long> existingReversedTransactionIds = loan.findExistingReversedTransactionIds();
+                        transaction.reverse();
+                        this.postJournalEntries(loan, (List<Long>)existingTransactionsIds, (List<Long>)existingReversedTransactionIds);
+                    }
+                }
+
+            }
+        }
+    }
+
+    private void postJournalEntries(final Loan loan, final List<Long> existingTransactionIds,
+                                    final List<Long> existingReversedTransactionIds) {
+
+        final MonetaryCurrency currency = loan.getCurrency();
+        final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepository.findOneWithNotFoundDetection(currency);
+        boolean isAccountTransfer = false;
+        final Map<String, Object> accountingBridgeData = loan.deriveAccountingBridgeData(applicationCurrency.toData(),
+                existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
+        this.journalEntryWritePlatformService.createJournalEntriesForLoan(accountingBridgeData);
+    }
 }

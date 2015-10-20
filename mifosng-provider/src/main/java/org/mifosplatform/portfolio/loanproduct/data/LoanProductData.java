@@ -5,12 +5,6 @@
  */
 package org.mifosplatform.portfolio.loanproduct.data;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.common.AccountingEnumerations;
 import org.mifosplatform.accounting.common.AccountingRuleType;
@@ -36,6 +30,12 @@ import org.mifosplatform.portfolio.loanproduct.domain.LoanProductConfigurableAtt
 import org.mifosplatform.portfolio.loanproduct.service.LoanEnumerations;
 import org.mifosplatform.portfolio.paymenttype.data.PaymentTypeData;
 import org.springframework.util.CollectionUtils;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Immutable data object to represent loan products.
@@ -104,6 +104,7 @@ public class LoanProductData {
     private final Integer minimumDaysBetweenDisbursalAndFirstRepayment;
     private final boolean canDefineInstallmentAmount;
     private final Integer installmentAmountInMultiplesOf;
+    private final boolean reverseOverdueDaysNPAInterest;
 
     // charges
     private final Collection<ChargeData> charges;
@@ -241,6 +242,7 @@ public class LoanProductData {
         final Integer installmentAmountInMultiplesOf = null;
         final LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
         final Collection<CreditCheckData> creditChecks = null;
+        final boolean reverseOverdueDaysNPAInterest = false;
 
         return new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
                 numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
@@ -256,7 +258,7 @@ public class LoanProductData {
                 loanProductConfigurableAttributes, isLinkedToFloatingInterestRates, floatingRateId, floatingRateName,
                 interestRateDifferential, minDifferentialLendingRate, defaultDifferentialLendingRate, maxDifferentialLendingRate,
                 isFloatingInterestRateCalculationAllowed, isVariableInstallmentsAllowed, minimumGap, maximumGap, 
-                creditChecks);
+                creditChecks, reverseOverdueDaysNPAInterest);
     }
 
     public static LoanProductData lookupWithCurrency(final Long id, final String name, final CurrencyData currency) {
@@ -330,6 +332,7 @@ public class LoanProductData {
         final Integer installmentAmountInMultiplesOf = null;
         final LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
         final Collection<CreditCheckData> creditChecks = null;
+        final boolean reverseOverdueDaysNPAInterest = false;
         
         return new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
                 numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
@@ -345,7 +348,7 @@ public class LoanProductData {
                 loanProductConfigurableAttributes, isLinkedToFloatingInterestRates, floatingRateId, floatingRateName,
                 interestRateDifferential, minDifferentialLendingRate, defaultDifferentialLendingRate, maxDifferentialLendingRate,
                 isFloatingInterestRateCalculationAllowed, isVariableInstallmentsAllowed, minimumGap, maximumGap, 
-                creditChecks);
+                creditChecks, reverseOverdueDaysNPAInterest);
     }
 
     public static LoanProductData sensibleDefaultsForNewLoanProductCreation() {
@@ -426,6 +429,7 @@ public class LoanProductData {
         final Integer installmentAmountInMultiplesOf = null;
         final LoanProductConfigurableAttributes loanProductConfigurableAttributes = null;
         final Collection<CreditCheckData> creditChecks = null;
+        final boolean reverseOverdueDaysNPAInterest = false;
 
         return new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
                 numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
@@ -441,7 +445,7 @@ public class LoanProductData {
                 installmentAmountInMultiplesOf, loanProductConfigurableAttributes, isLinkedToFloatingInterestRates, floatingRateId,
                 floatingRateName, interestRateDifferential, minDifferentialLendingRate, defaultDifferentialLendingRate,
                 maxDifferentialLendingRate, isFloatingInterestRateCalculationAllowed, isVariableInstallmentsAllowed, minimumGap, maximumGap, 
-                creditChecks);
+                creditChecks, reverseOverdueDaysNPAInterest);
     }
 
     public static LoanProductData withAccountingDetails(final LoanProductData productData, final Map<String, Object> accountingMappings,
@@ -480,7 +484,7 @@ public class LoanProductData {
             BigDecimal minDifferentialLendingRate, BigDecimal defaultDifferentialLendingRate, BigDecimal maxDifferentialLendingRate,
             boolean isFloatingInterestRateCalculationAllowed, final boolean isVariableInstallmentsAllowed,
             final Integer minimumGapBetweenInstallments, final Integer maximumGapBetweenInstallments, 
-            final Collection<CreditCheckData> creditChecks) {
+            final Collection<CreditCheckData> creditChecks, final boolean reverseOverdueDaysNPAInterest) {
         this.id = id;
         this.name = name;
         this.shortName = shortName;
@@ -580,6 +584,7 @@ public class LoanProductData {
         this.installmentAmountInMultiplesOf = installmentAmountInMultiplesOf;
         this.preClosureInterestCalculationStrategyOptions = null;
         this.creditCheckOptions = null;
+        this.reverseOverdueDaysNPAInterest = reverseOverdueDaysNPAInterest;
     }
 
     public LoanProductData(final LoanProductData productData, final Collection<ChargeData> chargeOptions,
@@ -593,7 +598,7 @@ public class LoanProductData {
             final List<EnumOptionData> daysInYearTypeOptions, final List<EnumOptionData> interestRecalculationCompoundingTypeOptions,
             final List<EnumOptionData> rescheduleStrategyTypeOptions, final List<EnumOptionData> interestRecalculationFrequencyTypeOptions,
             final List<EnumOptionData> preCloseInterestCalculationStrategyOptions, final List<FloatingRateData> floatingRateOptions, 
-            final Collection<CreditCheckData> creditCheckOptions) {
+            final Collection<CreditCheckData> creditCheckOptions, final boolean reverseOverdueDaysNPAInterest) {
         this.id = productData.id;
         this.name = productData.name;
         this.shortName = productData.shortName;
@@ -707,6 +712,7 @@ public class LoanProductData {
         } else {
             this.interestRecalculationFrequencyTypeOptions = interestRecalculationFrequencyTypeOptions;
         }
+        this.reverseOverdueDaysNPAInterest = reverseOverdueDaysNPAInterest;
 
         this.canDefineInstallmentAmount = productData.canDefineInstallmentAmount;
         this.installmentAmountInMultiplesOf = productData.installmentAmountInMultiplesOf;
@@ -1039,5 +1045,12 @@ public class LoanProductData {
      */
     public Collection<CreditCheckData> getCreditCheckOptions() {
         return creditCheckOptions;
+    }
+
+    /**
+     * @return the reverseOverdueDaysNPAInterest
+     */
+    public boolean isReverseOverdueDaysNPAInterest() {
+        return reverseOverdueDaysNPAInterest;
     }
 }

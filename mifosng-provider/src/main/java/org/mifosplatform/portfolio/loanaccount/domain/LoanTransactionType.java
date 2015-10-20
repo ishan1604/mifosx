@@ -38,7 +38,10 @@ public enum LoanTransactionType {
     REJECT_TRANSFER(15, "loanTransactionType.rejectTransfer"), //
     REFUND(16, "loanTransactionType.refund"), //
     CHARGE_PAYMENT(17, "loanTransactionType.chargePayment"),  //
-    REFUND_FOR_ACTIVE_LOAN(18, "loanTransactionType.refund");
+    REFUND_FOR_ACTIVE_LOAN(18, "loanTransactionType.refund"),
+    //suspend all accrued interest,charges and penalties
+    SUSPENDED_ACCRUED_INCOME(19,"loanTransactionType.suspendedIncome"),
+    REVERSE_SUSPENDED_ACCRUED_INCOME(20,"loanTransactionType.reverseSuspendedIncome");
 
     private final Integer value;
     private final String code;
@@ -113,6 +116,12 @@ public enum LoanTransactionType {
             case 18:
                 loanTransactionType = LoanTransactionType.REFUND_FOR_ACTIVE_LOAN;
             break;
+            case 19:
+                loanTransactionType = LoanTransactionType.SUSPENDED_ACCRUED_INCOME;
+            break;
+            case 20:
+                loanTransactionType = LoanTransactionType.REVERSE_SUSPENDED_ACCRUED_INCOME;
+            break;
             default:
                 loanTransactionType = LoanTransactionType.INVALID;
             break;
@@ -159,4 +168,7 @@ public enum LoanTransactionType {
     public boolean isRefundForActiveLoan() {
         return this.value.equals(LoanTransactionType.REFUND_FOR_ACTIVE_LOAN.getValue());
     }
+    public boolean isSuspendedIncome(){ return this.value.equals(LoanTransactionType.SUSPENDED_ACCRUED_INCOME.getValue());}
+
+    public boolean isReverseSuspendedIncome(){ return this.value.equals(LoanTransactionType.REVERSE_SUSPENDED_ACCRUED_INCOME.getValue());}
 }

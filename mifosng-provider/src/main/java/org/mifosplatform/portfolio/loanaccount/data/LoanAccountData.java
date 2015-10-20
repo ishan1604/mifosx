@@ -1572,4 +1572,10 @@ public class LoanAccountData {
     public LoanStatusEnumData getStatus() {
         return this.status;
     }
+
+    public Boolean isNPA() {return this.isNPA;}
+
+    public Collection<LoanTransactionData> getTransactions() {
+        return transactions;
+    }
 }

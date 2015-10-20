@@ -5,9 +5,11 @@
  */
 package org.mifosplatform.portfolio.loanaccount.domain;
 
-import java.math.BigDecimal;
-import java.util.Comparator;
-import java.util.Date;
+import org.joda.time.LocalDate;
+import org.mifosplatform.infrastructure.core.domain.AbstractAuditableCustom;
+import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
+import org.mifosplatform.organisation.monetary.domain.Money;
+import org.mifosplatform.useradministration.domain.AppUser;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -16,12 +18,9 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-
-import org.joda.time.LocalDate;
-import org.mifosplatform.infrastructure.core.domain.AbstractAuditableCustom;
-import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
-import org.mifosplatform.organisation.monetary.domain.Money;
-import org.mifosplatform.useradministration.domain.AppUser;
+import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.Date;
 
 @Entity
 @Table(name = "m_loan_repayment_schedule")
@@ -66,6 +65,9 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
     @Column(name = "accrual_interest_derived", scale = 6, precision = 19, nullable = true)
     private BigDecimal interestAccrued;
 
+    @Column(name = "suspended_interest_derived", scale = 6, precision = 19, nullable = true)
+    private BigDecimal suspendedInterest;
+
     @Column(name = "fee_charges_amount", scale = 6, precision = 19, nullable = true)
     private BigDecimal feeChargesCharged;
 
@@ -81,6 +83,9 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
     @Column(name = "accrual_fee_charges_derived", scale = 6, precision = 19, nullable = true)
     private BigDecimal feeAccrued;
 
+    @Column(name = "suspended_fee_charges_derived", scale = 6, precision = 19, nullable = true)
+    private BigDecimal suspendedFee;
+
     @Column(name = "penalty_charges_amount", scale = 6, precision = 19, nullable = true)
     private BigDecimal penaltyCharges;
 
@@ -95,6 +100,9 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
 
     @Column(name = "accrual_penalty_charges_derived", scale = 6, precision = 19, nullable = true)
     private BigDecimal penaltyAccrued;
+
+    @Column(name = "suspended_penalty_charges_derived", scale = 6, precision = 19, nullable = true)
+    private BigDecimal suspendedPenalty;
 
     @Column(name = "total_paid_in_advance_derived", scale = 6, precision = 19, nullable = true)
     private BigDecimal totalPaidInAdvance;
@@ -545,6 +553,12 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
         this.penaltyAccrued = defaultToNullIfZero(penalityCharges.getAmount());
     }
 
+    public void updateSuspendedPortion(final Money interest, final Money feeCharges,final Money penaltyCharges){
+        this.suspendedInterest  = defaultToNullIfZero(interest.getAmount());
+        this.suspendedFee       = defaultToNullIfZero(feeCharges.getAmount());
+        this.suspendedPenalty   = defaultToNullIfZero(penaltyCharges.getAmount());
+    }
+
     public void updateDerivedFields(final MonetaryCurrency currency, final LocalDate actualDisbursementDate) {
         if (!this.obligationsMet && getTotalOutstanding(currency).isZero()) {
             this.obligationsMet = true;
@@ -771,5 +785,15 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
     
     public Money getDue(MonetaryCurrency currency) {
         return getPrincipal(currency).plus(getInterestCharged(currency)).plus(getFeeChargesCharged(currency)).plus(getPenaltyChargesCharged(currency));
+    }
+
+    public Money getSuspendedInterest(final MonetaryCurrency currency) {
+        return Money.of(currency, this.suspendedInterest);
+    }
+    public Money getSuspendedFee(final MonetaryCurrency currency) {
+        return Money.of(currency, this.suspendedFee);
+    }
+    public Money getSuspendedPenalty(final MonetaryCurrency currency) {
+        return Money.of(currency, this.suspendedPenalty);
     }
 }

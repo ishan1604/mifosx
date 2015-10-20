@@ -251,6 +251,8 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                 updateChargesPaidAmountBy(loanTransaction, penaltyCharges, loanPenalties, installmentNumber);
             }
         }
+
+
         return transactionAmountUnprocessed;
     }
 
@@ -259,6 +261,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
         int installmentIndex = 0;
 
         final LocalDate transactionDate = loanTransaction.getTransactionDate();
+
         Money transactionAmountUnprocessed = loanTransaction.getAmount(currency);
         if (amountToProcess != null) {
             transactionAmountUnprocessed = amountToProcess;
@@ -287,6 +290,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                                 loanTransaction, transactionAmountUnprocessed, transactionMappings);
                     }
                 }
+
             }
 
             installmentIndex++;
@@ -618,5 +622,4 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
 
         return latestPaidCharge;
     }
-
 }

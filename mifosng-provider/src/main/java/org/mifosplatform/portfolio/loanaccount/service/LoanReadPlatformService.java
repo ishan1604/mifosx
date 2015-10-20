@@ -19,6 +19,7 @@ import org.mifosplatform.portfolio.loanaccount.data.DisbursementData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanAccountData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanApprovalData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanScheduleAccrualData;
+import org.mifosplatform.portfolio.loanaccount.data.LoanScheduleSuspendedAccruedIncomeData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanTermVariationsData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionData;
 import org.mifosplatform.portfolio.loanaccount.data.PaidInAdvanceData;
@@ -113,4 +114,12 @@ public interface LoanReadPlatformService {
     LoanTransactionData retrieveRefundByCashTemplate(Long loanId);
     
     Collection<InterestRatePeriodData> retrieveLoanInterestRatePeriodData(Long loanId);
+
+    Collection<Long> fetchNPALoans();
+
+    Collection<LoanScheduleSuspendedAccruedIncomeData> retrieveLoanScheduleForNPASuspendedIncome();
+
+    Collection<LoanScheduleSuspendedAccruedIncomeData> retrieveLoanScheduleForNPASuspendedIncome(Long loanId);
+
+    boolean doesLoanHaveSuspendedIncomeAndIsNpa(Long loanId);
 }

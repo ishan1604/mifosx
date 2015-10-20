@@ -32,6 +32,9 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.persistence.UniqueConstraint;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
@@ -53,9 +56,6 @@ import org.mifosplatform.portfolio.fund.domain.Fund;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.AprCalculator;
 import org.mifosplatform.portfolio.loanproduct.LoanProductConstants;
 import org.springframework.data.jpa.domain.AbstractPersistable;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 
 /**
  * Loan products allow for categorisation of an organisations loans into
@@ -175,6 +175,9 @@ public class LoanProduct extends AbstractPersistable<Long> {
     @LazyCollection(LazyCollectionOption.FALSE)
     @OneToOne(cascade = CascadeType.ALL, mappedBy = "loanProduct", optional = true, orphanRemoval = true)
     private LoanProductVariableInstallmentConfig variableInstallmentConfig;
+
+    @Column(name = "reverse_overduedays_npa_interest")
+    private boolean reverseOverdueDaysNPAInterest;
 
     public static LoanProduct assembleFromJson(final Fund fund, final LoanTransactionProcessingStrategy loanTransactionProcessingStrategy,
             final List<Charge> productCharges, final JsonCommand command, final AprCalculator aprCalculator, FloatingRate floatingRate, 
@@ -317,6 +320,8 @@ public class LoanProduct extends AbstractPersistable<Long> {
         final boolean canDefineEmiAmount = command.booleanPrimitiveValueOfParameterNamed(LoanProductConstants.canDefineEmiAmountParamName);
         final Integer installmentAmountInMultiplesOf = command
                 .integerValueOfParameterNamed(LoanProductConstants.installmentAmountInMultiplesOfParamName);
+        
+        final boolean reverseOverdueDaysNPAInterest = command.booleanPrimitiveValueOfParameterNamed("reverseOverdueDaysNPAInterest");
 
         return new LoanProduct(fund, loanTransactionProcessingStrategy, name, shortName, description, currency, principal, minPrincipal,
                 maxPrincipal, interestRatePerPeriod, minInterestRatePerPeriod, maxInterestRatePerPeriod, interestFrequencyType,
@@ -331,8 +336,7 @@ public class LoanProduct extends AbstractPersistable<Long> {
                 installmentAmountInMultiplesOf, loanConfigurableAttributes, isLinkedToFloatingInterestRates, floatingRate,
                 interestRateDifferential, minDifferentialLendingRate, maxDifferentialLendingRate, defaultDifferentialLendingRate,
                 isFloatingInterestRateCalculationAllowed, isVariableInstallmentsAllowed, minimumGapBetweenInstallments,
-                maximumGapBetweenInstallments, creditChecks);
-
+                maximumGapBetweenInstallments, creditChecks, reverseOverdueDaysNPAInterest);
     }
 
     public void updateLoanProductInRelatedClasses() {
@@ -563,7 +567,7 @@ public class LoanProduct extends AbstractPersistable<Long> {
             BigDecimal minDifferentialLendingRate, BigDecimal maxDifferentialLendingRate, BigDecimal defaultDifferentialLendingRate,
             Boolean isFloatingInterestRateCalculationAllowed, final Boolean isVariableInstallmentsAllowed,
             final Integer minimumGapBetweenInstallments, final Integer maximumGapBetweenInstallments, 
-            final List<CreditCheck> creditChecks) {
+            final List<CreditCheck> creditChecks, final boolean reverseOverdueDaysNPAInterest) {
         this.fund = fund;
         this.transactionProcessingStrategy = transactionProcessingStrategy;
         this.name = name.trim();
@@ -641,6 +645,7 @@ public class LoanProduct extends AbstractPersistable<Long> {
         if (creditChecks != null) {
             this.creditChecks = creditChecks;
         }
+        this.reverseOverdueDaysNPAInterest = reverseOverdueDaysNPAInterest;
     }
 
     public MonetaryCurrency getCurrency() {
@@ -1044,7 +1049,11 @@ public class LoanProduct extends AbstractPersistable<Long> {
             actualChanges.put("locale", localeAsInput);
             this.installmentAmountInMultiplesOf = newValue;
         }
-
+        if (command.isChangeInBooleanParameterNamed(LoanProductConstants.reverseOverdueDaysNPAInterestParameterName, this.reverseOverdueDaysNPAInterest)) {
+            final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(LoanProductConstants.reverseOverdueDaysNPAInterestParameterName);
+            actualChanges.put(LoanProductConstants.reverseOverdueDaysNPAInterestParameterName, newValue);
+            this.reverseOverdueDaysNPAInterest = newValue;
+        }
         return actualChanges;
     }
 
@@ -1368,4 +1377,8 @@ public class LoanProduct extends AbstractPersistable<Long> {
     public Collection<Charge> getCharges() {
         return this.charges;
     }
+
+    public boolean isReverseNPAInterestEnabled(){ return this.reverseOverdueDaysNPAInterest;}
+
+    public Integer getOverdueDaysForNPA() {return this.overdueDaysForNPA;}
 }
