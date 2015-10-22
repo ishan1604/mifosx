@@ -14,10 +14,7 @@ import org.mifosplatform.organisation.monetary.domain.ApplicationCurrencyReposit
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargeData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanScheduleSuspendedAccruedIncomeData;
 import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionEnumData;
-import org.mifosplatform.portfolio.loanaccount.domain.Loan;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallmentRepository;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanRepository;
-import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionType;
+import org.mifosplatform.portfolio.loanaccount.domain.*;
 import org.mifosplatform.portfolio.loanproduct.service.LoanEnumerations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -275,13 +272,27 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
 
     }
 
+    @Override
+    public void suspendedIncomeOutOfNPA(Loan loan, LoanTransaction newTransaction)
+    {
+        if(!loan.isNpa() && newTransaction.isAnyTypeOfRepayment())
+        {
+            return;
+        }
+        else
+        {
+            suspendedIncomeOutOfNPA(loan);
+        }
+
+    }
 
 
     @Override
     public void suspendedIncomeOutOfNPA(Loan loan) {
 
-        this.resetNPAStatus(loan.getId());
-        this.updateNPAStatus(loan.getId());
+        if(loan.isNpa()) {
+            this.resetNPAStatus(loan.getId());
+        }
 
         // Only check to unsuspend income when the loan has this enabled:
         if(loan.getLoanProduct().isReverseNPAInterestEnabled()) {
@@ -329,8 +340,10 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
             }
         }
 
-        // Update NPA status again:
-        this.resetNPAStatus(loan.getId());
+        if(loan.isNpa()) {
+            this.resetNPAStatus(loan.getId());
+        }
+
         this.updateNPAStatus(loan.getId());
 
     }

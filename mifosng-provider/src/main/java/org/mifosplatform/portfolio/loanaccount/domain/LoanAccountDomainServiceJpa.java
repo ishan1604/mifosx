@@ -232,7 +232,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
         /**
          * calculate suspended income to (opposite booking) if loan has suspended income (interest + fees + penalties)
          */
-        this.loanSuspendAccruedIncomeWritePlatformService.suspendedIncomeOutOfNPA(loan);
+        this.loanSuspendAccruedIncomeWritePlatformService.suspendedIncomeOutOfNPA(loan, newRepaymentTransaction);
 
 
 

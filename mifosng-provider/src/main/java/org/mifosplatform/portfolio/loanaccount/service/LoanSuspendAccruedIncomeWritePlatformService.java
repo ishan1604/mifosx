@@ -6,6 +6,7 @@
 package org.mifosplatform.portfolio.loanaccount.service;
 
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
 
 public interface LoanSuspendAccruedIncomeWritePlatformService {
 
@@ -20,6 +21,8 @@ public interface LoanSuspendAccruedIncomeWritePlatformService {
      * @param loan
      */
     void suspendedIncomeOutOfNPA(Loan loan);
+
+    void suspendedIncomeOutOfNPA(Loan loan, LoanTransaction newTransaction);
 
     void updateNPAStatus(Long loanId);
 
