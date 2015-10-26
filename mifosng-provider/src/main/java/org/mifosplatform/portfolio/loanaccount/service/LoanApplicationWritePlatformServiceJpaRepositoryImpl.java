@@ -573,6 +573,11 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                 existingLoanApplication.updateLoanCollateral(loanCollateral);
             }
 
+            final String chargesParamName = "charges";
+            if (changes.containsKey(chargesParamName)) {
+                existingLoanApplication.updateLoanCharges(possiblyModifedLoanCharges);
+            }
+
             if (changes.containsKey("recalculateLoanSchedule")) {
                 changes.remove("recalculateLoanSchedule");
 
@@ -584,10 +589,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                 existingLoanApplication.recalculateAllCharges();
             }
 
-            final String chargesParamName = "charges";
-            if (changes.containsKey(chargesParamName)) {
-                existingLoanApplication.updateLoanCharges(possiblyModifedLoanCharges);
-            }
+
 
 
             final String groupLoanMemberAllocationParamName = "groupMemberAllocation";
