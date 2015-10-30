@@ -282,7 +282,12 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
         final Long officeId = journalEntries.get(0).getOffice().getId();
         final String reversalTransactionId = generateTransactionId(officeId);
         final boolean manualEntry = true;
-        String reversalComment = command.stringValueOfParameterNamed("comments");
+        String reversalComment = null;
+        
+        if (command.hasParameter(JournalEntryJsonInputParams.COMMENTS.getValue())) {
+            reversalComment = command.stringValueOfParameterNamed(JournalEntryJsonInputParams.COMMENTS.getValue());
+        }
+
         final boolean useDefaultComment = StringUtils.isBlank(reversalComment);
 
         validateCommentForReversal(reversalComment);
