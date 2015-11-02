@@ -9,7 +9,8 @@ package org.mifosplatform.infrastructure.accountnumberformat.domain;
 public enum CustomAccountType {
     INVALID(0,"invalid"),LOAN_PRODUCT_SHORT_NAME(1,"loanProductShortName"), STAFF_ID(2,"staffId"),OFFICE_ID(3,"officeId"),
     CLIENT_ID(4,"clientId"),OFFICE_EXTERNAL_ID(5,"officeExternal_id"),CLIENT_TYPE(6,"individual"),
-    SAVING_PRODUCT_SHORT_NAME(7,"savingsProductShortName"),LOAN_PRODUCT(8,"loanProduct"),SAVINGS_PRODUCT(9,"savingsProduct");
+    SAVING_PRODUCT_SHORT_NAME(7,"savingsProductShortName"),LOAN_PRODUCT(8,"loanProduct"),SAVINGS_PRODUCT(9,"savingsProduct"),
+    GROUP_TYPE(10,"group_type");
 
     private final Integer value;
     private final String code;
@@ -52,6 +53,9 @@ public enum CustomAccountType {
                 break;
             case 9:
                 customAccountType = CustomAccountType.SAVINGS_PRODUCT;
+                break;
+            case 10:
+                customAccountType= CustomAccountType.GROUP_TYPE;
                 break;
         }
         return customAccountType;

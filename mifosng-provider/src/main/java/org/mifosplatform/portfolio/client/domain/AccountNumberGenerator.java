@@ -88,6 +88,7 @@ public class AccountNumberGenerator {
         customMap.put(CustomAccountType.OFFICE_ID.getValue(),group.getOffice().getId().toString());
         customMap.put(CustomAccountType.STAFF_ID.getValue(),group.getStaff().getId().toString());
         customMap.put(CustomAccountType.OFFICE_EXTERNAL_ID.getValue(),group.getOffice().getExternalId());
+        customMap.put(CustomAccountType.GROUP_TYPE.getValue(),"GRP");
         final String delimiter = this.delimiter(accountNumberFormat.getCustomPattern());
         return generateCustomNumber(customMap,accountNumberFormat,delimiter);
     }
@@ -165,13 +166,6 @@ public class AccountNumberGenerator {
         return accountNumber;
     }
     
-    public String generateGroupAccountNumber(Group group, AccountNumberFormat accountNumberFormat) {
-    	Map<String, String> propertyMap = new HashMap<>();
-        propertyMap.put(ID, group.getId().toString());
-        propertyMap.put(OFFICE_NAME, group.getOffice().getName());        
-        return generateAccountNumber(propertyMap, accountNumberFormat);
-    }
-    
     public String generateCenterAccountNumber(Group group, AccountNumberFormat accountNumberFormat) {
     	Map<String, String> propertyMap = new HashMap<>();
         propertyMap.put(ID, group.getId().toString());
@@ -199,15 +193,19 @@ public class AccountNumberGenerator {
         return accountNumber;
     }
 
+    public String generateGroupAccountNumber(Group group, AccountNumberFormat accountNumberFormat) {
+        Map<String, String> propertyMap = new HashMap<>();
+        propertyMap.put(ID, group.getId().toString());
+        propertyMap.put(OFFICE_NAME, group.getOffice().getName());
+        return generateAccountNumber(propertyMap, accountNumberFormat);
+    }
+
 
     private String leftPadFormat(Map<Object, String> propertyMap, Integer mapObject,int zeroPadding){
         String leftPadFormat ="";
-        if(mapObject.equals(5) || mapObject.equals(1) || mapObject.equals(7) || mapObject.equals(6)){
+        if(mapObject.equals(5) || mapObject.equals(1) || mapObject.equals(7) || mapObject.equals(6)|| mapObject.equals(10)){
             leftPadFormat = propertyMap.get(mapObject);
         }else{ leftPadFormat  = StringUtils.leftPad(propertyMap.get(mapObject),zeroPadding,'0');}
         return leftPadFormat;
     }
-
-
-
 }

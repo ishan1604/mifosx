@@ -216,7 +216,7 @@ public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements Group
             generateAccountNumberIfRequired(newGroup);
 
             //update externalId
-            if(newGroup.isAccountNumberRequiresAutoGeneration()){
+            if(newGroup.isAccountNumberRequiresAutoGeneration() && newGroup.isGroup()){
                 generateAccountNumber(newGroup);
             }
 
@@ -949,6 +949,8 @@ public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements Group
             final AccountNumberFormat accountNumberFormat = this.accountNumberFormatRepository.findByAccountType(EntityAccountType.GROUP);
             if(accountNumberFormat !=null && accountNumberFormat.getCustomPattern() !=null){
                 group.updateExternalId(this.accountNumberGenerator.generateCustom(group, accountNumberFormat));
+            }else{
+                group.updateExternalId(this.accountNumberGenerator.generateGroupAccountNumber(group,accountNumberFormat));
             }
             this.groupRepository.save(group);
         }
