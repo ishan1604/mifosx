@@ -404,13 +404,20 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
             BigDecimal totalGuaranteeAmount = loan.getGuaranteeAmount();
             BigDecimal principal = loan.getPrincpal().getAmount();
 
-            amountForRelease = amountForRelease.multiply(totalGuaranteeAmount).divide(principal);
+            if (amountForRelease != null) {
+                amountForRelease = amountForRelease.multiply(totalGuaranteeAmount).divide(principal);
+            }
+            
+            else {
+                amountForRelease = BigDecimal.ZERO;
+            }
+            
             List<DepositAccountOnHoldTransaction> accountOnHoldTransactions = new ArrayList<>();
 
             BigDecimal amountLeft = calculateAndRelaseGuarantorFunds(externalGuarantorList, guarantorGuarantee, amountForRelease,
                     loanTransaction, accountOnHoldTransactions);
 
-            if (amountLeft.compareTo(BigDecimal.ZERO) == 1) {
+            if (amountLeft != null && amountLeft.compareTo(BigDecimal.ZERO) == 1) {
                 calculateAndRelaseGuarantorFunds(selfGuarantorList, selfGuarantee, amountLeft, loanTransaction, accountOnHoldTransactions);
                 externalGuarantorList.addAll(selfGuarantorList);
             }
