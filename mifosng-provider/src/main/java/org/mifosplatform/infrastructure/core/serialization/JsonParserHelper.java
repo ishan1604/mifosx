@@ -37,8 +37,13 @@ import com.google.gson.JsonPrimitive;
 public class JsonParserHelper {
 
     public boolean parameterExists(final String parameterName, final JsonElement element) {
-        if (element == null) { return false; }
-        return element.getAsJsonObject().has(parameterName);
+        boolean parameterExists = false;
+        
+        if (element != null && element.isJsonObject()) {
+            parameterExists = element.getAsJsonObject().has(parameterName);
+        }
+        
+        return parameterExists;
     }
 
     public Boolean extractBooleanNamed(final String parameterName, final JsonElement element, final Set<String> requestParamatersDetected) {
