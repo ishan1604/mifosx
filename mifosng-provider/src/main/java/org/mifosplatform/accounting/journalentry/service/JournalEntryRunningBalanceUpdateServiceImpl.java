@@ -54,9 +54,9 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
     private final FromJsonHelper fromApiJsonHelper;
 
     private final GLJournalEntryMapper entryMapper = new GLJournalEntryMapper();
-    
-    private final String selectRunningBalanceSqlLimit = "limit 0, 10000";
-    
+
+    private final String selectRunningBalanceSqlLimit = "limit 0, 100000";
+
     private final String officeRunningBalanceSql = "select je.office_running_balance as runningBalance,je.account_id as accountId from acc_gl_journal_entry je "
             + "inner join (select max(id) as id from acc_gl_journal_entry where office_id=?  and entry_date < ? group by account_id,entry_date) je2 "
             + "inner join (select max(entry_date) as date from acc_gl_journal_entry where office_id=? and entry_date < ? group by account_id) je3 "
@@ -199,6 +199,11 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
             String sql = "UPDATE acc_gl_journal_entry je SET je.office_running_balance=" + runningBalance + " WHERE  je.id="
                     + entryData.getId();
             updateSql[i++] = sql;
+            if(i == 999){
+                this.jdbcTemplate.batchUpdate(updateSql);
+                i = 0;
+                updateSql = new String[1000];
+            }
         }
         this.jdbcTemplate.batchUpdate(updateSql);
     }
@@ -249,7 +254,7 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
 
     private static final class GLJournalEntryMapper implements RowMapper<JournalEntryData> {
 
-        private final String selectRunningBalanceSqlLimit = " limit 0, 10000";
+        private final String selectRunningBalanceSqlLimit = " limit 0, 100000";
 
         public String officeRunningBalanceSchema() {
             return "select je.id as id,je.account_id as glAccountId,je.type_enum as entryType,je.amount as amount, "
