@@ -5,8 +5,12 @@
  */
 package org.mifosplatform.portfolio.savings.domain;
 
-import java.math.BigDecimal;
-import java.util.Date;
+import org.joda.time.LocalDate;
+import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
+import org.mifosplatform.organisation.monetary.domain.Money;
+import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFundingTransaction;
+import org.mifosplatform.portfolio.savings.DepositAccountOnHoldTransactionType;
+import org.springframework.data.jpa.domain.AbstractPersistable;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -17,11 +21,8 @@ import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-
-import org.joda.time.LocalDate;
-import org.mifosplatform.portfolio.loanaccount.guarantor.domain.GuarantorFundingTransaction;
-import org.mifosplatform.portfolio.savings.DepositAccountOnHoldTransactionType;
-import org.springframework.data.jpa.domain.AbstractPersistable;
+import java.math.BigDecimal;
+import java.util.Date;
 
 @Entity
 @Table(name = "m_deposit_account_on_hold_transaction")
@@ -80,6 +81,9 @@ public class DepositAccountOnHoldTransaction extends AbstractPersistable<Long> {
     public BigDecimal getAmount() {
         return this.amount;
     }
+    public Money getAmountMoney(final MonetaryCurrency currency) {
+        return Money.of(currency, this.amount);
+    }
 
     public void reverseTransaction() {
         this.reversed = true;
@@ -95,4 +99,15 @@ public class DepositAccountOnHoldTransaction extends AbstractPersistable<Long> {
 
     }
 
+    public LocalDate getTransactionDate() {
+        LocalDate transactionDate = null;
+        if(this.transactionDate !=null){
+            transactionDate = LocalDate.fromDateFields(this.transactionDate);
+        }
+        return transactionDate;
+    }
+
+    public void setTransactionDate(Date transactionDate) {
+        this.transactionDate = transactionDate;
+    }
 }
