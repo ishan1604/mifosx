@@ -1437,11 +1437,6 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         this.loanEventApiJsonValidator.validateInstallmentChargeTransaction(command.json());
         final LoanCharge loanCharge = retrieveLoanChargeBy(loanId, loanChargeId);
 
-        // Charges may be waived only when the loan associated with them are
-        // active
-        if (!loan.status().isActive()) { throw new LoanChargeCannotBeWaivedException(LOAN_CHARGE_CANNOT_BE_WAIVED_REASON.LOAN_INACTIVE,
-                loanCharge.getId()); }
-
         // validate loan charge is not already paid or waived
         if (loanCharge.isWaived()) {
             throw new LoanChargeCannotBeWaivedException(LOAN_CHARGE_CANNOT_BE_WAIVED_REASON.ALREADY_WAIVED, loanCharge.getId());
@@ -1491,11 +1486,10 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 existingTransactionIds, existingReversedTransactionIds, loanInstallmentNumber, scheduleGeneratorDTO, accruedCharge, currentUser);
 
         saveLoanWithDataIntegrityViolationChecks(loan);
-        
+
         if (changedTransactionDetail != null) {
         	for (final Map.Entry<Long, LoanTransaction> mapEntry : changedTransactionDetail.getNewTransactionMappings().entrySet()) {
         		this.loanTransactionRepository.save(mapEntry.getValue());
-        		// update loan with references to the newly created transactions
         		loan.getLoanTransactions().add(mapEntry.getValue());
         		this.accountTransfersWritePlatformService.updateLoanTransaction(mapEntry.getKey(), mapEntry.getValue());
         	}
