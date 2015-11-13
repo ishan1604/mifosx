@@ -117,6 +117,8 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
             accountsSummary.append("sa.id as id, sa.account_no as accountNo, sa.external_id as externalId, sa.status_enum as statusEnum, ");
             accountsSummary.append("sa.account_type_enum as accountType, ");
             accountsSummary.append("sa.account_balance_derived as accountBalance, ");
+            accountsSummary.append("sa.on_hold_funds_derived as onHoldFunds, ");
+
 
             accountsSummary.append("sa.submittedon_date as submittedOnDate,");
             accountsSummary.append("sbu.username as submittedByUsername,");
@@ -220,6 +222,8 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
             final String closedByUsername = rs.getString("closedByUsername");
             final String closedByFirstname = rs.getString("closedByFirstname");
             final String closedByLastname = rs.getString("closedByLastname");
+            final BigDecimal onHoldFunds = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "onHoldFunds");
+
 
             final SavingsAccountApplicationTimelineData timeline = new SavingsAccountApplicationTimelineData(submittedOnDate,
                     submittedByUsername, submittedByFirstname, submittedByLastname, rejectedOnDate, rejectedByUsername,
@@ -229,7 +233,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     closedByLastname);
 
             return new SavingsAccountSummaryData(id, accountNo, externalId, productId, productName, shortProductName, status, currency, accountBalance,
-                    accountTypeData, timeline, depositTypeData);
+                    accountTypeData, timeline, depositTypeData,onHoldFunds);
         }
     }
 
