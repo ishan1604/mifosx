@@ -1049,8 +1049,6 @@ public class Loan extends AbstractPersistable<Long> {
             final Integer loanInstallmentNumber, final ScheduleGeneratorDTO scheduleGeneratorDTO, final Money accruedCharge,
             final AppUser currentUser) {
 
-        validateLoanIsNotClosed(loanCharge);
-
         final Money amountWaived = loanCharge.waive(loanCurrency(), loanInstallmentNumber);
 
         changes.put("amount", amountWaived.getAmount());
@@ -1124,19 +1122,25 @@ public class Loan extends AbstractPersistable<Long> {
             changedTransactionDetail = loanRepaymentScheduleTransactionProcessor.handleTransaction(getDisbursementDate(),
                     allNonContraTransactionsPostDisbursement, getCurrency(), this.repaymentScheduleInstallments, charges(), 
                     getLastUserTransactionForChargeCalc());
-                    
-            LoanTransaction loanTransaction = findlatestTransaction();
-            doPostLoanTransactionChecks(loanTransaction.getTransactionDate(), loanLifecycleStateMachine);
+
+            this.loanTransactions.addAll(changedTransactionDetail.getNewTransactionMappings().values());
+
+
         } else {
             // reprocess loan schedule based on charge been waived.
             final LoanRepaymentScheduleProcessingWrapper wrapper = new LoanRepaymentScheduleProcessingWrapper();
             wrapper.reprocess(getCurrency(), getDisbursementDate(), this.repaymentScheduleInstallments, charges(), 
                     getLastUserTransactionForChargeCalc());
-            
-            doPostLoanTransactionChecks(waiveLoanChargeTransaction.getTransactionDate(), loanLifecycleStateMachine);
         }
 
+        LoanTransaction loanTransaction = findlatestTransaction();
+        doPostLoanTransactionChecks(loanTransaction.getTransactionDate(), loanLifecycleStateMachine);
+
         updateLoanSummaryDerivedFields();
+
+        if (changedTransactionDetail != null) {
+            this.loanTransactions.removeAll(changedTransactionDetail.getNewTransactionMappings().values());
+        }
 
         return changedTransactionDetail;
     }
