@@ -746,10 +746,10 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                     List<Long> existingTransactionIds = new ArrayList<Long>(loan.findExistingTransactionIds());
                     List<Long> existingReversedTransactionIds = new ArrayList<Long>(loan.findExistingReversedTransactionIds());
                     for(final LoanTransaction loanTransaction :this.loanTransactionRepository.currentTransferTransaction(loan.getId())){
-                        if(loanTransaction.getTypeOf().equals(LoanTransactionType.INITIATE_TRANSFER)){
+                        if(loanTransaction.getTypeOf().equals(LoanTransactionType.INITIATE_TRANSFER) && loanTransaction.isNotReversed()){
                             loanTransaction.reverse();
                         }
-                        if(loanTransaction.getTypeOf().equals(LoanTransactionType.APPROVE_TRANSFER)){
+                        if(loanTransaction.getTypeOf().equals(LoanTransactionType.APPROVE_TRANSFER) && loanTransaction.isNotReversed()){
                             loanTransaction.reverse();
                         }
                     }
@@ -764,10 +764,10 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                     Set<Long> existingTransactionIds = new HashSet<Long>(savingsAccount.findExistingTransactionIds());
                     Set<Long> existingReversedTransactionIds = new HashSet<Long>(savingsAccount.findExistingReversedTransactionIds());
                     for(SavingsAccountTransaction savingsAccountTransaction: this.savingsAccountTransactionRepository.currentTransferTransaction(savingsAccount.getId())){
-                        if(savingsAccountTransaction.isTransferInitiation()){
+                        if(savingsAccountTransaction.isTransferInitiation() && savingsAccountTransaction.isNotReversed()){
                             savingsAccountTransaction.reverse();
                         }
-                        if(savingsAccountTransaction.isTransferApproval()){
+                        if(savingsAccountTransaction.isTransferApproval() && savingsAccountTransaction.isNotReversed()){
                             savingsAccountTransaction.reverse();
                         }
                     }
