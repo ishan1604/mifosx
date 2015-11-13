@@ -55,23 +55,21 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
 
     private final GLJournalEntryMapper entryMapper = new GLJournalEntryMapper();
     
-    private final String selectRunningBalanceSqlLimit = "limit 0, 10000";
-    
     private final String officeRunningBalanceSql = "select je.office_running_balance as runningBalance,je.account_id as accountId from acc_gl_journal_entry je "
             + "inner join (select max(id) as id from acc_gl_journal_entry where office_id=?  and entry_date < ? group by account_id,entry_date) je2 "
             + "inner join (select max(entry_date) as date from acc_gl_journal_entry where office_id=? and entry_date < ? group by account_id) je3 "
-            + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC " + selectRunningBalanceSqlLimit;
+            + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC " ;
 
     private final String organizationRunningBalanceSql = "select je.organization_running_balance as runningBalance,je.account_id as accountId from acc_gl_journal_entry je "
             + "inner join (select max(id) as id from acc_gl_journal_entry where entry_date < ? group by account_id,entry_date) je2 "
             + "inner join (select max(entry_date) as date from acc_gl_journal_entry where entry_date < ? group by account_id) je3 "
-            + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC " + selectRunningBalanceSqlLimit;
+            + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC " ;
 
     private final String officesRunningBalanceSql = "select je.office_running_balance as runningBalance,je.account_id as accountId,je.office_id as officeId "
             + "from acc_gl_journal_entry je "
             + "inner join (select max(id) as id from acc_gl_journal_entry where entry_date < ? group by office_id,account_id,entry_date) je2 "
             + "inner join (select max(entry_date) as date from acc_gl_journal_entry where entry_date < ? group by office_id,account_id) je3 "
-            + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC " + selectRunningBalanceSqlLimit;
+            + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC " ;
 
     @Autowired
     public JournalEntryRunningBalanceUpdateServiceImpl(final RoutingDataSource dataSource, final OfficeRepository officeRepository,
@@ -155,6 +153,7 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
         if (entryDatas.size() > 0) {
             String[] updateSql = new String[1000];
             int i = 0;
+            int j = 0;
             for (JournalEntryData entryData : entryDatas) {
                 Map<Long, BigDecimal> officeRunningBalanceMap = null;
                 if (officesRunningBalance.containsKey(entryData.getOfficeId())) {
@@ -171,8 +170,17 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
                 if(i == 999){
                     this.jdbcTemplate.batchUpdate(updateSql);
                     i = 0;
+                    j++;
                     updateSql = new String[1000];
                 }
+
+                // Stop running after 100.000 entries to avoid any major performance hits:
+                if(j == 100)
+                {
+                    logger.debug("Updated 100.000 entries, stopping further processing for office: " + entryData.getOfficeId());
+                    continue;
+                }
+
             }
             this.jdbcTemplate.batchUpdate(updateSql);
         }
@@ -194,11 +202,25 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
                 officeId, entityDate });
         String[] updateSql = new String[entryDatas.size()];
         int i = 0;
+        int j = 0;
         for (JournalEntryData entryData : entryDatas) {
             BigDecimal runningBalance = calculateRunningBalance(entryData, runningBalanceMap);
             String sql = "UPDATE acc_gl_journal_entry je SET je.office_running_balance=" + runningBalance + " WHERE  je.id="
                     + entryData.getId();
             updateSql[i++] = sql;
+            if(i == 999){
+                this.jdbcTemplate.batchUpdate(updateSql);
+                i = 0;
+                j++;
+                updateSql = new String[1000];
+            }
+
+            // Stop running after 100.000 entries to avoid any major performance hits:
+            if(j == 100)
+            {
+                logger.debug("Updated 100.000 entries, stopping further processing for organization running balances");
+                continue;
+            }
         }
         this.jdbcTemplate.batchUpdate(updateSql);
     }
@@ -249,20 +271,18 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
 
     private static final class GLJournalEntryMapper implements RowMapper<JournalEntryData> {
 
-        private final String selectRunningBalanceSqlLimit = " limit 0, 10000";
-
         public String officeRunningBalanceSchema() {
             return "select je.id as id,je.account_id as glAccountId,je.type_enum as entryType,je.amount as amount, "
                     + "glAccount.classification_enum as classification,je.office_id as officeId "
                     + "from acc_gl_journal_entry je , acc_gl_account glAccount " + "where je.account_id = glAccount.id "
-                    + "and je.office_id=? and je.entry_date >= ? order by je.entry_date,je.id" + selectRunningBalanceSqlLimit;
+                    + "and je.office_id=? and je.entry_date >= ? order by je.entry_date,je.id";
         }
 
         public String organizationRunningBalanceSchema() {
             return "select je.id as id,je.account_id as glAccountId," + "je.type_enum as entryType,je.amount as amount, "
                     + "glAccount.classification_enum as classification,je.office_id as officeId  "
                     + "from acc_gl_journal_entry je , acc_gl_account glAccount " + "where je.account_id = glAccount.id "
-                    + "and je.entry_date >= ? order by je.entry_date,je.id" + selectRunningBalanceSqlLimit;
+                    + "and je.entry_date >= ? order by je.entry_date,je.id";
         }
 
         @Override
