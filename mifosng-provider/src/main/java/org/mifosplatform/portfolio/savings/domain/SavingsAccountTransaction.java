@@ -102,6 +102,10 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
     @JoinColumn(name = "appuser_id", nullable = true)
     private AppUser appUser;
 
+
+    @Column(name = "manually_adjusted_or_reversed", nullable = false)
+    private boolean manuallyAdjustedOrReversed;
+
     protected SavingsAccountTransaction() {
         this.dateOf = null;
         this.typeOf = null;
@@ -213,7 +217,9 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
         this.paymentDetail = paymentDetail;
         this.createdDate = createdDate;
         this.appUser = appUser;
+        this.manuallyAdjustedOrReversed = false;
     }
+
 
     public LocalDate transactionLocalDate() {
         return new LocalDate(this.dateOf);
@@ -221,6 +227,12 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
 
     public void reverse() {
         this.reversed = true;
+    }
+
+    public void manuallyReverse(){
+
+        this.reversed = true;
+        this.manuallyAdjustedOrReversed = true;
     }
 
     public Money getAmount(final MonetaryCurrency currency) {
