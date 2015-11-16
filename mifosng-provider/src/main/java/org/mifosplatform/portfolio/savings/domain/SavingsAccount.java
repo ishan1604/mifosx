@@ -1705,6 +1705,38 @@ public class SavingsAccount extends AbstractPersistable<Long> {
         return actualChanges;
     }
 
+
+    public void undoTransaction(final Long transactionId, final boolean manuallyReverse) {
+
+        SavingsAccountTransaction transactionToUndo = null;
+        for (final SavingsAccountTransaction transaction : this.transactions) {
+            if (transaction.isIdentifiedBy(transactionId)) {
+                transactionToUndo = transaction;
+            }
+        }
+
+        if (transactionToUndo == null) { throw new SavingsAccountTransactionNotFoundException(this.getId(), transactionId); }
+
+        validateAttemptToUndoTransferRelatedTransactions(transactionToUndo);
+        validateActivityNotBeforeClientOrGroupTransferDate(SavingsEvent.SAVINGS_UNDO_TRANSACTION, transactionToUndo.transactionLocalDate());
+
+        if(manuallyReverse) transactionToUndo.manuallyReverse();
+        else transactionToUndo.reverse();
+
+        if (transactionToUndo.isChargeTransaction() || transactionToUndo.isWaiveCharge()) {
+            // undo charge
+            final Set<SavingsAccountChargePaidBy> chargesPaidBy = transactionToUndo.getSavingsAccountChargesPaid();
+            for (final SavingsAccountChargePaidBy savingsAccountChargePaidBy : chargesPaidBy) {
+                final SavingsAccountCharge chargeToUndo = savingsAccountChargePaidBy.getSavingsAccountCharge();
+                if (transactionToUndo.isChargeTransaction()) {
+                    chargeToUndo.undoPayment(this.getCurrency(), transactionToUndo.getAmount(this.getCurrency()));
+                } else if (transactionToUndo.isWaiveCharge()) {
+                    chargeToUndo.undoWaiver(this.getCurrency(), transactionToUndo.getAmount(this.getCurrency()));
+                }
+            }
+        }
+    }
+
     public void undoTransaction(final Long transactionId) {
 
         SavingsAccountTransaction transactionToUndo = null;
