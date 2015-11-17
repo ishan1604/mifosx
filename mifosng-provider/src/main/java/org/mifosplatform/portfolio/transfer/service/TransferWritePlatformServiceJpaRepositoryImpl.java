@@ -296,6 +296,7 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         this.clientRepository.save(client);
 
         return new CommandProcessingResultBuilder() //
+                .withOfficeId(client.officeId())
                 .withClientId(clientId) //
                 .withEntityId(clientId) //
                 .build();
@@ -326,6 +327,7 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         this.clientRepository.save(client);
 
         return new CommandProcessingResultBuilder() //
+                .withOfficeId(client.officeId())
                 .withClientId(clientId) //
                 .withEntityId(clientId) //
                 .build();
@@ -355,6 +357,7 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         this.clientRepository.save(client);
 
         return new CommandProcessingResultBuilder() //
+                .withOfficeId(client.officeId())
                 .withClientId(clientId) //
                 .withEntityId(clientId) //
                 .build();
@@ -372,6 +375,7 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         this.clientRepository.save(client);
 
         return new CommandProcessingResultBuilder() //
+                .withOfficeId(client.officeId())
                 .withClientId(clientId) //
                 .withEntityId(clientId) //
                 .build();
@@ -387,6 +391,7 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         this.clientRepository.save(client);
 
         return new CommandProcessingResultBuilder() //
+                .withOfficeId(client.officeId())
                 .withClientId(clientId) //
                 .withEntityId(clientId) //
                 .build();
@@ -541,7 +546,7 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         if (!client.isTransferInProgressOrOnHold()) { throw new ClientNotAwaitingTransferApprovalOrOnHoldException(client.getId()); }
     }
 
-	/**
+    /**
      * private void validateGroupAwaitingTransferAcceptanceOnHold(final Group
      * group) { if (!group.isTransferInProgressOrOnHold()) { throw new
      * ClientNotAwaitingTransferApprovalException(group.getId()); } }
@@ -601,6 +606,7 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
 
         return new CommandProcessingResultBuilder() //
                 .withGroupId(sourceGroupId)
+                .withOfficeId(sourceGroup.officeId())
                 .withEntityId(sourceGroupId) //
                 .build();
     }
@@ -685,6 +691,7 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         this.undoClientTransfer(client,clientId);
 
         return new CommandProcessingResultBuilder() //
+                .withOfficeId(client.officeId())
                 .withClientId(clientId) //
                 .withEntityId(clientId) //
                 .build();
@@ -879,6 +886,7 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         this.undoTransferRepository.save(groupUndoTransfer);
 
         return new CommandProcessingResultBuilder() //
+                .withOfficeId(group.officeId())
                 .withGroupId(groupId) //
                 .withEntityId(groupId) //
                 .build();
