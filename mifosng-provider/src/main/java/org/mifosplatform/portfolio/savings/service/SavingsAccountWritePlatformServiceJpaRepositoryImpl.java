@@ -461,7 +461,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         if (account.isNotActive()) {
             throwValidationForActiveStatus(SavingsApiConstants.undoTransactionAction);
         }
-        account.undoTransaction(transactionId,true);
+        account.undoTransaction(transactionId);
 
         // undoing transaction is withdrawal then undo withdrawal fee
         // transaction if any

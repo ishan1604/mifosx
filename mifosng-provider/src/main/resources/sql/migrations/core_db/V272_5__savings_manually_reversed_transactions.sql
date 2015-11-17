@@ -1,1 +1,0 @@
-Alter table m_savings_account_transaction Add column manually_adjusted_or_reversed tinyint(1) default 0;
