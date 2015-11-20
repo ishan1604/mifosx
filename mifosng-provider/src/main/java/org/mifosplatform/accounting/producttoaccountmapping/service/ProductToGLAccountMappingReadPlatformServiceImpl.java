@@ -50,7 +50,7 @@ public class ProductToGLAccountMappingReadPlatformServiceImpl implements Product
                     + " charge.name as chargeName "
                     + " from acc_product_mapping mapping left join m_charge charge on mapping.charge_id=charge.id "
                     + " left join acc_gl_account as  glaccount on mapping.gl_account_id = glaccount.id"
-                    + " left join m_code_value cv on mapping.payment_type=cv.id" + " where mapping.product_type= ? ";
+                    + " right join m_code_value cv on mapping.payment_type=cv.id and cv.is_deleted=0" + " where mapping.product_type= ? ";
         }
 
         @Override
