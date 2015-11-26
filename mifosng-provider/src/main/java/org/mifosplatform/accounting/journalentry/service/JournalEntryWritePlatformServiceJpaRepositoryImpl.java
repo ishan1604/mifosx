@@ -5,13 +5,6 @@
  */
 package org.mifosplatform.accounting.journalentry.service;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.closure.domain.GLClosure;
@@ -57,6 +50,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements JournalEntryWritePlatformService {
@@ -435,4 +435,66 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
                 "Unknown data integrity issue with resource Journal Entry: " + realCause.getMessage());
     }
 
+    private void debitOrCreditEntriesForIncomeAndExpenseBooking(final JournalEntryCommand command, final Office office, final PaymentDetail paymentDetail,
+            final String currencyCode, final Date transactionDate, final SingleDebitOrCreditEntryCommand[] singleDebitOrCreditEntryCommands,
+            final String transactionId, final JournalEntryType type, final String referenceNumber){
+        final boolean manualEntry = true;
+
+        for (final SingleDebitOrCreditEntryCommand singleDebitOrCreditEntryCommand : singleDebitOrCreditEntryCommands) {
+            final GLAccount glAccount = this.glAccountRepository.findOne(singleDebitOrCreditEntryCommand.getGlAccountId());
+            if (glAccount == null) {
+                throw new GLAccountNotFoundException(singleDebitOrCreditEntryCommand.getGlAccountId());
+            }
+
+            String comments = command.getComments();
+            if (!StringUtils.isBlank(singleDebitOrCreditEntryCommand.getComments())) {
+                comments = singleDebitOrCreditEntryCommand.getComments();
+            }
+
+            /** Validate current code is appropriate **/
+            this.organisationCurrencyRepository.findOneWithNotFoundDetection(currencyCode);
+
+            final JournalEntry glJournalEntry = JournalEntry.createNew(office, paymentDetail, glAccount, currencyCode, transactionId,
+                    manualEntry, transactionDate, type, singleDebitOrCreditEntryCommand.getAmount(), comments, null, null, referenceNumber,
+                    null, null);
+            this.glJournalEntryRepository.saveAndFlush(glJournalEntry);
+        }
+
+    }
+    @Transactional
+    @Override
+    public String createJournalEntryForIncomeAndExpenseBookOff(final JournalEntryCommand journalEntryCommand) {
+        try{
+            journalEntryCommand.validateForCreate();
+
+            // check office is valid
+            final Long officeId = journalEntryCommand.getOfficeId();
+            final Office office = this.officeRepository.findOne(officeId);
+            if (office == null) { throw new OfficeNotFoundException(officeId); }
+
+            final Long accountRuleId = journalEntryCommand.getAccountingRuleId();
+            final String currencyCode = journalEntryCommand.getCurrencyCode();
+
+            validateBusinessRulesForJournalEntries(journalEntryCommand);
+            /** Capture payment details **/
+            final PaymentDetail paymentDetail =null;
+
+            /** Set a transaction Id and save these Journal entries **/
+//            final Date transactionDate = command.DateValueOfParameterNamed(JournalEntryJsonInputParams.TRANSACTION_DATE.getValue());
+            final Date transactionDate = LocalDate.now().toDate();
+            final String transactionId = generateTransactionId(officeId);
+            final String referenceNumber = journalEntryCommand.getReferenceNumber();
+
+            debitOrCreditEntriesForIncomeAndExpenseBooking(journalEntryCommand, office, paymentDetail, currencyCode, transactionDate,
+                    journalEntryCommand.getDebits(), transactionId, JournalEntryType.DEBIT, referenceNumber);
+
+            debitOrCreditEntriesForIncomeAndExpenseBooking(journalEntryCommand, office, paymentDetail, currencyCode, transactionDate,
+                    journalEntryCommand.getCredits(), transactionId, JournalEntryType.CREDIT, referenceNumber);
+
+            return transactionId;
+        }catch (final DataIntegrityViolationException dve) {
+            handleJournalEntryDataIntegrityIssues(dve);
+            return null;
+        }
+    }
 }

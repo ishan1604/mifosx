@@ -5,14 +5,18 @@
  */
 package org.mifosplatform.accounting.closure.service;
 
-import java.util.List;
-
+import org.joda.time.LocalDate;
+import org.mifosplatform.accounting.closure.bookoffincomeandexpense.data.IncomeAndExpenseJournalEntryData;
 import org.mifosplatform.accounting.closure.data.GLClosureData;
+
+import java.util.List;
 
 public interface GLClosureReadPlatformService {
 
     List<GLClosureData> retrieveAllGLClosures(Long OfficeId);
 
     GLClosureData retrieveGLClosureById(long glClosureId);
+
+    List<IncomeAndExpenseJournalEntryData> retrieveAllIncomeAndExpenseJournalEntryData(Long officeId,LocalDate date);
 
 }

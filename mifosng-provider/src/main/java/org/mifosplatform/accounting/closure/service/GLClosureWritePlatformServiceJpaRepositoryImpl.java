@@ -5,11 +5,11 @@
  */
 package org.mifosplatform.accounting.closure.service;
 
-import java.util.Date;
-import java.util.Map;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.closure.api.GLClosureJsonInputParams;
+import org.mifosplatform.accounting.closure.bookoffincomeandexpense.data.IncomeAndExpenseJournalEntryData;
+import org.mifosplatform.accounting.closure.bookoffincomeandexpense.domain.IncomeAndExpenseBooking;
+import org.mifosplatform.accounting.closure.bookoffincomeandexpense.domain.IncomeAndExpenseBookingRepository;
 import org.mifosplatform.accounting.closure.command.GLClosureCommand;
 import org.mifosplatform.accounting.closure.domain.GLClosure;
 import org.mifosplatform.accounting.closure.domain.GLClosureRepository;
@@ -18,11 +18,19 @@ import org.mifosplatform.accounting.closure.exception.GLClosureInvalidDeleteExce
 import org.mifosplatform.accounting.closure.exception.GLClosureInvalidException;
 import org.mifosplatform.accounting.closure.exception.GLClosureInvalidException.GL_CLOSURE_INVALID_REASON;
 import org.mifosplatform.accounting.closure.exception.GLClosureNotFoundException;
+import org.mifosplatform.accounting.closure.exception.RunningBalanceNotCalculatedException;
 import org.mifosplatform.accounting.closure.serialization.GLClosureCommandFromApiJsonDeserializer;
+import org.mifosplatform.accounting.glaccount.domain.GLAccount;
+import org.mifosplatform.accounting.glaccount.domain.GLAccountRepository;
+import org.mifosplatform.accounting.glaccount.exception.GLAccountNotFoundException;
+import org.mifosplatform.accounting.journalentry.command.JournalEntryCommand;
+import org.mifosplatform.accounting.journalentry.command.SingleDebitOrCreditEntryCommand;
+import org.mifosplatform.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.organisation.office.domain.Office;
 import org.mifosplatform.organisation.office.domain.OfficeRepository;
 import org.mifosplatform.organisation.office.exception.OfficeNotFoundException;
@@ -33,6 +41,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
 @Service
 public class GLClosureWritePlatformServiceJpaRepositoryImpl implements GLClosureWritePlatformService {
 
@@ -41,13 +54,23 @@ public class GLClosureWritePlatformServiceJpaRepositoryImpl implements GLClosure
     private final GLClosureRepository glClosureRepository;
     private final OfficeRepository officeRepository;
     private final GLClosureCommandFromApiJsonDeserializer fromApiJsonDeserializer;
+    private final GLAccountRepository glAccountRepository;
+    private final GLClosureReadPlatformService glClosureReadPlatformService;
+    private final JournalEntryWritePlatformService journalEntryWritePlatformService;
+    private final IncomeAndExpenseBookingRepository incomeAndExpenseBookingRepository;
 
     @Autowired
     public GLClosureWritePlatformServiceJpaRepositoryImpl(final GLClosureRepository glClosureRepository,
-            final OfficeRepository officeRepository, final GLClosureCommandFromApiJsonDeserializer fromApiJsonDeserializer) {
+            final OfficeRepository officeRepository, final GLClosureCommandFromApiJsonDeserializer fromApiJsonDeserializer,
+            final GLAccountRepository glAccountRepository,final GLClosureReadPlatformService glClosureReadPlatformService,
+            final JournalEntryWritePlatformService journalEntryWritePlatformService, final IncomeAndExpenseBookingRepository incomeAndExpenseBookingRepository) {
         this.glClosureRepository = glClosureRepository;
         this.officeRepository = officeRepository;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
+        this.glAccountRepository  = glAccountRepository;
+        this.glClosureReadPlatformService = glClosureReadPlatformService;
+        this.journalEntryWritePlatformService = journalEntryWritePlatformService;
+        this.incomeAndExpenseBookingRepository = incomeAndExpenseBookingRepository;
     }
 
     @Transactional
@@ -62,6 +85,8 @@ public class GLClosureWritePlatformServiceJpaRepositoryImpl implements GLClosure
             final Office office = this.officeRepository.findOne(officeId);
             if (office == null) { throw new OfficeNotFoundException(officeId); }
 
+
+
             // TODO: Get Tenant specific date
             // ensure closure date is not in the future
             final Date todaysDate = new Date();
@@ -75,7 +100,24 @@ public class GLClosureWritePlatformServiceJpaRepositoryImpl implements GLClosure
             }
             final GLClosure glClosure = GLClosure.fromJson(office, command);
 
-            this.glClosureRepository.saveAndFlush(glClosure);
+
+            final boolean bookOffIncomeAndExpense = command.booleanPrimitiveValueOfParameterNamed(GLClosureJsonInputParams.BOOK_OFF_INCOME_AND_EXPENSE.getValue());
+            final LocalDate incomeAndExpenseBookOffDate = LocalDate.fromDateFields(closureDate);
+            if(bookOffIncomeAndExpense){
+                final Long equityGlAccountId = command.longValueOfParameterNamed(GLClosureJsonInputParams.EQUITY_GL_ACCOUNT_ID.getValue());
+
+                final GLAccount glAccount= this.glAccountRepository.findOne(equityGlAccountId);
+
+                if(glAccount == null){throw new GLAccountNotFoundException(equityGlAccountId);}
+
+                final List<IncomeAndExpenseJournalEntryData> incomeAndExpenseJournalEntryDataList = this.glClosureReadPlatformService.retrieveAllIncomeAndExpenseJournalEntryData(officeId, incomeAndExpenseBookOffDate);
+                String transactionId = this.bookOffIncomeAndExpense(incomeAndExpenseJournalEntryDataList,closureCommand,glAccount);
+                this.glClosureRepository.saveAndFlush(glClosure);
+                final IncomeAndExpenseBooking incomeAndExpenseBooking = IncomeAndExpenseBooking.createNew(glClosure,transactionId,office,false);
+                this.incomeAndExpenseBookingRepository.saveAndFlush(incomeAndExpenseBooking);
+            }else{this.glClosureRepository.saveAndFlush(glClosure);}
+
+
 
             return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withOfficeId(officeId)
                     .withEntityId(glClosure.getId()).build();
@@ -139,5 +181,77 @@ public class GLClosureWritePlatformServiceJpaRepositoryImpl implements GLClosure
         logger.error(dve.getMessage(), dve);
         throw new PlatformDataIntegrityException("error.msg.glClosure.unknown.data.integrity.issue",
                 "Unknown data integrity issue with resource GL Closure: " + realCause.getMessage());
+    }
+
+
+    private String bookOffIncomeAndExpense(final List<IncomeAndExpenseJournalEntryData> incomeAndExpenseJournalEntryDataList,final GLClosureCommand closureData,final GLAccount glAccount){
+        /* All running balances has to be calculated before booking off income and expense account */
+        boolean isRunningBalanceCalculated = true;
+        for(final IncomeAndExpenseJournalEntryData incomeAndExpenseData :incomeAndExpenseJournalEntryDataList ){
+            if(!incomeAndExpenseData.isRunningBalanceCalculated()){ throw new RunningBalanceNotCalculatedException(incomeAndExpenseData.getOfficeId());}
+        }
+        BigDecimal debits = BigDecimal.ZERO;
+        BigDecimal credits = BigDecimal.ZERO;
+
+        int i = 0;
+        int j = 0;
+        for(final IncomeAndExpenseJournalEntryData incomeAndExpense : incomeAndExpenseJournalEntryDataList){
+            if(incomeAndExpense.isIncomeAccountType()){
+                if(incomeAndExpense.getOfficeRunningBalance().signum() == 1){debits = debits.add(incomeAndExpense.getOfficeRunningBalance());i++;}
+                else{ credits= credits.add(incomeAndExpense.getOfficeRunningBalance().abs());j++;}
+            }
+            if(incomeAndExpense.isExpenseAccountType()){
+                if(incomeAndExpense.getOfficeRunningBalance().signum() == 1){credits = credits.add(incomeAndExpense.getOfficeRunningBalance()); j++;}
+                else{debits= debits.add(incomeAndExpense.getOfficeRunningBalance().abs());i++;}
+            }
+        }
+        final LocalDate today = DateUtils.getLocalDateOfTenant();
+        final int compare = debits.compareTo(credits);
+        BigDecimal difference = BigDecimal.ZERO;
+        JournalEntryCommand journalEntryCommand = null;
+        final LocalDate transactionDate = LocalDate.now();
+        if(compare ==1){ j++;}else{ i++;}
+
+        SingleDebitOrCreditEntryCommand[]  debitsJournalEntry  = new SingleDebitOrCreditEntryCommand[i];
+        SingleDebitOrCreditEntryCommand[]  creditsJournalEntry  = new SingleDebitOrCreditEntryCommand[j];
+        int m=0; int n=0;
+        for(final IncomeAndExpenseJournalEntryData incomeAndExpense : incomeAndExpenseJournalEntryDataList){
+            if(incomeAndExpense.isIncomeAccountType()){
+                if(incomeAndExpense.getOfficeRunningBalance().signum() == 1){
+                    debitsJournalEntry[m] = new SingleDebitOrCreditEntryCommand(null,incomeAndExpense.getAccountId(),incomeAndExpense.getOfficeRunningBalance(),null);m++;
+                }else{
+                    credits= credits.add(incomeAndExpense.getOfficeRunningBalance().abs());
+                    creditsJournalEntry[n]= new SingleDebitOrCreditEntryCommand(null,incomeAndExpense.getAccountId(),incomeAndExpense.getOfficeRunningBalance().abs(),null);n++;
+                }
+            }
+            if(incomeAndExpense.isExpenseAccountType()){
+                if(incomeAndExpense.getOfficeRunningBalance().signum() == 1){
+                    creditsJournalEntry[n]= new SingleDebitOrCreditEntryCommand(null,incomeAndExpense.getAccountId(),incomeAndExpense.getOfficeRunningBalance().abs(),null);n++;
+                }else{
+                    debitsJournalEntry[m]= new SingleDebitOrCreditEntryCommand(null,incomeAndExpense.getAccountId(),incomeAndExpense.getOfficeRunningBalance().abs(),null);m++;
+                }
+            }
+        }
+        String transactionId = null;
+        if(compare == 1){
+            /* book with target gl id on the credit side */
+            difference = debits.subtract(credits);
+            final SingleDebitOrCreditEntryCommand targetBooking = new SingleDebitOrCreditEntryCommand(null,closureData.getEquityGlAccountId(),difference,null);
+            creditsJournalEntry[n] = targetBooking;
+            journalEntryCommand = new JournalEntryCommand(closureData.getOfficeId(),closureData.getCurrencyCode(),transactionDate,closureData.getComments(),debitsJournalEntry,creditsJournalEntry,null,
+                                        null,null,null,null,null,null,null,null);
+            transactionId = this.journalEntryWritePlatformService.createJournalEntryForIncomeAndExpenseBookOff(journalEntryCommand);
+
+        }else if(compare == -1){
+            /* book with target gl id on the debit side*/
+            difference = credits.subtract(debits);
+            final SingleDebitOrCreditEntryCommand targetBooking = new SingleDebitOrCreditEntryCommand(null,closureData.getEquityGlAccountId(),difference,null);
+            debitsJournalEntry[m]= targetBooking;
+            journalEntryCommand = new JournalEntryCommand(closureData.getOfficeId(),closureData.getCurrencyCode(),transactionDate,closureData.getComments(),debitsJournalEntry,creditsJournalEntry,null,
+                                                            null,null,null,null,null,null,null,null);
+            transactionId = this.journalEntryWritePlatformService.createJournalEntryForIncomeAndExpenseBookOff(journalEntryCommand);
+        }
+        return transactionId;
+
     }
 }

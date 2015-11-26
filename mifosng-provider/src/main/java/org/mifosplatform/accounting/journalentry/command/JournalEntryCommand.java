@@ -156,4 +156,5 @@ public class JournalEntryCommand {
         return this.accountingRuleId;
     }
 
+    public String getCurrencyCode() {return this.currencyCode;}
 }
