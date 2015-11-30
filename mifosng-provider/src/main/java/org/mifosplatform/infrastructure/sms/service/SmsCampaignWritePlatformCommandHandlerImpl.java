@@ -204,11 +204,7 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
 
             if(runReportObject !=null){
                 for(HashMap<String,Object> entry : runReportObject){
-                    // add string object to campaignParam object
-                    Map<String,Object>  newCampaignParamObject = new HashMap<String, Object>();
-                    newCampaignParamObject.putAll(campaignParams);
-                    newCampaignParamObject.put("runreports",entry);
-                    String textMessage = this.compileSmsTemplate(textMessageTemplate, campaignName, newCampaignParamObject);
+                    String textMessage = this.compileSmsTemplate(textMessageTemplate, campaignName, entry);
                     Integer clientId = (Integer)entry.get("id");
                     Object mobileNo = entry.get("mobileNo");
 
@@ -406,10 +402,7 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
             if(runReportObject !=null){
                 for(HashMap<String,Object> entry : runReportObject){
                     // add string object to campaignParam object
-                    Map<String,Object>  newCampaignParamObject = new HashMap<String, Object>();
-                    newCampaignParamObject.putAll(campaignParams);
-                    newCampaignParamObject.put("runreports",entry);
-                    String textMessage = this.compileSmsTemplate(textMessageTemplate,"SmsCampaign", newCampaignParamObject);
+                    String textMessage = this.compileSmsTemplate(textMessageTemplate,"SmsCampaign", entry);
                     if(!textMessage.isEmpty()) {
                         final Integer totalMessage = runReportObject.size();
                         campaignMessage = new PreviewCampaignMessage(textMessage,totalMessage);
