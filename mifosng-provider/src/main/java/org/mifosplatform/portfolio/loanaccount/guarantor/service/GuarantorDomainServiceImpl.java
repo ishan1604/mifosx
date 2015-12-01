@@ -185,7 +185,8 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
                 final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
                 final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("loan.guarantor");
                 baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode(GuarantorConstants.GUARANTOR_INSUFFICIENT_BALANCE_ERROR,
-                        savingsAccount.getId());
+                        savingsAccount.getId(), savingsAccount.getClient().getDisplayName());
+
                 throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
                         dataValidationErrors);
             }
@@ -291,7 +292,7 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
             final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
             final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("loan.guarantor");
             baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode(GuarantorConstants.GUARANTOR_INSUFFICIENT_BALANCE_ERROR,
-                    accountTransferDTO.getFromAccountId(), accountTransferDTO.getToAccountId());
+                    accountTransferDTO.getFromAccountId(), accountTransferDTO.getToAccountId(), accountTransferDTO.getFromSavingsAccount().getClient().getDisplayName());
             throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
                     dataValidationErrors);
 
@@ -335,6 +336,8 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
             List<DepositAccountOnHoldTransaction> onHoldTransactions = new ArrayList<>();
             BigDecimal totalGuarantee = BigDecimal.ZERO;
             List<Long> insufficientBalanceIds = new ArrayList<>();
+            List<String> insufficientBalanceClientNames = new ArrayList<>();
+
             for (Guarantor guarantor : existGuarantorList) {
                 final List<GuarantorFundingDetails> fundingDetails = guarantor.getGuarantorFundDetails();
                 for (GuarantorFundingDetails guarantorFundingDetails : fundingDetails) {
@@ -351,6 +354,7 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
                         guarantorFundingDetailList.add(guarantorFundingDetails);
                         if (savingsAccount.getWithdrawableBalance().compareTo(BigDecimal.ZERO) == -1) {
                             insufficientBalanceIds.add(savingsAccount.getId());
+                            insufficientBalanceClientNames.add(savingsAccount.getClient().getDisplayName());
                         }
                     }
                 }
@@ -359,7 +363,7 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
                 final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
                 final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("loan.guarantor");
                 baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode(GuarantorConstants.GUARANTOR_INSUFFICIENT_BALANCE_ERROR,
-                        insufficientBalanceIds);
+                        insufficientBalanceIds, insufficientBalanceClientNames);
                 throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
                         dataValidationErrors);
 
