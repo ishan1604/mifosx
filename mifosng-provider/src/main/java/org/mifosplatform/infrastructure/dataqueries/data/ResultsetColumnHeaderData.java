@@ -8,6 +8,7 @@ package org.mifosplatform.infrastructure.dataqueries.data;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
 
 /**
@@ -231,8 +232,9 @@ public final class ResultsetColumnHeaderData {
 
     public boolean isColumnValueAllowed(final String match) {
         boolean allowed = false;
+        final String unEscapeMatch = StringEscapeUtils.unescapeHtml(match);
         for (final ResultsetColumnValueData allowedValue : this.columnValues) {
-            if (allowedValue.matches(match)) {
+            if (allowedValue.matches(unEscapeMatch)) {
                 allowed = true;
             }
         }
