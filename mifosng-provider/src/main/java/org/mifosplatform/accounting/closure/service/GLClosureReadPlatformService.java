@@ -5,9 +5,9 @@
  */
 package org.mifosplatform.accounting.closure.service;
 
-import java.util.List;
-
 import org.mifosplatform.accounting.closure.data.GLClosureData;
+
+import java.util.List;
 
 public interface GLClosureReadPlatformService {
 
