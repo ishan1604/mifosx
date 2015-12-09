@@ -409,7 +409,7 @@ public class GuarantorDomainServiceImpl implements GuarantorDomainService {
             BigDecimal principal = loan.getPrincpal().getAmount();
 
             if (amountForRelease != null) {
-                amountForRelease = amountForRelease.multiply(totalGuaranteeAmount).divide(principal);
+                amountForRelease = amountForRelease.multiply(totalGuaranteeAmount).divide(principal,roundingMode);
             }
             
             else {

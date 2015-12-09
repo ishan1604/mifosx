@@ -656,7 +656,7 @@ public class Loan extends AbstractPersistable<Long> {
             }
         }
         loanCharge.update(chargeAmt, loanCharge.getDueLocalDate(), amount, repaymentScheduleDetail().getNumberOfRepayments(),
-                totalChargeAmt);
+                totalChargeAmt, this.getCurrency());
 
         // NOTE: must add new loan charge to set of loan charges before
         // reporcessing the repayment schedule.
@@ -1222,7 +1222,7 @@ public class Loan extends AbstractPersistable<Long> {
                 }
             }
             charge.update(chargeAmt, loanCharge.getDueLocalDate(), amount, repaymentScheduleDetail().getNumberOfRepayments(),
-                    totalChargeAmt);
+                    totalChargeAmt, this.getCurrency());
         }
 
         /** Updated deleted charges **/
@@ -1717,7 +1717,7 @@ public class Loan extends AbstractPersistable<Long> {
         }
         if (loanCharge.isActive()) {
             loanCharge.update(chargeAmt, loanCharge.getDueLocalDate(), amount, repaymentScheduleDetail().getNumberOfRepayments(),
-                    totalChargeAmt);
+                    totalChargeAmt, this.getCurrency());
             validateChargeHasValidSpecifiedDateIfApplicable(loanCharge, getDisbursementDate(), getLastRepaymentPeriodDueDate());
         }
 
