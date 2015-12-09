@@ -1171,6 +1171,8 @@ public class Loan extends AbstractPersistable<Long> {
             // add new charges
             if (loanCharge.getId() == null) {
                 LoanTrancheDisbursementCharge loanTrancheDisbursementCharge = null;
+                validateChargeHasValidSpecifiedDateIfApplicable(loanCharge, getDisbursementDate(), getLastRepaymentPeriodDueDate());
+                
                 loanCharge.update(this);
                 if (this.loanProduct.isMultiDisburseLoan()) {
                     loanCharge.getTrancheDisbursementCharge().getloanDisbursementDetails().updateLoan(this);
