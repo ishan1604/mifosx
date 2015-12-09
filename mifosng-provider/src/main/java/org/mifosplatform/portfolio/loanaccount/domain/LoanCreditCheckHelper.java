@@ -36,11 +36,11 @@ public class LoanCreditCheckHelper {
      * @return GenericResultsetData object
      **/
     public LoanCreditCheckGenericResultsetData retrieveGenericResultsetForCreditCheck(final ReportData reportData, final Long loanId, 
-            final Long userId) {
+            final Long userId, final Boolean isGroupLoan) {
         final long startTime = System.currentTimeMillis();
         logger.info("STARTING REPORT: " + reportData.getReportName() + "   Type: " + reportData.getReportType());
         
-        final String sqlStatement = searchAndReplaceParamsInSQLString(loanId, userId, reportData.getReportSql());
+        final String sqlStatement = searchAndReplaceParamsInSQLString(loanId, userId, reportData.getReportSql(), isGroupLoan);
         final GenericResultsetData genericResultsetData = this.genericDataService.fillGenericResultSet(sqlStatement);
         
         logger.info("SQL: " + sqlStatement);
@@ -58,9 +58,9 @@ public class LoanCreditCheckHelper {
      * @param sql -- the initial SQL string containing variables
      * @return SQL string with variables replaced by string values 
      **/
-    private String searchAndReplaceParamsInSQLString(final Long loanId, final Long userId, String sql) {
+    private String searchAndReplaceParamsInSQLString(final Long loanId, final Long userId, String sql, final Boolean isGroupLoan) {
         CreditCheckReportParamData creditCheckReportParamData = this.creditCheckReportParamReadPlatformService
-                .retrieveCreditCheckReportParameters(loanId, userId);
+                .retrieveCreditCheckReportParameters(loanId, userId, isGroupLoan);
         
         sql = this.genericDataService.replace(sql, CreditCheckConstants.CLIENT_ID_PARAM_PATTERN, 
                 creditCheckReportParamData.getClientId().toString());

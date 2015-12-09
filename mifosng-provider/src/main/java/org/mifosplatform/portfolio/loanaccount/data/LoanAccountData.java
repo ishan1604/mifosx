@@ -1662,6 +1662,10 @@ public class LoanAccountData {
         return this.group == null ? null : this.group.getId();
     }
 
+    public Boolean isGroupLoan() {
+        return this.group == null ? false : true;
+    }
+
     public CurrencyData currency() {
         return this.currency;
     }

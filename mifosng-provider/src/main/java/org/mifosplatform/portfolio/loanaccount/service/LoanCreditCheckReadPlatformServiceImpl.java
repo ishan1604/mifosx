@@ -136,7 +136,7 @@ public class LoanCreditCheckReadPlatformServiceImpl implements LoanCreditCheckRe
         final LoanStatusEnumData loanStatusEnumData = loanAccountData.getStatus();
         
         if (loanStatusEnumData != null && loanStatusEnumData.isPendingApprovalOrPendingDisbursement()) {
-            loanCreditCheckDataList = triggerLoanCreditChecks(loanId, loanAccountData.loanProductId(), appUser.getId());
+            loanCreditCheckDataList = triggerLoanCreditChecks(loanId, loanAccountData.loanProductId(), appUser.getId(), loanAccountData.isGroupLoan());
         }
         
         return loanCreditCheckDataList;
@@ -149,7 +149,7 @@ public class LoanCreditCheckReadPlatformServiceImpl implements LoanCreditCheckRe
         final LoanStatus loanStatus = LoanStatus.fromInt(loan.getStatus());
         
         if (loanStatus != null && loanStatus.isPendingApprovalOrPendingDisbursement()) {
-            loanCreditCheckDataList = triggerLoanCreditChecks(loan.getId(), loan.productId(), appUser.getId());
+            loanCreditCheckDataList = triggerLoanCreditChecks(loan.getId(), loan.productId(), appUser.getId(), loan.isGroupLoan());
         }
         
         return loanCreditCheckDataList;
@@ -164,7 +164,7 @@ public class LoanCreditCheckReadPlatformServiceImpl implements LoanCreditCheckRe
      * @return collection of loan credit check data
      **/
     private Collection<LoanCreditCheckData> triggerLoanCreditChecks(final Long loanId, final Long loanProductId, 
-            final Long appUserId) {
+            final Long appUserId, final Boolean isGroupLoan) {
         final Collection<LoanCreditCheckData> loanCreditCheckDataList = new ArrayList<>();
         final Collection<CreditCheckData> creditCheckDataList = this.creditCheckReadPlatformService.retrieveLoanProductCreditChecks(loanProductId);
         
@@ -173,7 +173,7 @@ public class LoanCreditCheckReadPlatformServiceImpl implements LoanCreditCheckRe
                 ReportData reportData = this.readReportingService.retrieveReport(creditCheckData.getStretchyReportId());
                 String creditCheckResult = null;
                 final LoanCreditCheckGenericResultsetData loanCreditCheckGenericResultsetData = this.loanCreditCheckHelper.
-                        retrieveGenericResultsetForCreditCheck(reportData, loanId, appUserId);
+                        retrieveGenericResultsetForCreditCheck(reportData, loanId, appUserId, isGroupLoan);
                 final GenericResultsetData genericResultsetData = loanCreditCheckGenericResultsetData.getGenericResultsetData();
                 final List<ResultsetRowData> resultsetData = genericResultsetData.getData();
                 List<String> resultsetRow = null;

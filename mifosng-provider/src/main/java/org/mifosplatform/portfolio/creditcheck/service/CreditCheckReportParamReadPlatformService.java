@@ -8,5 +8,5 @@ package org.mifosplatform.portfolio.creditcheck.service;
 import org.mifosplatform.portfolio.creditcheck.data.CreditCheckReportParamData;
 
 public interface CreditCheckReportParamReadPlatformService {
-    CreditCheckReportParamData retrieveCreditCheckReportParameters(Long loanId, Long userId);
+    CreditCheckReportParamData retrieveCreditCheckReportParameters(Long loanId, Long userId, Boolean isGroupLoan);
 }

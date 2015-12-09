@@ -27,12 +27,23 @@ public class CreditCheckReportParamReadPlatformServiceImpl implements CreditChec
     }
     
     @Override
-    public CreditCheckReportParamData retrieveCreditCheckReportParameters(Long loanId, Long userId) {
+    public CreditCheckReportParamData retrieveCreditCheckReportParameters(Long loanId, Long userId, Boolean isGroupLoan) {
         try {
+
             final CreditCheckReportParamMapper mapper = new CreditCheckReportParamMapper(userId);
-            final String sql = "select " + mapper.CreditCheckReportParamSchema() + " where ml.id = ? limit 1";
-            
-            return this.jdbcTemplate.queryForObject(sql, mapper, new Object[] { loanId });
+
+            if(isGroupLoan)
+            {
+                final String sql = "select " + mapper.GroupCreditCheckReportParamSchema() + " where ml.id = ? limit 1";
+                return this.jdbcTemplate.queryForObject(sql, mapper, new Object[] { loanId });
+            }
+            else
+            {
+                final String sql = "select " + mapper.IndividualCreditCheckReportParamSchema() + " where ml.id = ? limit 1";
+                return this.jdbcTemplate.queryForObject(sql, mapper, new Object[] { loanId });
+            }
+
+
         }
         
         catch (final EmptyResultDataAccessException e) {
@@ -43,7 +54,7 @@ public class CreditCheckReportParamReadPlatformServiceImpl implements CreditChec
     private static final class CreditCheckReportParamMapper implements RowMapper<CreditCheckReportParamData> {
        private final Long userId;
         
-        public String CreditCheckReportParamSchema() {
+        public String IndividualCreditCheckReportParamSchema() {
             return "ml.id as loanId, mc.id as clientId, mc.office_id as officeId, mc.staff_id as staffId, "
                     + "mgc.group_id as groupId, ml.product_id as productId "
                     + "from m_loan ml "
@@ -51,6 +62,14 @@ public class CreditCheckReportParamReadPlatformServiceImpl implements CreditChec
                     + "on ml.client_id = mc.id "
                     + "left join m_group_client mgc "
                     + "on mgc.client_id = ml.client_id";
+        }
+
+        public String GroupCreditCheckReportParamSchema() {
+            return "ml.id as loanId, 0 as clientId, mg.office_id as officeId, mg.staff_id as staffId, "
+                    + "mg.id as groupId, ml.product_id as productId "
+                    + "from m_loan ml "
+                    + "inner join m_group mg "
+                    + "on ml.group_id = mg.id ";
         }
         
         public CreditCheckReportParamMapper(Long userId) {
