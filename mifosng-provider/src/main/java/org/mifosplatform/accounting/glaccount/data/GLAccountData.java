@@ -34,6 +34,7 @@ public class GLAccountData {
     private final String nameDecorated;
     private final CodeValueData tagId;
     private final Long organizationRunningBalance;
+    private final Boolean reconciliationEnabled;
 
     // templates
     final List<EnumOptionData> accountTypeOptions;
@@ -51,7 +52,7 @@ public class GLAccountData {
 
     public GLAccountData(final Long id, final String name, final Long parentId, final String glCode, final boolean disabled,
             final boolean manualEntriesAllowed, final EnumOptionData type, final EnumOptionData usage, final String description,
-            final String nameDecorated, final CodeValueData tagId, final Long organizationRunningBalance) {
+            final String nameDecorated, final CodeValueData tagId, final Long organizationRunningBalance, final Boolean reconciliationEnabled) {
         this.id = id;
         this.name = name;
         this.parentId = parentId;
@@ -76,6 +77,7 @@ public class GLAccountData {
         this.allowedEquityTagOptions = null;
         this.allowedIncomeTagOptions = null;
         this.allowedExpensesTagOptions = null;
+        this.reconciliationEnabled = reconciliationEnabled;
     }
 
     public GLAccountData(final GLAccountData accountData, final List<EnumOptionData> accountTypeOptions,
@@ -109,6 +111,7 @@ public class GLAccountData {
         this.allowedEquityTagOptions = allowedEquityTagOptions;
         this.allowedIncomeTagOptions = allowedIncomeTagOptions;
         this.allowedExpensesTagOptions = allowedExpensesTagOptions;
+        this.reconciliationEnabled = accountData.reconciliationEnabled;
     }
 
     public static GLAccountData sensibleDefaultsForNewGLAccountCreation(final Integer glAccType) {
@@ -129,9 +132,10 @@ public class GLAccountData {
         final String nameDecorated = null;
         final CodeValueData tagId = null;
         final Long organizationRunningBalance = null;
+        final Boolean reconciliationEnabled = null;
 
         return new GLAccountData(id, name, parentId, glCode, disabled, manualEntriesAllowed, type, usage, description, nameDecorated,
-                tagId, organizationRunningBalance);
+                tagId, organizationRunningBalance, reconciliationEnabled);
     }
 
     public GLAccountData(final Long id, final String name, final String glCode) {
@@ -159,6 +163,7 @@ public class GLAccountData {
         this.allowedEquityTagOptions = null;
         this.allowedIncomeTagOptions = null;
         this.allowedExpensesTagOptions = null;
+        this.reconciliationEnabled = null;
     }
 
     public Long getId() {

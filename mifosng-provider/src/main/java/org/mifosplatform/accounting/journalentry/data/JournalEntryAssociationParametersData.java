@@ -24,6 +24,7 @@ public class JournalEntryAssociationParametersData {
 
     public JournalEntryAssociationParametersData(final boolean transactionDetailsRequired, final boolean runningBalanceRequired, final boolean paymentDetails,
                                                  final boolean glClosureRequired) {
+
         
         Boolean notesRequired = false;
         Boolean paymentDetailsRequired = paymentDetails;
