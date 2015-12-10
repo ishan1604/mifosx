@@ -19,7 +19,7 @@ public class JournalEntryAssociationParametersData {
         this.notesRequired = false;
     }
 
-    public JournalEntryAssociationParametersData(final boolean transactionDetailsRequired, final boolean runningBalanceRequired, final boolean paymentDetails) { 
+    public JournalEntryAssociationParametersData(final boolean transactionDetailsRequired, final boolean runningBalanceRequired, final boolean paymentDetails) {
         
         Boolean notesRequired = false;
         Boolean paymentDetailsRequired = paymentDetails;

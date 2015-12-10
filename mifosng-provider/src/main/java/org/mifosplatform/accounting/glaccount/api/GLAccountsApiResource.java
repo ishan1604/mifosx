@@ -54,7 +54,7 @@ public class GLAccountsApiResource {
             "disabled", "manualEntriesAllowed", "type", "usage", "description", "assetHeaderAccountOptions",
             "liabilityHeaderAccountOptions", "equityHeaderAccountOptions", "incomeHeaderAccountOptions", "expenseHeaderAccountOptions",
             "nameDecorated", "tagId", "allowedAssetsTagOptions", "allowedLiabilitiesTagOptions", "allowedEquityTagOptions",
-            "allowedIncomeTagOptions", "allowedExpensesTagOptions", "creditAccounts", "debitAccounts"));
+            "allowedIncomeTagOptions", "allowedExpensesTagOptions", "creditAccounts", "debitAccounts", "enableReconciliation"));
 
     private final String resourceNameForPermission = "GLACCOUNT";
 
@@ -102,12 +102,12 @@ public class GLAccountsApiResource {
     public String retrieveAllAccounts(@Context final UriInfo uriInfo, @QueryParam("type") final Integer type,
             @QueryParam("searchParam") final String searchParam, @QueryParam("usage") final Integer usage,
             @QueryParam("manualEntriesAllowed") final Boolean manualEntriesAllowed, @QueryParam("disabled") final Boolean disabled,
-            @QueryParam("fetchRunningBalance") final boolean runningBalance) {
+            @QueryParam("fetchRunningBalance") final boolean runningBalance, @QueryParam("reconciliationEnabled") final Boolean reconciliationEnabled) {
 
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermission);
         JournalEntryAssociationParametersData associationParametersData = new JournalEntryAssociationParametersData(false, runningBalance, false);
         final List<GLAccountData> glAccountDatas = this.glAccountReadPlatformService.retrieveAllGLAccounts(type, searchParam, usage,
-                manualEntriesAllowed, disabled, associationParametersData);
+                manualEntriesAllowed, disabled, associationParametersData, reconciliationEnabled);
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.apiJsonSerializerService.serialize(settings, glAccountDatas, RESPONSE_DATA_PARAMETERS);
