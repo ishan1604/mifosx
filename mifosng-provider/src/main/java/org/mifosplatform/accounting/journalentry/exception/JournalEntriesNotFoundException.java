@@ -17,6 +17,11 @@ public class JournalEntriesNotFoundException extends AbstractPlatformResourceNot
                 + " does not exist or are not system generated/reversible ", transactionId);
     }
 
+    public JournalEntriesNotFoundException(final String[] transactionId) {
+        super("error.msg.journalEntries.transactionId.invalid", "Journal Entries with submitted Identifier "
+                + " does not exist or are not system generated/reversible ", transactionId);
+    }
+
     public JournalEntriesNotFoundException(final Long entryId) {
         super("error.msg.journalEntries.id.invalid", "Journal Entry with entry Id " + entryId + " does not exist ", entryId);
     }

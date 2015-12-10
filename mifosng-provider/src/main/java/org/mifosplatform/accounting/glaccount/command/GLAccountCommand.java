@@ -31,9 +31,10 @@ public class GLAccountCommand {
     private final Integer type;
     private final String description;
     private final Long tagId;
+    private final Boolean reconciliationEnabled;
 
     public GLAccountCommand(final Long id, final String name, final Long parentId, final String glCode, final Boolean disabled,
-            final Boolean manualEntriesAllowed, final Integer type, final Integer usage, final String description, final Long tagId) {
+            final Boolean manualEntriesAllowed, final Integer type, final Integer usage, final String description, final Long tagId, final Boolean reconciliationEnabled) {
         this.id = id;
         this.name = name;
         this.parentId = parentId;
@@ -44,6 +45,7 @@ public class GLAccountCommand {
         this.usage = usage;
         this.description = description;
         this.tagId = tagId;
+        this.reconciliationEnabled = reconciliationEnabled;
     }
 
     public void validateForCreate() {
@@ -103,7 +105,10 @@ public class GLAccountCommand {
 
         baseDataValidator.reset().parameter(GLAccountJsonInputParams.DISABLED.getValue()).value(this.disabled).ignoreIfNull();
 
-        baseDataValidator.reset().anyOfNotNull(this.name, this.glCode, this.parentId, this.type, this.description, this.disabled);
+        baseDataValidator.reset().parameter(GLAccountJsonInputParams.RECONCILIATION_ENABLED.getValue()).value(this.reconciliationEnabled).ignoreIfNull();
+
+
+        baseDataValidator.reset().anyOfNotNull(this.name, this.glCode, this.parentId, this.type, this.description, this.disabled, this.reconciliationEnabled);
 
         if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist",
                 "Validation errors exist.", dataValidationErrors); }

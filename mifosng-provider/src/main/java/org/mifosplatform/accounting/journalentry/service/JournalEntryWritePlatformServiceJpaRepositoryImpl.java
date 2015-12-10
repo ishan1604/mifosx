@@ -438,8 +438,27 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
                     expenseMap.get(account));
         }
     }
-    
-    
+
+    @Transactional
+    @Override
+    public CommandProcessingResult reconcileJournalEntry(final JsonCommand command) {
+        // is the transaction Id valid
+
+                final List<JournalEntry> journalEntries = this.glJournalEntryRepository.findUnReversedJournalEntriesByTransactionId(command
+                .getTransactionId());
+
+        if (journalEntries.size() <= 1) { throw new JournalEntriesNotFoundException(command.getTransactionId()); }
+
+
+        for (final JournalEntry journalEntry : journalEntries) {
+
+            journalEntry.setIsReconciled(true);
+            // save the updated journal entry
+            this.glJournalEntryRepository.saveAndFlush(journalEntry);
+        }
+        return new CommandProcessingResultBuilder().withTransactionId(command.getTransactionId()).build();
+    }
+
     private void validateCommentForReversal(final String reversalComment) {
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
 
@@ -450,6 +469,29 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
         if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist",
                 "Validation errors exist.", dataValidationErrors); }
     }
+
+
+    @Transactional
+    @Override
+    public CommandProcessingResult batchReconciliationJournalEntry(final JsonCommand command) {
+
+        final String[] transactionIds = command.arrayValueOfParameterNamed("transactionId");
+
+        final List<JournalEntry> journalEntries = this.glJournalEntryRepository.findUnReversedJournalEntriesByArrayOfTransactionId(transactionIds);
+
+        if (journalEntries.size() <= 1) { throw new JournalEntriesNotFoundException(transactionIds); }
+
+
+        for (final JournalEntry journalEntry : journalEntries) {
+
+            journalEntry.setIsReconciled(true);
+            // save the updated journal entry
+            this.glJournalEntryRepository.saveAndFlush(journalEntry);
+        }
+        return new CommandProcessingResultBuilder().withTransactionId(command.getTransactionId()).build();
+    }
+
+
 
     @Transactional
     @Override

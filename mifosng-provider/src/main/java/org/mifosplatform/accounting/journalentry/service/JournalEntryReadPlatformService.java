@@ -18,7 +18,8 @@ public interface JournalEntryReadPlatformService {
     JournalEntryData retrieveGLJournalEntryById(long glJournalEntryId, JournalEntryAssociationParametersData associationParametersData);
 
     Page<JournalEntryData> retrieveAll(SearchParameters searchParameters, Long glAccountId, Boolean onlyManualEntries, Date fromDate,
-            Date toDate, String transactionId, Integer entityType, JournalEntryAssociationParametersData associationParametersData);
+            Date toDate, String transactionId, Integer entityType, JournalEntryAssociationParametersData associationParametersData, 
+            Integer isReconciled);
 
     OfficeOpeningBalancesData retrieveOfficeOpeningBalances(Long officeId, String currencyCode);
 

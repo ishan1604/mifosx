@@ -97,7 +97,7 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
                     .append(" journalEntry.type_enum as entryType,journalEntry.amount as amount, journalEntry.transaction_id as transactionId,")
                     .append(" journalEntry.entity_type_enum as entityType, journalEntry.entity_id as entityId, creatingUser.id as createdByUserId, ")
                     .append(" creatingUser.username as createdByUserName, journalEntry.description as comments, ")
-                    .append(" journalEntry.created_date as createdDate, journalEntry.reversed as reversed, ")
+                    .append(" journalEntry.created_date as createdDate, journalEntry.reversed as reversed, journalEntry.is_reconciled as isReconciled, ")
                     .append(" journalEntry.currency_code as currencyCode, curr.name as currencyName, curr.internationalized_name_code as currencyNameCode, ")
                     .append(" curr.display_symbol as currencyDisplaySymbol, curr.decimal_places as currencyDigits, curr.currency_multiplesof as inMultiplesOf ");
             if (associationParametersData.isRunningBalanceRequired()) {
@@ -161,6 +161,7 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
             final EnumOptionData entryType = AccountingEnumerations.journalEntryType(entryTypeId);
             final String transactionId = rs.getString("transactionId");
             final Integer entityTypeId = JdbcSupport.getInteger(rs, "entityType");
+            final Boolean isReconciled = rs.getBoolean("isReconciled");
             EnumOptionData entityType = null;
             if (entityTypeId != null) {
                 entityType = AccountingEnumerations.portfolioProductType(entityTypeId);
@@ -252,14 +253,14 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
             return new JournalEntryData(id, officeId, officeName, glAccountName, glAccountId, glCode, accountType, transactionDate,
                     entryType, amount, transactionId, manualEntry, entityType, entityId, createdByUserId, createdDate, createdByUserName,
                     comments, reversed, referenceNumber, officeRunningBalance, organizationRunningBalance, runningBalanceComputed,
-                    transactionDetailData, currency,glClosureId);
+                    transactionDetailData, currency,glClosureId,isReconciled);
         }
     }
 
     @Override
     public Page<JournalEntryData> retrieveAll(final SearchParameters searchParameters, final Long glAccountId,
             final Boolean onlyManualEntries, final Date fromDate, final Date toDate, final String transactionId, final Integer entityType,
-            final JournalEntryAssociationParametersData associationParametersData) {
+            final JournalEntryAssociationParametersData associationParametersData, final Integer isReconciled) {
 
         GLJournalEntryMapper rm = new GLJournalEntryMapper(associationParametersData);
         final StringBuilder sqlBuilder = new StringBuilder(200);
@@ -347,6 +348,19 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
         if (onlyManualEntries != null) {
             if (onlyManualEntries) {
                 sqlBuilder.append(whereClose + " journalEntry.manual_entry = 1");
+
+                whereClose = " and ";
+            }
+        }
+
+
+        if (isReconciled != null) {
+            if (isReconciled.equals(1)) {
+                sqlBuilder.append(whereClose + " journalEntry.is_reconciled = 1");
+
+                whereClose = " and ";
+            }else if(isReconciled.equals(0)){
+                sqlBuilder.append(whereClose + " journalEntry.is_reconciled = 0");
 
                 whereClose = " and ";
             }
@@ -523,18 +537,19 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
         final JournalEntryAssociationParametersData associationParametersData = null;
         final Long loanId = null;
         final Long savingsId = null;
+        final Integer isReconciled = null;
 
         final SearchParameters searchParameters = SearchParameters.forJournalEntries(officeId, offset, limit, orderBy, sortOrder, loanId,
                 savingsId, currencyCode);
         return retrieveAll(searchParameters, contraId, onlyManualEntries, fromDate, toDate, transactionId, entityType,
-                associationParametersData);
+                associationParametersData, isReconciled);
 
     }
 
     @Override
     public Page<JournalEntryData> retrieveJournalEntriesByEntityId(String transactionId, Long entityId, Integer entityType) {
         JournalEntryAssociationParametersData associationParametersData = new JournalEntryAssociationParametersData(true,
-                true, true, true);
+                true, true, true, true);
         try {
             final GLJournalEntryMapper rm = new GLJournalEntryMapper(associationParametersData);
             final String sql = "select " + rm.schema() + " where journalEntry.transaction_id = ? and journalEntry.entity_id = ? and journalEntry.entity_type_enum = ?";

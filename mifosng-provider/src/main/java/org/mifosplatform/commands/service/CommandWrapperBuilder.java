@@ -1016,6 +1016,23 @@ public class CommandWrapperBuilder {
         return this;
     }
 
+    public CommandWrapperBuilder reconcileJournalEntry(final String transactionId) {
+        this.actionName = "RECONCILE";
+        this.entityName = "JOURNALENTRY";
+        this.entityId = null;
+        this.transactionId = transactionId;
+        this.href = "/journalentries/"+transactionId;
+        return this;
+    }
+
+    public CommandWrapperBuilder batchReconciliationJournalEntry() {
+        this.actionName = "BATCHRECONCILE";
+        this.entityName = "JOURNALENTRY";
+        this.entityId = null;
+        this.href = "/journalentries";
+        return this;
+    }
+
     public CommandWrapperBuilder updateRunningBalanceForJournalEntry() {
         this.actionName = "UPDATERUNNINGBALANCE";
         this.entityName = "JOURNALENTRY";

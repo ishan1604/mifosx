@@ -15,7 +15,7 @@ import org.mifosplatform.accounting.journalentry.data.JournalEntryAssociationPar
 public interface GLAccountReadPlatformService {
 
     List<GLAccountData> retrieveAllGLAccounts(Integer accountClassification, String searchParam, Integer usage,
-            Boolean manualTransactionsAllowed, Boolean disabled, JournalEntryAssociationParametersData associationParametersData);
+            Boolean manualTransactionsAllowed, Boolean disabled, JournalEntryAssociationParametersData associationParametersData, Boolean reconciliationEnabled);
 
     GLAccountData retrieveGLAccountById(long glAccountId, JournalEntryAssociationParametersData associationParametersData);
 

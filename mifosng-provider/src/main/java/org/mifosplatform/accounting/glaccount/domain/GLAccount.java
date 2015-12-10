@@ -50,6 +50,9 @@ public class GLAccount extends AbstractPersistable<Long> {
     @Column(name = "disabled", nullable = false)
     private boolean disabled = false;
 
+    @Column(name = "reconciliation_enabled", nullable = false)
+    private boolean reconciliationEnabled = false;
+
     @Column(name = "manual_journal_entries_allowed", nullable = false)
     private boolean manualEntriesAllowed = true;
 
@@ -71,7 +74,7 @@ public class GLAccount extends AbstractPersistable<Long> {
     }
 
     private GLAccount(final GLAccount parent, final String name, final String glCode, final boolean disabled,
-            final boolean manualEntriesAllowed, final Integer type, final Integer usage, final String description, final CodeValue tagId) {
+            final boolean manualEntriesAllowed, final Integer type, final Integer usage, final String description, final CodeValue tagId, final Boolean reconciliationEnabled) {
         this.name = StringUtils.defaultIfEmpty(name, null);
         this.glCode = StringUtils.defaultIfEmpty(glCode, null);
         this.disabled = BooleanUtils.toBooleanDefaultIfNull(disabled, false);
@@ -81,6 +84,7 @@ public class GLAccount extends AbstractPersistable<Long> {
         this.description = StringUtils.defaultIfEmpty(description, null);
         this.parent = parent;
         this.tagId = tagId;
+        this.reconciliationEnabled = reconciliationEnabled;
     }
 
     public static GLAccount fromJson(final GLAccount parent, final JsonCommand command, final CodeValue glAccountTagType) {
@@ -92,7 +96,8 @@ public class GLAccount extends AbstractPersistable<Long> {
         final Integer usage = command.integerValueSansLocaleOfParameterNamed(GLAccountJsonInputParams.USAGE.getValue());
         final Integer type = command.integerValueSansLocaleOfParameterNamed(GLAccountJsonInputParams.TYPE.getValue());
         final String description = command.stringValueOfParameterNamed(GLAccountJsonInputParams.DESCRIPTION.getValue());
-        return new GLAccount(parent, name, glCode, disabled, manualEntriesAllowed, type, usage, description, glAccountTagType);
+        final boolean reconciliationEnabled = command.booleanPrimitiveValueOfParameterNamed(GLAccountJsonInputParams.RECONCILIATION_ENABLED.getValue());
+        return new GLAccount(parent, name, glCode, disabled, manualEntriesAllowed, type, usage, description, glAccountTagType, reconciliationEnabled);
     }
 
     public Map<String, Object> update(final JsonCommand command) {
@@ -101,6 +106,7 @@ public class GLAccount extends AbstractPersistable<Long> {
         handlePropertyUpdate(command, actualChanges, GLAccountJsonInputParams.DISABLED.getValue(), this.disabled);
         handlePropertyUpdate(command, actualChanges, GLAccountJsonInputParams.GL_CODE.getValue(), this.glCode);
         handlePropertyUpdate(command, actualChanges, GLAccountJsonInputParams.MANUAL_ENTRIES_ALLOWED.getValue(), this.manualEntriesAllowed);
+        handlePropertyUpdate(command, actualChanges, GLAccountJsonInputParams.RECONCILIATION_ENABLED.getValue(), this.reconciliationEnabled);
         handlePropertyUpdate(command, actualChanges, GLAccountJsonInputParams.NAME.getValue(), this.name);
         handlePropertyUpdate(command, actualChanges, GLAccountJsonInputParams.PARENT_ID.getValue(), 0L);
         handlePropertyUpdate(command, actualChanges, GLAccountJsonInputParams.TYPE.getValue(), this.type, true);
@@ -174,6 +180,9 @@ public class GLAccount extends AbstractPersistable<Long> {
             } else if (paramName.equals(GLAccountJsonInputParams.DISABLED.getValue())) {
                 this.disabled = newValue;
             }
+            if (paramName.equals(GLAccountJsonInputParams.RECONCILIATION_ENABLED.getValue())) {
+                this.reconciliationEnabled = newValue;
+            }
         }
     }
 
@@ -191,6 +200,10 @@ public class GLAccount extends AbstractPersistable<Long> {
 
     public boolean isDisabled() {
         return this.disabled;
+    }
+
+    public boolean isReconciliationEnabled() {
+        return this.reconciliationEnabled;
     }
 
     public boolean isManualEntriesAllowed() {
