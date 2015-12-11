@@ -66,6 +66,9 @@ public class JournalEntry extends AbstractAuditableCustom<AppUser, Long> {
     @Column(name = "manual_entry", nullable = false)
     private boolean manualEntry = false;
 
+    @Column(name = "is_reconciled", nullable = false)
+    private boolean isReconciled = false;
+
     @Column(name = "entry_date")
     @Temporal(TemporalType.DATE)
     private Date transactionDate;

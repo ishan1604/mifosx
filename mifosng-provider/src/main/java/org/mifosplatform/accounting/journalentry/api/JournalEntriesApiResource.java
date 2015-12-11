@@ -47,7 +47,7 @@ public class JournalEntriesApiResource {
     private static final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList("id", "officeId", "officeName",
             "glAccountName", "glAccountId", "glAccountCode", "glAccountType", "transactionDate", "entryType", "amount", "transactionId",
             "manualEntry", "entityType", "entityId", "createdByUserId", "createdDate", "createdByUserName", "comments", "reversed",
-            "referenceNumber", "currency"));
+            "referenceNumber", "currency", "isReconciled"));
 
     private final String resourceNameForPermission = "JOURNALENTRY";
 
@@ -83,7 +83,8 @@ public class JournalEntriesApiResource {
             @QueryParam("loanId") final Long loanId,@QueryParam("savingsId") final Long savingsId,
             @QueryParam("runningBalance") final boolean runningBalance, 
             @QueryParam("transactionDetails") final boolean transactionDetails,
-            @QueryParam("paymentDetails") final boolean paymentDetails) {
+            @QueryParam("paymentDetails") final boolean paymentDetails,
+            @QueryParam("isReconciled") final boolean isReconciled) {
 
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermission);
 
