@@ -945,6 +945,8 @@ public class SavingsAccount extends AbstractPersistable<Long> {
                 }
 
             }
+
+            lastSavingsDate = transaction.transactionLocalDate();
         }
     }
 
