@@ -5,15 +5,15 @@
  */
 package org.mifosplatform.accounting.journalentry.command;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.journalentry.api.JournalEntryJsonInputParams;
 import org.mifosplatform.infrastructure.core.data.ApiParameterError;
 import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Immutable command for adding an accounting closure
@@ -156,4 +156,5 @@ public class JournalEntryCommand {
         return this.accountingRuleId;
     }
 
+    public String getCurrencyCode() {return this.currencyCode;}
 }
