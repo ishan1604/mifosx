@@ -5,11 +5,10 @@
  */
 package org.mifosplatform.accounting.journalentry.service;
 
-import org.mifosplatform.accounting.journalentry.command.JournalEntryCommand;
+import java.util.Map;
+
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
-
-import java.util.Map;
 
 public interface JournalEntryWritePlatformService {
 
@@ -20,9 +19,4 @@ public interface JournalEntryWritePlatformService {
     void createJournalEntriesForLoan(Map<String, Object> accountingBridgeData);
 
     void createJournalEntriesForSavings(Map<String, Object> accountingBridgeData);
-
-    public String createJournalEntryForIncomeAndExpenseBookOff(final JournalEntryCommand journalEntryCommand);
-
-    void revertJournalEntry(String transactionId);
-
 }
