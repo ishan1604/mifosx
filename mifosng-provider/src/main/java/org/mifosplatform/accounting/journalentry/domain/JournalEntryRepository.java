@@ -17,4 +17,7 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, Long
 
     @Query("from JournalEntry journalEntry where journalEntry.transactionId= :transactionId and journalEntry.reversed is false and journalEntry.manualEntry is true")
     List<JournalEntry> findUnReversedManualJournalEntriesByTransactionId(@Param("transactionId") String transactionId);
+
+    @Query("from JournalEntry journalEntry where journalEntry.transactionId= :transactionId and journalEntry.reversed is false")
+    List<JournalEntry> findUnReversedJournalEntriesByTransactionId(@Param("transactionId") String transactionId);
 }

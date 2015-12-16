@@ -5,14 +5,6 @@
  */
 package org.mifosplatform.accounting.journalentry.service;
 
-import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.common.AccountingEnumerations;
@@ -27,9 +19,9 @@ import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.service.Page;
 import org.mifosplatform.infrastructure.core.service.PaginationHelper;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
+import org.mifosplatform.infrastructure.core.service.SearchParameters;
 import org.mifosplatform.organisation.monetary.data.CurrencyData;
 import org.mifosplatform.portfolio.account.PortfolioAccountType;
-import org.mifosplatform.infrastructure.core.service.SearchParameters;
 import org.mifosplatform.portfolio.loanaccount.data.LoanTransactionEnumData;
 import org.mifosplatform.portfolio.loanproduct.service.LoanEnumerations;
 import org.mifosplatform.portfolio.note.data.NoteData;
@@ -41,6 +33,14 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
 
 @Service
 public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlatformService {
@@ -95,6 +95,10 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
                 sb.append(" ,note.id as noteId, ")
                         .append(" note.note as transactionNote ");
             }
+            if(associationParametersData.isGlClosureRequired()){
+                sb.append(" ,ie.gl_closure_id ");
+            }
+
             sb.append(" from acc_gl_journal_entry as journalEntry ")
                     .append(" left join acc_gl_account as glAccount on glAccount.id = journalEntry.account_id")
                     .append(" left join m_office as office on office.id = journalEntry.office_id")
@@ -109,6 +113,10 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
              if (associationParametersData.isNotesRequired()) {        
                 sb.append(" left join m_note as note on lt.id = note.loan_transaction_id or st.id = note.savings_account_transaction_id ");
              }
+            if(associationParametersData.isGlClosureRequired()){
+                sb.append(" left join acc_income_and_expense_bookings as ie on ie.journal_entry_transaction_id =journalEntry.transaction_id ");
+            }
+
             
             return sb.toString();
 
@@ -137,6 +145,8 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
                 entityType = AccountingEnumerations.portfolioProductType(entityTypeId);
 
             }
+            Long glClosureId =  null;
+
 
             final Long entityId = JdbcSupport.getLong(rs, "entityId");
             final Long createdByUserId = rs.getLong("createdByUserId");
@@ -210,6 +220,10 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
                     noteData = new NoteData(noteId, null, null, null, null, null, null, null, note, null, null, null, null, null, null);
                 }
             }
+
+            if(associationParametersData.isGlClosureRequired()){
+                glClosureId= rs.getLong("gl_closure_id");
+            }
             
             
             transactionDetailData = new TransactionDetailData(transaction, paymentDetailData, noteData, transactionTypeEnumData);
@@ -217,7 +231,7 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
             return new JournalEntryData(id, officeId, officeName, glAccountName, glAccountId, glCode, accountType, transactionDate,
                     entryType, amount, transactionId, manualEntry, entityType, entityId, createdByUserId, createdDate, createdByUserName,
                     comments, reversed, referenceNumber, officeRunningBalance, organizationRunningBalance, runningBalanceComputed,
-                    transactionDetailData, currency);
+                    transactionDetailData, currency,glClosureId);
         }
     }
 

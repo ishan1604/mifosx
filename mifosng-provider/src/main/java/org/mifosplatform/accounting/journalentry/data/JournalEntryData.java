@@ -5,11 +5,11 @@
  */
 package org.mifosplatform.accounting.journalentry.data;
 
-import java.math.BigDecimal;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.organisation.monetary.data.CurrencyData;
+
+import java.math.BigDecimal;
 
 /**
  * Immutable object representing a General Ledger Account
@@ -65,13 +65,16 @@ public class JournalEntryData {
     @SuppressWarnings("unused")
     private final TransactionDetailData transactionDetails;
 
+    private final Long glClosureId;
+
     public JournalEntryData(final Long id, final Long officeId, final String officeName, final String glAccountName,
             final Long glAccountId, final String glAccountCode, final EnumOptionData glAccountClassification,
             final LocalDate transactionDate, final EnumOptionData entryType, final BigDecimal amount, final String transactionId,
             final Boolean manualEntry, final EnumOptionData entityType, final Long entityId, final Long createdByUserId,
             final LocalDate createdDate, final String createdByUserName, final String comments, final Boolean reversed,
             final String referenceNumber, final BigDecimal officeRunningBalance, final BigDecimal organizationRunningBalance,
-            final Boolean runningBalanceComputed, final TransactionDetailData transactionDetailData, final CurrencyData currency) {
+            final Boolean runningBalanceComputed, final TransactionDetailData transactionDetailData, final CurrencyData currency,
+            final Long glClosureId) {
         this.id = id;
         this.officeId = officeId;
         this.officeName = officeName;
@@ -97,6 +100,7 @@ public class JournalEntryData {
         this.runningBalanceComputed = runningBalanceComputed;
         this.transactionDetails = transactionDetailData;
         this.currency = currency;
+        this.glClosureId = glAccountId;
     }
 
     public Long getId() {
