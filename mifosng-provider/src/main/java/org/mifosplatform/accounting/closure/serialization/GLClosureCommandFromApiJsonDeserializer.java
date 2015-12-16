@@ -5,10 +5,8 @@
  */
 package org.mifosplatform.accounting.closure.serialization;
 
-import java.lang.reflect.Type;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.closure.api.GLClosureJsonInputParams;
@@ -21,8 +19,9 @@ import org.mifosplatform.portfolio.loanaccount.guarantor.command.GuarantorComman
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.gson.JsonElement;
-import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Implementation of {@link FromApiJsonDeserializer} for
@@ -53,7 +52,13 @@ public final class GLClosureCommandFromApiJsonDeserializer extends AbstractFromA
         final String comments = this.fromApiJsonHelper.extractStringNamed(GLClosureJsonInputParams.COMMENTS.getValue(), element);
         final LocalDate closingDate = this.fromApiJsonHelper.extractLocalDateNamed(GLClosureJsonInputParams.CLOSING_DATE.getValue(),
                 element);
+        final Boolean bookOffIncomeAndExpense = this.fromApiJsonHelper.extractBooleanNamed(GLClosureJsonInputParams.BOOK_OFF_INCOME_AND_EXPENSE.getValue(),element);
+        final Long equityGlAccountId = this.fromApiJsonHelper.extractLongNamed(GLClosureJsonInputParams.EQUITY_GL_ACCOUNT_ID.getValue(),element);
+        final String currencyCode = this.fromApiJsonHelper.extractStringNamed(GLClosureJsonInputParams.CURRENCY_CODE.getValue(), element);
+        final Boolean subBranches = this.fromApiJsonHelper.extractBooleanNamed(GLClosureJsonInputParams.SUB_BRANCHES.getValue(),element);
+        final Boolean reverseIncomeAndExpenseBooking = this.fromApiJsonHelper.extractBooleanNamed(GLClosureJsonInputParams.REVERSE_INCOME_AND_EXPENSE_BOOKING.getValue(),element);
+        final String incomeAndExpenseComments   = this.fromApiJsonHelper.extractStringNamed(GLClosureJsonInputParams.INCOME_AND_EXPENSE_COMMENTS.getValue(),element);
 
-        return new GLClosureCommand(id, officeId, closingDate, comments);
+        return new GLClosureCommand(id, officeId, closingDate, comments,bookOffIncomeAndExpense,equityGlAccountId,currencyCode,reverseIncomeAndExpenseBooking,subBranches,incomeAndExpenseComments);
     }
 }

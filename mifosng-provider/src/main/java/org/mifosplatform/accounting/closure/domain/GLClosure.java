@@ -5,9 +5,12 @@
  */
 package org.mifosplatform.accounting.closure.domain;
 
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import org.apache.commons.lang.StringUtils;
+import org.mifosplatform.accounting.closure.api.GLClosureJsonInputParams;
+import org.mifosplatform.infrastructure.core.api.JsonCommand;
+import org.mifosplatform.infrastructure.core.domain.AbstractAuditableCustom;
+import org.mifosplatform.organisation.office.domain.Office;
+import org.mifosplatform.useradministration.domain.AppUser;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -16,17 +19,12 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-import javax.persistence.UniqueConstraint;
-
-import org.apache.commons.lang.StringUtils;
-import org.mifosplatform.accounting.closure.api.GLClosureJsonInputParams;
-import org.mifosplatform.infrastructure.core.api.JsonCommand;
-import org.mifosplatform.infrastructure.core.domain.AbstractAuditableCustom;
-import org.mifosplatform.organisation.office.domain.Office;
-import org.mifosplatform.useradministration.domain.AppUser;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Entity
-@Table(name = "acc_gl_closure", uniqueConstraints = { @UniqueConstraint(columnNames = { "office_id", "closing_date" }, name = "office_id_closing_date") })
+@Table(name = "acc_gl_closure")
 public class GLClosure extends AbstractAuditableCustom<AppUser, Long> {
 
     @ManyToOne
@@ -89,4 +87,5 @@ public class GLClosure extends AbstractAuditableCustom<AppUser, Long> {
         return this.office;
     }
 
+    public void updateDeleted(boolean deleted) {this.deleted = deleted;}
 }
