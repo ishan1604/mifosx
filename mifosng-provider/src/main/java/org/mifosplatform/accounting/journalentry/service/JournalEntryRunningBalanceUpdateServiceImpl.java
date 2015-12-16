@@ -71,6 +71,10 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
             + "inner join (select max(entry_date) as date from acc_gl_journal_entry where entry_date < ? group by office_id,account_id) je3 "
             + "where je2.id = je.id and je.entry_date = je3.date group by je.id order by je.entry_date DESC " ;
 
+    private final String getRowCountSQL = "SELECT FOUND_ROWS() ";
+
+    private final int limit = 50000;
+
     @Autowired
     public JournalEntryRunningBalanceUpdateServiceImpl(final RoutingDataSource dataSource, final OfficeRepository officeRepository,
             final JournalEntryDataValidator dataValidator, final FromJsonHelper fromApiJsonHelper) {
@@ -83,6 +87,9 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
     @Override
     @CronTarget(jobName = JobName.ACCOUNTING_RUNNING_BALANCE_UPDATE)
     public void updateRunningBalance() {
+
+        logger.debug("Balances - Job triggered ");
+
         String dateFinder = "select MIN(je.entry_date) as entityDate from acc_gl_journal_entry  je "
                 + "where je.is_running_balance_calculated=0 ";
         try {
@@ -109,6 +116,7 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
             String dateFinder = "select MIN(je.entry_date) as entityDate " + "from acc_gl_journal_entry  je "
                     + "where je.is_running_balance_calculated=0  and je.office_id=?";
             try {
+
                 Date entityDate = this.jdbcTemplate.queryForObject(dateFinder, Date.class, officeId);
                 updateRunningBalance(officeId, entityDate);
             } catch (EmptyResultDataAccessException e) {
@@ -148,41 +156,52 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
             }
         }
 
+        int startFrom = 0;
+        int totalFilteredRecords = 0;
+
+        // Get the first set of data:
         List<JournalEntryData> entryDatas = jdbcTemplate.query( entryMapper.organizationRunningBalanceSchema(), entryMapper,
-                new Object[] { entityDate });
-        if (entryDatas.size() > 0) {
-            String[] updateSql = new String[1000];
-            int i = 0;
-            int j = 0;
-            for (JournalEntryData entryData : entryDatas) {
-                Map<Long, BigDecimal> officeRunningBalanceMap = null;
-                if (officesRunningBalance.containsKey(entryData.getOfficeId())) {
-                    officeRunningBalanceMap = officesRunningBalance.get(entryData.getOfficeId());
-                } else {
-                    officeRunningBalanceMap = new HashMap<>();
-                    officesRunningBalance.put(entryData.getOfficeId(), officeRunningBalanceMap);
-                }
-                BigDecimal officeRunningBalance = calculateRunningBalance(entryData, officeRunningBalanceMap);
-                BigDecimal runningBalance = calculateRunningBalance(entryData, runningBalanceMap);
-                String sql = "UPDATE acc_gl_journal_entry je SET je.is_running_balance_calculated=1, je.organization_running_balance="
-                        + runningBalance + ",je.office_running_balance=" + officeRunningBalance + " WHERE  je.id=" + entryData.getId();
-                updateSql[i++] = sql;
-                if(i == 999){
-                    this.jdbcTemplate.batchUpdate(updateSql);
-                    i = 0;
-                    j++;
-                    updateSql = new String[1000];
-                }
+                new Object[] { entityDate, limit, startFrom });
 
-                // Stop running after 100.000 entries to avoid any major performance hits:
-                if(j == 100)
-                {
-                    logger.debug("Updated 100.000 entries, stopping further processing for office: " + entryData.getOfficeId());
-                    continue;
-                }
+        if(startFrom == 0)
+        {
+            totalFilteredRecords = jdbcTemplate.queryForInt(getRowCountSQL);
+            logger.debug("Update OrganizationRunningBalance: Found: " + totalFilteredRecords + " records to process.");
 
+        }
+
+        while (startFrom < totalFilteredRecords)
+        {
+            if (entryDatas.size() > 0) {
+                String[] updateSql = new String[entryDatas.size()];
+                int i = 0;
+                for (JournalEntryData entryData : entryDatas) {
+                    Map<Long, BigDecimal> officeRunningBalanceMap = null;
+                    if (officesRunningBalance.containsKey(entryData.getOfficeId())) {
+                        officeRunningBalanceMap = officesRunningBalance.get(entryData.getOfficeId());
+                    } else {
+                        officeRunningBalanceMap = new HashMap<>();
+                        officesRunningBalance.put(entryData.getOfficeId(), officeRunningBalanceMap);
+                    }
+                    BigDecimal officeRunningBalance = calculateRunningBalance(entryData, officeRunningBalanceMap);
+                    BigDecimal runningBalance = calculateRunningBalance(entryData, runningBalanceMap);
+                    String sql = "UPDATE acc_gl_journal_entry je SET je.is_running_balance_calculated=1, je.organization_running_balance="
+                            + runningBalance + ",je.office_running_balance=" + officeRunningBalance + " WHERE  je.id=" + entryData.getId();
+                    updateSql[i++] = sql;
+                }
+                this.jdbcTemplate.batchUpdate(updateSql);
             }
-            this.jdbcTemplate.batchUpdate(updateSql);
+            else
+            {
+                break;
+            }
+
+            // Update startFrom & Fetch next set of data::
+            startFrom = startFrom + limit;
+            entryDatas = jdbcTemplate.query( entryMapper.organizationRunningBalanceSchema(), entryMapper,
+                    new Object[] { entityDate, limit, startFrom });
+            logger.debug("Fetching next set of data, starting from: " + startFrom + " records to process.");
+
         }
 
     }
@@ -198,31 +217,48 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
                 runningBalanceMap.put(accountId, (BigDecimal) entries.get("runningBalance"));
             }
         }
+
+        int startFrom = 0;
+        int totalFilteredRecords = 0;
+
+        // Get the first set of data:
         List<JournalEntryData> entryDatas = jdbcTemplate.query(entryMapper.officeRunningBalanceSchema(), entryMapper, new Object[] {
-                officeId, entityDate });
-        String[] updateSql = new String[entryDatas.size()];
-        int i = 0;
-        int j = 0;
-        for (JournalEntryData entryData : entryDatas) {
-            BigDecimal runningBalance = calculateRunningBalance(entryData, runningBalanceMap);
-            String sql = "UPDATE acc_gl_journal_entry je SET je.office_running_balance=" + runningBalance + " WHERE  je.id="
-                    + entryData.getId();
-            updateSql[i++] = sql;
-            if(i == 999){
+                officeId, entityDate, limit, startFrom });
+
+        if(startFrom == 0)
+        {
+            totalFilteredRecords = jdbcTemplate.queryForInt(getRowCountSQL);
+            logger.debug("UpdateRunningBalance: Found: " + totalFilteredRecords + " records to process.");
+
+        }
+
+        while (startFrom < totalFilteredRecords)
+        {
+            if (entryDatas.size() > 0) {
+                String[] updateSql = new String[entryDatas.size()];
+                int i = 0;
+                for (JournalEntryData entryData : entryDatas) {
+                    BigDecimal runningBalance = calculateRunningBalance(entryData, runningBalanceMap);
+                    String sql = "UPDATE acc_gl_journal_entry je SET je.office_running_balance=" + runningBalance + " WHERE  je.id="
+                            + entryData.getId();
+                    updateSql[i++] = sql;
+                }
+
                 this.jdbcTemplate.batchUpdate(updateSql);
-                i = 0;
-                j++;
-                updateSql = new String[1000];
+
+            }
+            else
+            {
+                break;
             }
 
-            // Stop running after 100.000 entries to avoid any major performance hits:
-            if(j == 100)
-            {
-                logger.debug("Updated 100.000 entries, stopping further processing for organization running balances");
-                continue;
-            }
+            // Update startFrom & Fetch next set of data::
+            startFrom = startFrom + limit;
+            entryDatas = jdbcTemplate.query(entryMapper.officeRunningBalanceSchema(), entryMapper, new Object[] {
+                    officeId, entityDate, limit, startFrom });
         }
-        this.jdbcTemplate.batchUpdate(updateSql);
+
+
     }
 
     private BigDecimal calculateRunningBalance(JournalEntryData entry, Map<Long, BigDecimal> runningBalanceMap) {
@@ -272,17 +308,17 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
     private static final class GLJournalEntryMapper implements RowMapper<JournalEntryData> {
 
         public String officeRunningBalanceSchema() {
-            return "select je.id as id,je.account_id as glAccountId,je.type_enum as entryType,je.amount as amount, "
+            return "select SQL_CALC_FOUND_ROWS je.id as id,je.account_id as glAccountId,je.type_enum as entryType,je.amount as amount, "
                     + "glAccount.classification_enum as classification,je.office_id as officeId "
                     + "from acc_gl_journal_entry je , acc_gl_account glAccount " + "where je.account_id = glAccount.id "
-                    + "and je.office_id=? and je.entry_date >= ? order by je.entry_date,je.id";
+                    + "and je.office_id=? and je.entry_date >= ? order by je.entry_date,je.id LIMIT ? OFFSET ?";
         }
 
         public String organizationRunningBalanceSchema() {
-            return "select je.id as id,je.account_id as glAccountId," + "je.type_enum as entryType,je.amount as amount, "
+            return "select SQL_CALC_FOUND_ROWS je.id as id,je.account_id as glAccountId," + "je.type_enum as entryType,je.amount as amount, "
                     + "glAccount.classification_enum as classification,je.office_id as officeId  "
                     + "from acc_gl_journal_entry je , acc_gl_account glAccount " + "where je.account_id = glAccount.id "
-                    + "and je.entry_date >= ? order by je.entry_date,je.id";
+                    + "and je.entry_date >= ? order by je.entry_date,je.id LIMIT ? OFFSET ?";
         }
 
         @Override
