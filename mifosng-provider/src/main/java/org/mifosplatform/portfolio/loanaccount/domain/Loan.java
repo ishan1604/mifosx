@@ -4437,7 +4437,8 @@ public class Loan extends AbstractPersistable<Long> {
     }
 
     private void validateActivityNotBeforeLastTransactionDate(final LoanEvent event, final LocalDate activityDate) {
-        if (!(this.repaymentScheduleDetail().isInterestRecalculationEnabled() || this.loanProduct().isHoldGuaranteeFundsEnabled())) { return; }
+        // if (!(this.repaymentScheduleDetail().isInterestRecalculationEnabled() || this.loanProduct().isHoldGuaranteeFundsEnabled())) { return; }
+        if (!(this.repaymentScheduleDetail().isInterestRecalculationEnabled())) { return; }
         LocalDate lastTransactionDate = getLastUserTransactionDate();
         final LocalDate clientOfficeJoiningDate = this.client.getOfficeJoiningLocalDate();
         if (lastTransactionDate.isAfter(activityDate)) {
