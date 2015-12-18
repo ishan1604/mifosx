@@ -102,7 +102,7 @@ public class JournalEntriesApiResource {
                 runningBalance, paymentDetails,false);
 
         final Page<JournalEntryData> glJournalEntries = this.journalEntryReadPlatformService.retrieveAll(searchParameters, glAccountId,
-                onlyManualEntries, fromDate, toDate, transactionId, entityType, associationParametersData);
+                onlyManualEntries, fromDate, toDate, transactionId, entityType, associationParametersData,isReconciled);
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.apiJsonSerializerService.serialize(settings, glJournalEntries, RESPONSE_DATA_PARAMETERS);
     }
@@ -137,7 +137,8 @@ public class JournalEntriesApiResource {
             final CommandWrapper commandRequest = new CommandWrapperBuilder().updateRunningBalanceForJournalEntry()
                     .withJson(jsonRequestBody).build();
             result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
-        } else {
+        }
+        else {
             final CommandWrapper commandRequest = new CommandWrapperBuilder().createJournalEntry().withJson(jsonRequestBody).build();
             result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
         }
@@ -155,12 +156,18 @@ public class JournalEntriesApiResource {
         if (is(commandParam, "reverse")) {
             final CommandWrapper commandRequest = new CommandWrapperBuilder().reverseJournalEntry(transactionId).withJson(jsonRequestBody).build();
             result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
-        } else {
+        }else if(is(commandParam, "reconcile")){
+
+            final CommandWrapper commandRequest = new CommandWrapperBuilder().reconcileJournalEntry(transactionId).withJson(jsonRequestBody).build();
+            result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+        }
+        else {
             throw new UnrecognizedQueryParamException("command", commandParam);
         }
 
         return this.apiJsonSerializerService.serialize(result);
     }
+
 
     private boolean is(final String commandParam, final String commandValue) {
         return StringUtils.isNotBlank(commandParam) && commandParam.trim().equalsIgnoreCase(commandValue);

@@ -319,6 +319,27 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
         return new CommandProcessingResultBuilder().withTransactionId(reversalTransactionId).build();
     }
 
+
+    @Transactional
+    @Override
+    public CommandProcessingResult reconcileJournalEntry(final JsonCommand command) {
+        // is the transaction Id valid
+        final List<JournalEntry> journalEntries = this.glJournalEntryRepository.findUnReversedManualJournalEntriesByTransactionId(command
+                .getTransactionId());
+
+        if (journalEntries.size() <= 1) { throw new JournalEntriesNotFoundException(command.getTransactionId()); }
+
+
+        for (final JournalEntry journalEntry : journalEntries) {
+            JournalEntry reversalJournalEntry;
+
+            journalEntry.setIsReconciled(true);
+            // save the updated journal entry
+            this.glJournalEntryRepository.saveAndFlush(journalEntry);
+        }
+        return new CommandProcessingResultBuilder().withTransactionId(command.getTransactionId()).build();
+    }
+
     private void validateCommentForReversal(final String reversalComment) {
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
 

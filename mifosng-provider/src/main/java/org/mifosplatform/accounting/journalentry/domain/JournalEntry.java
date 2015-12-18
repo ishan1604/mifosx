@@ -66,9 +66,6 @@ public class JournalEntry extends AbstractAuditableCustom<AppUser, Long> {
     @Column(name = "manual_entry", nullable = false)
     private boolean manualEntry = false;
 
-    @Column(name = "is_reconciled", nullable = false)
-    private boolean isReconciled = false;
-
     @Column(name = "entry_date")
     @Temporal(TemporalType.DATE)
     private Date transactionDate;
@@ -91,6 +88,10 @@ public class JournalEntry extends AbstractAuditableCustom<AppUser, Long> {
     @Column(name = "ref_num")
     private String referenceNumber;
 
+
+    @Column(name = "is_reconciled", nullable = false)
+    private boolean isReconciled = false;
+
     public static JournalEntry createNew(final Office office, final PaymentDetail paymentDetail, final GLAccount glAccount,
             final String currencyCode, final String transactionId, final boolean manualEntry, final Date transactionDate,
             final JournalEntryType journalEntryType, final BigDecimal amount, final String description, final Integer entityType,
@@ -98,7 +99,7 @@ public class JournalEntry extends AbstractAuditableCustom<AppUser, Long> {
             final SavingsAccountTransaction savingsTransaction) {
         return new JournalEntry(office, paymentDetail, glAccount, currencyCode, transactionId, manualEntry, transactionDate,
                 journalEntryType.getValue(), amount, description, entityType, entityId, referenceNumber, loanTransaction,
-                savingsTransaction);
+                savingsTransaction,false);
     }
 
     protected JournalEntry() {
@@ -108,7 +109,7 @@ public class JournalEntry extends AbstractAuditableCustom<AppUser, Long> {
     public JournalEntry(final Office office, final PaymentDetail paymentDetail, final GLAccount glAccount, final String currencyCode,
             final String transactionId, final boolean manualEntry, final Date transactionDate, final Integer type, final BigDecimal amount,
             final String description, final Integer entityType, final Long entityId, final String referenceNumber,
-            final LoanTransaction loanTransaction, final SavingsAccountTransaction savingsTransaction) {
+            final LoanTransaction loanTransaction, final SavingsAccountTransaction savingsTransaction, final boolean isReconciled) {
         this.office = office;
         this.glAccount = glAccount;
         this.reversalJournalEntry = null;
@@ -126,6 +127,7 @@ public class JournalEntry extends AbstractAuditableCustom<AppUser, Long> {
         this.loanTransaction = loanTransaction;
         this.savingsTransaction = savingsTransaction;
         this.paymentDetail = paymentDetail;
+        this.isReconciled = isReconciled;
     }
 
     public boolean isDebitEntry() {
@@ -180,4 +182,11 @@ public class JournalEntry extends AbstractAuditableCustom<AppUser, Long> {
         return this.paymentDetail;
     }
 
+    public boolean isReconciled() {
+        return isReconciled;
+    }
+
+    public void setIsReconciled(boolean isReconciled) {
+        this.isReconciled = isReconciled;
+    }
 }
