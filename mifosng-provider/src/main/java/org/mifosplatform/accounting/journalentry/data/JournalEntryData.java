@@ -170,4 +170,12 @@ public class JournalEntryData {
     public Long getOfficeId() {
         return this.officeId;
     }
+
+    public LocalDate getTransactionDate() {
+        return transactionDate;
+    }
+
+    public Boolean getRunningBalanceComputed() {
+        return runningBalanceComputed;
+    }
 }
