@@ -5,6 +5,10 @@
  */
 package org.mifosplatform.infrastructure.jobs.service;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -14,6 +18,7 @@ import java.util.TimeZone;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang3.StringUtils;
 import org.mifosplatform.infrastructure.core.domain.MifosPlatformTenant;
 import org.mifosplatform.infrastructure.core.exception.PlatformInternalServerException;
 import org.mifosplatform.infrastructure.core.service.ThreadLocalContextUtil;
@@ -99,21 +104,83 @@ public class JobRegisterServiceImpl implements JobRegisterService, ApplicationLi
 
     @PostConstruct
     public void loadAllJobs() {
-        final List<MifosPlatformTenant> allTenants = this.tenantDetailsService.findAllTenants();
-        for (final MifosPlatformTenant tenant : allTenants) {
-            ThreadLocalContextUtil.setTenant(tenant);
-            final List<ScheduledJobDetail> scheduledJobDetails = this.schedularWritePlatformService.retrieveAllJobs();
-            for (final ScheduledJobDetail jobDetails : scheduledJobDetails) {
-                scheduleJob(jobDetails);
-                jobDetails.updateTriggerMisfired(false);
-                this.schedularWritePlatformService.saveOrUpdate(jobDetails);
-            }
-            final SchedulerDetail schedulerDetail = this.schedularWritePlatformService.retriveSchedulerDetail();
-            if (schedulerDetail.isResetSchedulerOnBootup()) {
-                schedulerDetail.updateSuspendedState(false);
-                this.schedularWritePlatformService.updateSchedulerDetail(schedulerDetail);
+        if (this.isSchedulerEnabledInQuartzPropertiesFile()) {
+            final List<MifosPlatformTenant> allTenants = this.tenantDetailsService.findAllTenants();
+            for (final MifosPlatformTenant tenant : allTenants) {
+                ThreadLocalContextUtil.setTenant(tenant);
+                final List<ScheduledJobDetail> scheduledJobDetails = this.schedularWritePlatformService.retrieveAllJobs();
+                for (final ScheduledJobDetail jobDetails : scheduledJobDetails) {
+                    scheduleJob(jobDetails);
+                    jobDetails.updateTriggerMisfired(false);
+                    this.schedularWritePlatformService.saveOrUpdate(jobDetails);
+                }
+                final SchedulerDetail schedulerDetail = this.schedularWritePlatformService.retriveSchedulerDetail();
+                if (schedulerDetail.isResetSchedulerOnBootup()) {
+                    schedulerDetail.updateSuspendedState(false);
+                    this.schedularWritePlatformService.updateSchedulerDetail(schedulerDetail);
+                }
             }
         }
+        
+        else {
+            logger.warn("QUARTZ SCHEDULER IS DISABLED ON THIS SERVER INSTANCE");
+        }
+    }
+    
+    /** 
+     * check if the scheduler.enables property in the "/var/lib/tomcat7/conf/quartz.properties" file is set to true
+     * N/B - This is a temporary fix for the duplicate job scheduling issue resulting from running on a clustered
+     * environment
+     * 
+     * @return boolean true if value is true, else false
+     **/
+    private boolean isSchedulerEnabledInQuartzPropertiesFile() {
+        // scheduler is disabled by default
+        boolean isEnabled = false;
+        Properties quartzProperties = new Properties();
+        InputStream quartzPropertiesInputStream = null;
+        File catalinaBaseConfDirectory = null;
+        File quartzPropertiesFile = null;
+        String scheduleDotEnablePropertyValue = null;
+        
+        try {
+            // create a new File instance for the catalina base conf directory
+            catalinaBaseConfDirectory = new File(System.getProperty("catalina.base"), "conf");
+            
+            // create a new File instance for the quartz properties file
+            quartzPropertiesFile = new File(catalinaBaseConfDirectory, "quartz.properties");
+            
+            // create file inputstream to the quartz properties file
+            quartzPropertiesInputStream = new FileInputStream(quartzPropertiesFile);
+            
+            // read property list from input stream 
+            quartzProperties.load(quartzPropertiesInputStream);
+            
+            scheduleDotEnablePropertyValue = quartzProperties.getProperty("scheduler.enabled");
+            
+            // make sure it isn't blank, before trying to parse the string as boolean
+            if (StringUtils.isNoneBlank(scheduleDotEnablePropertyValue)) {
+                isEnabled = Boolean.parseBoolean(scheduleDotEnablePropertyValue); 
+            }
+        } 
+        
+        catch (IOException ex) {
+            logger.error(ex.getMessage(), ex);
+        } 
+        
+        finally {
+            if (quartzPropertiesInputStream != null) {
+                try {
+                    quartzPropertiesInputStream.close();
+                } 
+                
+                catch (IOException e) {
+                    logger.error(e.getMessage(), e);
+                }
+            }
+        }
+        
+        return isEnabled;
     }
 
     public void executeJob(final ScheduledJobDetail scheduledJobDetail, String triggerType) {
