@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.LocalDate;
 import org.mifosplatform.accounting.common.AccountingEnumerations;
 import org.mifosplatform.accounting.glaccount.domain.GLAccountType;
 import org.mifosplatform.accounting.journalentry.api.JournalEntryJsonInputParams;
@@ -54,7 +55,7 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
     private final FromJsonHelper fromApiJsonHelper;
 
     private final GLJournalEntryMapper entryMapper = new GLJournalEntryMapper();
-    
+
     private final String officeRunningBalanceSql = "select je.office_running_balance as runningBalance,je.account_id as accountId from acc_gl_journal_entry je "
             + "inner join (select max(id) as id from acc_gl_journal_entry where office_id=?  and entry_date < ? group by account_id,entry_date) je2 "
             + "inner join (select max(entry_date) as date from acc_gl_journal_entry where office_id=? and entry_date < ? group by account_id) je3 "
@@ -73,7 +74,7 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
 
     private final String getRowCountSQL = "SELECT FOUND_ROWS() ";
 
-    private final int limit = 50000;
+    private final int limit = 20000;
 
     @Autowired
     public JournalEntryRunningBalanceUpdateServiceImpl(final RoutingDataSource dataSource, final OfficeRepository officeRepository,
@@ -87,8 +88,6 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
     @Override
     @CronTarget(jobName = JobName.ACCOUNTING_RUNNING_BALANCE_UPDATE)
     public void updateRunningBalance() {
-
-        logger.debug("Balances - Job triggered ");
 
         String dateFinder = "select MIN(je.entry_date) as entityDate from acc_gl_journal_entry  je "
                 + "where je.is_running_balance_calculated=0 ";
@@ -170,10 +169,9 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
 
         }
 
-        while (startFrom < totalFilteredRecords)
-        {
+        while (startFrom < totalFilteredRecords) {
             if (entryDatas.size() > 0) {
-                String[] updateSql = new String[entryDatas.size()];
+                String[] updateSql = new String[entryDatas.size() * 2];
                 int i = 0;
                 for (JournalEntryData entryData : entryDatas) {
                     Map<Long, BigDecimal> officeRunningBalanceMap = null;
@@ -185,23 +183,38 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
                     }
                     BigDecimal officeRunningBalance = calculateRunningBalance(entryData, officeRunningBalanceMap);
                     BigDecimal runningBalance = calculateRunningBalance(entryData, runningBalanceMap);
-                    String sql = "UPDATE acc_gl_journal_entry je SET je.is_running_balance_calculated=1, je.organization_running_balance="
-                            + runningBalance + ",je.office_running_balance=" + officeRunningBalance + " WHERE  je.id=" + entryData.getId();
-                    updateSql[i++] = sql;
+
+                    // If this item is already calculated, skip updating:
+                    if (!entryData.getRunningBalanceComputed()) {
+
+                        String sql = "UPDATE acc_gl_journal_entry je SET je.is_running_balance_calculated=1, je.organization_running_balance="
+                                + runningBalance + ",je.office_running_balance=" + officeRunningBalance + " WHERE  je.id=" + entryData.getId();
+                        updateSql[i++] = sql;
+
+                        BigDecimal movement = calculateMovement(entryData);
+
+                        // Update all Organziation balances after using the same (mapped) amount:
+                        String AllSql = "UPDATE acc_gl_journal_entry je SET " +
+                                "je.organization_running_balance= je.organization_running_balance + " + movement +
+                                ", je.office_running_balance = CASE WHEN je.office_id = " + entryData.getOfficeId() + " THEN je.office_running_balance + " + movement + " ELSE je.office_running_balance END " +
+                                "WHERE je.account_id = " + entryData.getGlAccountId() + " and (je.entry_date > '" + entryData.getTransactionDate() + "' OR (je.entry_date = '" + entryData.getTransactionDate() + "' and je.id > " + entryData.getId() + ")) and is_running_balance_calculated = 1";
+
+                        updateSql[i++] = AllSql;
+                    }
+
                 }
+
+
                 this.jdbcTemplate.batchUpdate(updateSql);
-            }
-            else
-            {
+            } else {
+
                 break;
             }
 
             // Update startFrom & Fetch next set of data::
             startFrom = startFrom + limit;
-            entryDatas = jdbcTemplate.query( entryMapper.organizationRunningBalanceSchema(), entryMapper,
-                    new Object[] { entityDate, limit, startFrom });
-            logger.debug("Fetching next set of data, starting from: " + startFrom + " records to process.");
-
+            entryDatas = jdbcTemplate.query(entryMapper.organizationRunningBalanceSchema(), entryMapper,
+                    new Object[]{entityDate, limit, startFrom});
         }
 
     }
@@ -305,18 +318,59 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
         return runningBalance;
     }
 
+    private BigDecimal calculateMovement(JournalEntryData entry) {
+        BigDecimal amount = BigDecimal.ZERO;
+
+        GLAccountType accounttype = GLAccountType.fromInt(entry.getGlAccountType().getId().intValue());
+        JournalEntryType entryType = JournalEntryType.fromInt(entry.getEntryType().getId().intValue());
+        boolean isIncrease = false;
+        switch (accounttype) {
+            case ASSET:
+                if (entryType.isDebitType()) {
+                    isIncrease = true;
+                }
+                break;
+            case EQUITY:
+                if (entryType.isCreditType()) {
+                    isIncrease = true;
+                }
+                break;
+            case EXPENSE:
+                if (entryType.isDebitType()) {
+                    isIncrease = true;
+                }
+                break;
+            case INCOME:
+                if (entryType.isCreditType()) {
+                    isIncrease = true;
+                }
+                break;
+            case LIABILITY:
+                if (entryType.isCreditType()) {
+                    isIncrease = true;
+                }
+                break;
+        }
+        if (isIncrease) {
+            amount = amount.add(entry.getAmount());
+        } else {
+            amount = amount.subtract(entry.getAmount());
+        }
+        return amount;
+    }
+
     private static final class GLJournalEntryMapper implements RowMapper<JournalEntryData> {
 
         public String officeRunningBalanceSchema() {
             return "select SQL_CALC_FOUND_ROWS je.id as id,je.account_id as glAccountId,je.type_enum as entryType,je.amount as amount, "
-                    + "glAccount.classification_enum as classification,je.office_id as officeId "
+                    + "glAccount.classification_enum as classification,je.office_id as officeId, je.entry_date as entryDate, je.is_running_balance_calculated as isCalculated  "
                     + "from acc_gl_journal_entry je , acc_gl_account glAccount " + "where je.account_id = glAccount.id "
-                    + "and je.office_id=? and je.entry_date >= ? order by je.entry_date,je.id LIMIT ? OFFSET ?";
+                    + "and je.office_id=? and je.entry_date >= ?  order by je.entry_date,je.id LIMIT ? OFFSET ?";
         }
 
         public String organizationRunningBalanceSchema() {
             return "select SQL_CALC_FOUND_ROWS je.id as id,je.account_id as glAccountId," + "je.type_enum as entryType,je.amount as amount, "
-                    + "glAccount.classification_enum as classification,je.office_id as officeId  "
+                    + "glAccount.classification_enum as classification,je.office_id as officeId, je.entry_date as entryDate, je.is_running_balance_calculated as isCalculated   "
                     + "from acc_gl_journal_entry je , acc_gl_account glAccount " + "where je.account_id = glAccount.id "
                     + "and je.entry_date >= ? order by je.entry_date,je.id LIMIT ? OFFSET ?";
         }
@@ -332,9 +386,11 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
             final BigDecimal amount = rs.getBigDecimal("amount");
             final int entryTypeId = JdbcSupport.getInteger(rs, "entryType");
             final EnumOptionData entryType = AccountingEnumerations.journalEntryType(entryTypeId);
+            final LocalDate entryDate = JdbcSupport.getLocalDate(rs, "entryDate");
+            final Boolean isCalculated = rs.getBoolean("isCalculated");
 
-            return new JournalEntryData(id, officeId, null, null, glAccountId, null, accountType, null, entryType, amount, null, null,
-                    null, null, null, null, null, null, null, null, null, null, null, null, null,null);
+            return new JournalEntryData(id, officeId, null, null, glAccountId, null, accountType, entryDate, entryType, amount, null, null,
+                    null, null, null, null, null, null, null, null, null, null, isCalculated, null, null,null);
         }
     }
 
