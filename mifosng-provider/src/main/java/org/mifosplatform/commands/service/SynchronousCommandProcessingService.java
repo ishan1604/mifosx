@@ -488,6 +488,9 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
             } else if (wrapper.isReconcileJournalEntry()){
                 handler = this.applicationContext.getBean("reconcileJournalEntryCommandHandler", NewCommandSourceHandler.class);
             }
+            else if (wrapper.isBatchReconcileJournalEntry()){
+                handler = this.applicationContext.getBean("batchReconcileJournalEntryCommandHandler", NewCommandSourceHandler.class);
+            }
 
             else if (wrapper.isUpdateRunningbalance()) {
                 handler = this.applicationContext.getBean("updateRunningBalanceCommandHandler", NewCommandSourceHandler.class);

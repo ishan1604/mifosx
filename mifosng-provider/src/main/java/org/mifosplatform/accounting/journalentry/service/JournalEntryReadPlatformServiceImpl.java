@@ -239,7 +239,7 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
     @Override
     public Page<JournalEntryData> retrieveAll(final SearchParameters searchParameters, final Long glAccountId,
             final Boolean onlyManualEntries, final Date fromDate, final Date toDate, final String transactionId, final Integer entityType,
-            final JournalEntryAssociationParametersData associationParametersData,final Boolean isReconciled) {
+            final JournalEntryAssociationParametersData associationParametersData,final Integer isReconciled) {
 
         GLJournalEntryMapper rm = new GLJournalEntryMapper(associationParametersData);
         final StringBuilder sqlBuilder = new StringBuilder(200);
@@ -326,11 +326,11 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
 
 
         if (isReconciled != null) {
-            if (isReconciled) {
+            if (isReconciled.equals(1)) {
                 sqlBuilder.append(whereClose + " journalEntry.is_reconciled = 1");
 
                 whereClose = " and ";
-            }else if(!isReconciled){
+            }else if(isReconciled.equals(0)){
                 sqlBuilder.append(whereClose + " journalEntry.is_reconciled = 0");
 
                 whereClose = " and ";
