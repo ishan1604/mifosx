@@ -62,10 +62,23 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
             if (this.associationParametersData.isRunningBalanceRequired()) {
                 sb.append(",gl_j.organization_running_balance as organizationRunningBalance ");
             }
+            if (this.associationParametersData.isUnReconciledBalanceRequired()) {
+                sb.append(",un.unReconciledBalance as unReconciledBalance ");
+            }
             sb.append("from acc_gl_account gl left join m_code_value cv on tag_id=cv.id ");
+
+            if (this.associationParametersData.isUnReconciledBalanceRequired()) {
+                sb.append(" left Join (" +
+                        " select gl_j.account_id, sum( CASE WHEN type_enum=1 Then amount ELSE 0 END ) - sum( CASE WHEN type_enum=2 Then amount ELSE 0 END ) as unReconciledBalance from acc_gl_journal_entry gl_j where  gl_j.is_reconciled=0 and gl_j.reversed=0 group by gl_j.account_id " +
+                        ") as un on un.account_id = gl.id ");
+            }
+
             if (this.associationParametersData.isRunningBalanceRequired()) {
                 sb.append("left outer Join acc_gl_journal_entry gl_j on gl_j.account_id = gl.id");
             }
+
+
+
             return sb.toString();
         }
 
@@ -89,11 +102,16 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
             final CodeValueData tagId = CodeValueData.instance(codeId, codeValue);
             final boolean reconciliationEnabled = rs.getBoolean("reconciliationEnabled");
             Long organizationRunningBalance = null;
+            Long unReconciledBalance =null;
             if (associationParametersData.isRunningBalanceRequired()) {
                 organizationRunningBalance = rs.getLong("organizationRunningBalance");
             }
+
+            if (associationParametersData.isUnReconciledBalanceRequired()) {
+                unReconciledBalance = rs.getLong("unReconciledBalance");
+            }
             return new GLAccountData(id, name, parentId, glCode, disabled, manualEntriesAllowed, accountType, usage, description,
-                    nameDecorated, tagId, organizationRunningBalance, reconciliationEnabled);
+                    nameDecorated, tagId, organizationRunningBalance, reconciliationEnabled,unReconciledBalance);
         }
     }
 
@@ -120,11 +138,13 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
                     + "inner join acc_gl_journal_entry t2 on t2.account_id = t3.account_id and t2.entry_date = t3.entry_date "
                     + "group by t2.account_id desc) t1)";
         }
+
+
         final Object[] paramaterArray = new Object[3];
         int arrayPos = 0;
         boolean filtersPresent = false;
         if ((accountClassification != null) || StringUtils.isNotBlank(searchParam) || (usage != null)
-                || (manualTransactionsAllowed != null) || (disabled != null)) {
+                || (manualTransactionsAllowed != null) || (disabled != null)|| reconciliationEnabled !=null)  {
             filtersPresent = true;
             sql += " where";
         }
