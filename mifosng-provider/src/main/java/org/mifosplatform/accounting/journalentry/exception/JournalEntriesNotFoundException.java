@@ -12,12 +12,17 @@ import org.mifosplatform.infrastructure.core.exception.AbstractPlatformResourceN
  */
 public class JournalEntriesNotFoundException extends AbstractPlatformResourceNotFoundException {
 
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2448993113691886051L;
+
     public JournalEntriesNotFoundException(final String transactionId) {
         super("error.msg.journalEntries.transactionId.invalid", "Journal Entries with transaction Identifier " + transactionId
                 + " does not exist or are not system generated/reversible ", transactionId);
     }
 
-    public JournalEntriesNotFoundException(final String[] transactionId) {
+    public JournalEntriesNotFoundException(final Object[] transactionId) {
         super("error.msg.journalEntries.transactionId.invalid", "Journal Entries with submitted Identifier "
                 + " does not exist or are not system generated/reversible ", transactionId);
     }

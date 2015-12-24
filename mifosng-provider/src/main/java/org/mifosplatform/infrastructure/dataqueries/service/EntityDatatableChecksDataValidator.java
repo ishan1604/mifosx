@@ -52,9 +52,9 @@ public final class EntityDatatableChecksDataValidator {
         baseDataValidator.reset().parameter("entity").value(entity).notBlank().isOneOfTheseStringValues(EntityTables.getEntitiesList());
 
         final Integer status = this.fromApiJsonHelper.extractIntegerSansLocaleNamed("status", element);
-        baseDataValidator.reset().parameter("status").value(status).isOneOfTheseValues(EntityTables.getStatus(entity));
-
-
+        final Object[] entityTablesStatuses = EntityTables.getStatus(entity);
+        
+        baseDataValidator.reset().parameter("status").value(status).isOneOfTheseValues(entityTablesStatuses);
 
         final String datatableId = this.fromApiJsonHelper.extractStringNamed("datatableId", element);
         baseDataValidator.reset().parameter("datatableId").value(datatableId).notBlank().integerZeroOrGreater();
