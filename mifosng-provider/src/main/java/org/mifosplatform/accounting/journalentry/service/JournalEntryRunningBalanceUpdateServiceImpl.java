@@ -161,13 +161,8 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
         // Get the first set of data:
         List<JournalEntryData> entryDatas = jdbcTemplate.query( entryMapper.organizationRunningBalanceSchema(), entryMapper,
                 new Object[] { entityDate, limit, startFrom });
-
-        if(startFrom == 0)
-        {
-            totalFilteredRecords = jdbcTemplate.queryForInt(getRowCountSQL);
-            logger.debug("Update OrganizationRunningBalance: Found: " + totalFilteredRecords + " records to process.");
-
-        }
+        totalFilteredRecords = jdbcTemplate.queryForInt(getRowCountSQL);
+        logger.debug("Update OrganizationRunningBalance: Found: " + totalFilteredRecords + " records to process.");
 
         while (startFrom < totalFilteredRecords) {
             if (entryDatas.size() > 0) {
@@ -207,6 +202,8 @@ public class JournalEntryRunningBalanceUpdateServiceImpl implements JournalEntry
 
                 this.jdbcTemplate.batchUpdate(updateSql);
             } else {
+
+                logger.debug("No more entries found, startFrom: " + startFrom);
 
                 break;
             }
