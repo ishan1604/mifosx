@@ -110,12 +110,15 @@ public class AccountingProcessorHelper {
         final Long officeId = (Long) accountingBridgeData.get("officeId");
         final CurrencyData currencyData = (CurrencyData) accountingBridgeData.get("currency");
         final List<LoanTransactionDTO> newLoanTransactions = new ArrayList<>();
-        boolean isAccountTransfer = (Boolean) accountingBridgeData.get("isAccountTransfer");
 
         @SuppressWarnings("unchecked")
         final List<Map<String, Object>> newTransactionsMap = (List<Map<String, Object>>) accountingBridgeData.get("newLoanTransactions");
 
         for (final Map<String, Object> map : newTransactionsMap) {
+            // initially set flag to the value of "isAccountTransfer" in the "accountingBridgeData" map 
+            // for each entry in the transactions map
+             boolean isAccountTransfer = (Boolean) map.get("isAccountTransfer");
+//
             final Long transactionOfficeId = (Long) map.get("officeId");
             final String transactionId = ((Long) map.get("id")).toString();
             final Date transactionDate = ((LocalDate) map.get("date")).toDate();
@@ -172,12 +175,15 @@ public class AccountingProcessorHelper {
         final Long officeId = (Long) accountingBridgeData.get("officeId");
         final CurrencyData currencyData = (CurrencyData) accountingBridgeData.get("currency");
         final List<SavingsTransactionDTO> newSavingsTransactions = new ArrayList<>();
-        boolean isAccountTransfer = (Boolean) accountingBridgeData.get("isAccountTransfer");
 
         @SuppressWarnings("unchecked")
         final List<Map<String, Object>> newTransactionsMap = (List<Map<String, Object>>) accountingBridgeData.get("newSavingsTransactions");
 
         for (final Map<String, Object> map : newTransactionsMap) {
+            // initially set flag to the value of "isAccountTransfer" in the "accountingBridgeData" map 
+            // for each entry in the transactions map
+            boolean isAccountTransfer = (Boolean) accountingBridgeData.get("isAccountTransfer");
+            
             final Long transactionOfficeId = (Long) map.get("officeId");
             final String transactionId = ((Long) map.get("id")).toString();
             final Date transactionDate = ((LocalDate) map.get("date")).toDate();
