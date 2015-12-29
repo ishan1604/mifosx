@@ -63,15 +63,15 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
                 sb.append(",gl_j.organization_running_balance as organizationRunningBalance ");
             }
             if (this.associationParametersData.isUnReconciledBalanceRequired()) {
-                sb.append(",un.unReconciledBalance as unReconciledBalance ");
+                sb.append(", ( select SUM(IF(type_enum = 1, IF \t(gl.account_usage IN (1,5), amount *-1, amount), IF(gl.account_usage IN (1,5), amount, amount * -1))) from acc_gl_journal_entry gl_j where  gl_j.is_reconciled=0 and gl_j.reversed=0 and gl_j.account_id = gl.id ) as unReconciledBalance ");
             }
             sb.append("from acc_gl_account gl left join m_code_value cv on tag_id=cv.id ");
 
-            if (this.associationParametersData.isUnReconciledBalanceRequired()) {
-                sb.append(" left Join (" +
-                        " select gl_j.account_id, sum( CASE WHEN type_enum=1 Then amount ELSE 0 END ) - sum( CASE WHEN type_enum=2 Then amount ELSE 0 END ) as unReconciledBalance from acc_gl_journal_entry gl_j where  gl_j.is_reconciled=0 and gl_j.reversed=0 group by gl_j.account_id " +
-                        ") as un on un.account_id = gl.id ");
-            }
+//            if (this.associationParametersData.isUnReconciledBalanceRequired()) {
+//                sb.append(" left Join (" +
+//                        " select gl_j.account_id, sum( CASE WHEN type_enum=1 Then amount ELSE 0 END ) - sum( CASE WHEN type_enum=2 Then amount ELSE 0 END ) as unReconciledBalance from acc_gl_journal_entry gl_j where  gl_j.is_reconciled=0 and gl_j.reversed=0 group by gl_j.account_id " +
+//                        ") as un on un.account_id = gl.id ");
+//            }
 
             if (this.associationParametersData.isRunningBalanceRequired()) {
                 sb.append("left outer Join acc_gl_journal_entry gl_j on gl_j.account_id = gl.id");
