@@ -757,7 +757,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
     @Override
     public SavingsAccountTransaction acceptSavingsTransfer(final Long accountId, final LocalDate transferDate,
-            final Office acceptedInOffice, final Staff fieldOfficer) {
+            final Office acceptedInOffice, final Staff fieldOfficer, boolean isOfficeTransfer) {
 
         AppUser user = getAppUserIfPresent();
 
@@ -767,28 +767,35 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
         final SavingsAccount savingsAccount = this.savingAccountAssembler.assembleFrom(accountId);
 
-        final Set<Long> existingTransactionIds = new HashSet<>();
-        final Set<Long> existingReversedTransactionIds = new HashSet<>();
-        updateExistingTransactionsDetails(savingsAccount, existingTransactionIds, existingReversedTransactionIds);
-
-        final SavingsAccountTransaction acceptTransferTransaction = SavingsAccountTransaction.approveTransfer(savingsAccount,
-                acceptedInOffice, transferDate, user);
-        savingsAccount.getTransactions().add(acceptTransferTransaction);
-        savingsAccount.setStatus(SavingsAccountStatusType.ACTIVE.getValue());
         if (fieldOfficer != null) {
             savingsAccount.reassignSavingsOfficer(fieldOfficer, transferDate);
         }
-        boolean isInterestTransfer = false;
-        final MathContext mc = MathContext.DECIMAL64;
-        savingsAccount.calculateInterestUsing(mc, transferDate, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
-                financialYearBeginningMonth);
 
-        this.savingsAccountTransactionRepository.save(acceptTransferTransaction);
-        this.savingAccountRepository.save(savingsAccount);
+        if(isOfficeTransfer) {
+            final Set<Long> existingTransactionIds = new HashSet<>();
+            final Set<Long> existingReversedTransactionIds = new HashSet<>();
+            updateExistingTransactionsDetails(savingsAccount, existingTransactionIds, existingReversedTransactionIds);
 
-        postJournalEntries(savingsAccount, existingTransactionIds, existingReversedTransactionIds);
+            final SavingsAccountTransaction acceptTransferTransaction = SavingsAccountTransaction.approveTransfer(savingsAccount,
+                    acceptedInOffice, transferDate, user);
+            savingsAccount.getTransactions().add(acceptTransferTransaction);
+            savingsAccount.setStatus(SavingsAccountStatusType.ACTIVE.getValue());
 
-        return acceptTransferTransaction;
+            boolean isInterestTransfer = false;
+            final MathContext mc = MathContext.DECIMAL64;
+            savingsAccount.calculateInterestUsing(mc, transferDate, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
+                    financialYearBeginningMonth);
+
+            this.savingsAccountTransactionRepository.save(acceptTransferTransaction);
+            this.savingAccountRepository.save(savingsAccount);
+
+            postJournalEntries(savingsAccount, existingTransactionIds, existingReversedTransactionIds);
+
+            return acceptTransferTransaction;
+        }
+
+
+        return null;
     }
 
     @Transactional

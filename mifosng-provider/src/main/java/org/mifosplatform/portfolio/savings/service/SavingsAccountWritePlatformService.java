@@ -42,7 +42,7 @@ public interface SavingsAccountWritePlatformService {
 
     void rejectSavingsTransfer(Long accountId);
 
-    SavingsAccountTransaction acceptSavingsTransfer(Long accountId, LocalDate transferDate, Office acceptedInOffice, Staff staff);
+    SavingsAccountTransaction acceptSavingsTransfer(Long accountId, LocalDate transferDate, Office acceptedInOffice, Staff staff, boolean isOfficeTransfer);
 
     CommandProcessingResult addSavingsAccountCharge(JsonCommand command);
 

@@ -1746,37 +1746,45 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     @Transactional
     @Override
     public LoanTransaction acceptLoanTransfer(final Long accountId, final LocalDate transferDate, final Office acceptedInOffice,
-            final Staff loanOfficer) {
+            final Staff loanOfficer, final boolean isOfficeTransfer) {
 
         AppUser currentUser = getAppUserIfPresent();
 
         final Loan loan = this.loanAssembler.assembleFrom(accountId);
-        this.businessEventNotifierService.notifyBusinessEventToBeExecuted(BUSINESS_EVENTS.LOAN_ACCEPT_TRANSFER,
-                constructEntityMap(BUSINESS_ENTITY.LOAN, loan));
-        final List<Long> existingTransactionIds = new ArrayList<>(loan.findExistingTransactionIds());
-        final List<Long> existingReversedTransactionIds = new ArrayList<>(loan.findExistingReversedTransactionIds());
 
-        final LoanTransaction newTransferAcceptanceTransaction = LoanTransaction.approveTransfer(acceptedInOffice, loan, transferDate,
-                DateUtils.getLocalDateTimeOfTenant(), currentUser);
-        loan.getLoanTransactions().add(newTransferAcceptanceTransaction);
-
-        if (loan.getTotalOverpaid() != null) {
-            loan.setLoanStatus(LoanStatus.OVERPAID.getValue());
-        } else {
-            loan.setLoanStatus(LoanStatus.ACTIVE.getValue());
-        }
+        // Transfer the Loan to the correct officer, if it has changed:
         if (loanOfficer != null) {
             loan.reassignLoanOfficer(loanOfficer, transferDate);
         }
 
-        this.loanTransactionRepository.save(newTransferAcceptanceTransaction);
-        saveLoanWithDataIntegrityViolationChecks(loan);
+        // If office has changed, generate the transactions to get the correct bookings:
+        if(isOfficeTransfer) {
+            this.businessEventNotifierService.notifyBusinessEventToBeExecuted(BUSINESS_EVENTS.LOAN_ACCEPT_TRANSFER,
+                    constructEntityMap(BUSINESS_ENTITY.LOAN, loan));
+            final List<Long> existingTransactionIds = new ArrayList<>(loan.findExistingTransactionIds());
+            final List<Long> existingReversedTransactionIds = new ArrayList<>(loan.findExistingReversedTransactionIds());
 
-        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
-        this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_ACCEPT_TRANSFER,
-                constructEntityMap(BUSINESS_ENTITY.LOAN, loan));
+            final LoanTransaction newTransferAcceptanceTransaction = LoanTransaction.approveTransfer(acceptedInOffice, loan, transferDate,
+                    DateUtils.getLocalDateTimeOfTenant(), currentUser);
+            loan.getLoanTransactions().add(newTransferAcceptanceTransaction);
 
-        return newTransferAcceptanceTransaction;
+            if (loan.getTotalOverpaid() != null && loan.getTotalOverpaid().compareTo(BigDecimal.ZERO) == 1) {
+                loan.setLoanStatus(LoanStatus.OVERPAID.getValue());
+            } else {
+                loan.setLoanStatus(LoanStatus.ACTIVE.getValue());
+            }
+
+            this.loanTransactionRepository.save(newTransferAcceptanceTransaction);
+            saveLoanWithDataIntegrityViolationChecks(loan);
+
+            postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
+            this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_ACCEPT_TRANSFER,
+                    constructEntityMap(BUSINESS_ENTITY.LOAN, loan));
+
+            return newTransferAcceptanceTransaction;
+        }
+
+        return null;
     }
 
     @Transactional
@@ -1805,6 +1813,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 constructEntityMap(BUSINESS_ENTITY.LOAN, loan));
 
         return newTransferAcceptanceTransaction;
+
+
     }
 
     @Transactional

@@ -277,7 +277,6 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
      * Organizations following an Individual lending Model <br/>
      * 
      * @param clientId
-     * @param destinationOfficeId
      * @param jsonCommand
      * @return
      **/
@@ -310,7 +309,6 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
      * Loans
      * 
      * @param clientId
-     * @param destinationOfficeId
      * @param jsonCommand
      * @return
      **/
@@ -341,7 +339,6 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
      * Loans
      * 
      * @param clientId
-     * @param destinationOfficeId
      * @param jsonCommand
      * @return
      **/
@@ -412,6 +409,13 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
             destinationGroup = this.groupRepository.findByOfficeWithNotFoundDetection(destinationGroupId, destinationOffice);
         }
 
+        /** Find out if this is a transfer between offices **/
+        Boolean isOfficeTransfer = true;
+        if(destinationOffice.equals(client.getOffice()))
+        {
+            isOfficeTransfer = false;
+        }
+
         /*** Handle Active Loans ***/
         if (this.loanRepository.doNonClosedLoanAccountsExistForClient(client.getId())) {
             // get each individual loan for the client
@@ -424,16 +428,20 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                     switch (transferEventType) {
                         case ACCEPTANCE:
                             this.loanWritePlatformService.acceptLoanTransfer(loan.getId(), DateUtils.getLocalDateOfTenant(),
-                                    destinationOffice, staff);
+                                    destinationOffice, staff, isOfficeTransfer);
                         break;
                         case PROPOSAL:
-                            this.loanWritePlatformService.initiateLoanTransfer(loan.getId(), DateUtils.getLocalDateOfTenant());
+                            if(isOfficeTransfer) {
+                                this.loanWritePlatformService.initiateLoanTransfer(loan.getId(), DateUtils.getLocalDateOfTenant());
+                            }
                         break;
                         case REJECTION:
                             this.loanWritePlatformService.rejectLoanTransfer(loan.getId());
                         break;
                         case WITHDRAWAL:
-                            this.loanWritePlatformService.withdrawLoanTransfer(loan.getId(), DateUtils.getLocalDateOfTenant());
+                            if(isOfficeTransfer) {
+                                this.loanWritePlatformService.withdrawLoanTransfer(loan.getId(), DateUtils.getLocalDateOfTenant());
+                            }
                     }
                 }
             }
@@ -447,18 +455,22 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                     switch (transferEventType) {
                         case ACCEPTANCE:
                             this.savingsAccountWritePlatformService.acceptSavingsTransfer(savingsAccount.getId(),
-                                    DateUtils.getLocalDateOfTenant(), destinationOffice, staff);
+                                    DateUtils.getLocalDateOfTenant(), destinationOffice, staff, isOfficeTransfer);
                         break;
                         case PROPOSAL:
-                            this.savingsAccountWritePlatformService.initiateSavingsTransfer(savingsAccount.getId(),
-                                    DateUtils.getLocalDateOfTenant());
+                            if(isOfficeTransfer) {
+                                this.savingsAccountWritePlatformService.initiateSavingsTransfer(savingsAccount.getId(),
+                                        DateUtils.getLocalDateOfTenant());
+                            }
                         break;
                         case REJECTION:
                             this.savingsAccountWritePlatformService.rejectSavingsTransfer(savingsAccount.getId());
                         break;
                         case WITHDRAWAL:
-                            this.savingsAccountWritePlatformService.withdrawSavingsTransfer(savingsAccount.getId(),
-                                    DateUtils.getLocalDateOfTenant());
+                            if(isOfficeTransfer) {
+                                this.savingsAccountWritePlatformService.withdrawSavingsTransfer(savingsAccount.getId(),
+                                        DateUtils.getLocalDateOfTenant());
+                            }
                     }
                 }
             }
@@ -679,13 +691,18 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
         if(clientUndoTransfer.isGroupTransfer()){
            throw new UndoTransferWrongType();
         }
-        if(this.paymentTransactionAfterTransfer(clientId)){
-            throw new TransferNotSupportedException(TRANSFER_NOT_SUPPORTED_REASON.TRANSACTIONS_AFTER_TRANSFER);
+
+        if(clientUndoTransfer.getTransferFromOfficeId() != client.getOffice().getId())
+        {
+            if(this.paymentTransactionAfterTransfer(clientId) ){
+                throw new TransferNotSupportedException(TRANSFER_NOT_SUPPORTED_REASON.TRANSACTIONS_AFTER_TRANSFER);
+            }
+            /*
+              reverse transaction made on initiate transfer and accept transfer
+             */
+            this.reverseTransferTransaction(clientId);
         }
-        /*
-          reverse transaction made on initiate transfer and accept transfer
-         */
-        this.reverseTransferTransaction(clientId);
+
 
 
         this.undoClientTransfer(client,clientId);

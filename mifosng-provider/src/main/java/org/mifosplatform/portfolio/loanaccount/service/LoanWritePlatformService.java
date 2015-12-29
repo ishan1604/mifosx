@@ -72,7 +72,7 @@ public interface LoanWritePlatformService {
 
     void rejectLoanTransfer(Long accountId);
 
-    LoanTransaction acceptLoanTransfer(Long accountId, LocalDate transferDate, Office acceptedInOffice, Staff loanOfficer);
+    LoanTransaction acceptLoanTransfer(Long accountId, LocalDate transferDate, Office acceptedInOffice, Staff loanOfficer, boolean isOfficeTransfer);
 
     CommandProcessingResult payLoanCharge(Long loanId, Long loanChargeId, JsonCommand command, boolean isChargeIdIncludedInJson);
 
