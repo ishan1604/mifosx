@@ -838,7 +838,9 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                     Integer transactionEnumType= 13;
                     for(LoanTransaction loanTransaction: this.loanTransactionRepository.transactionsAfterClientTransfer(loan.getId(),transactionEnumType)){
                         final LoanTransaction lastApprovedClientTransfer = this.loanTransactionRepository.lastApprovedTransfer(loan.getId());
-                        if(!loanTransaction.isReversed() && loanTransaction.getTransactionDate().isAfter(lastApprovedClientTransfer.getTransactionDate())) {   //means active transactions exist after transfer
+                        if(!loanTransaction.isReversed() && (loanTransaction.getTransactionDate().isAfter(lastApprovedClientTransfer.getTransactionDate())
+                                || (loanTransaction.getTransactionDate().isEqual(lastApprovedClientTransfer.getTransactionDate()) && loanTransaction.getId() > lastApprovedClientTransfer.getId())))
+                        {   //means active transactions exist after transfer
                             hasPaymentTransactionHappenedAfterTransfer = true;
                             break;
                         }
@@ -851,7 +853,8 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                 if(!savingsAccount.isClosed()){
                     for(SavingsAccountTransaction savingsAccountTransaction: this.savingsAccountTransactionRepository.transactionsAfterClientTransfer(savingsAccount.getId(),13)){
                         final SavingsAccountTransaction lastApprovedClientTransfer = this.savingsAccountTransactionRepository.lastApprovedTransfer(savingsAccount.getId());
-                        if(!savingsAccountTransaction.isReversed() && savingsAccountTransaction.transactionLocalDate().isAfter(lastApprovedClientTransfer.transactionLocalDate())){
+                        if(!savingsAccountTransaction.isReversed() && (savingsAccountTransaction.transactionLocalDate().isAfter(lastApprovedClientTransfer.transactionLocalDate())
+                        || (savingsAccountTransaction.transactionLocalDate().isEqual(lastApprovedClientTransfer.transactionLocalDate()) && savingsAccountTransaction.getId() > lastApprovedClientTransfer.getId()))){
                             hasPaymentTransactionHappenedAfterTransfer = true;
                             break;
                         }
