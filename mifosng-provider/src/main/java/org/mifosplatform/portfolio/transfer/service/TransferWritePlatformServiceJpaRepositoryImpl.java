@@ -692,16 +692,18 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
            throw new UndoTransferWrongType();
         }
 
-        if(clientUndoTransfer.getTransferFromOfficeId() != client.getOffice().getId())
-        {
-            if(this.paymentTransactionAfterTransfer(clientId) ){
+        if(clientUndoTransfer.getTransferFromOfficeId() != client.getOffice().getId()) {
+            if (this.paymentTransactionAfterTransfer(clientId)) {
                 throw new TransferNotSupportedException(TRANSFER_NOT_SUPPORTED_REASON.TRANSACTIONS_AFTER_TRANSFER);
             }
+        }
+
             /*
               reverse transaction made on initiate transfer and accept transfer
+              Ideally this reversal would be inside the previous If, but we can't put it there because there are still transfers that did do the bookings, that can be reversed.
              */
             this.reverseTransferTransaction(clientId);
-        }
+
 
 
 
