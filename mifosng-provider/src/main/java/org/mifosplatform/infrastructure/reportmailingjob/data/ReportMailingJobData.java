@@ -95,8 +95,8 @@ public class ReportMailingJobData {
      **/
     public static ReportMailingJobData instance(final ReportMailingJobData dataWithoutEnumOptions, final ReportMailingJobData dataWithEnumOptions) {
         return new ReportMailingJobData(dataWithoutEnumOptions.id, dataWithoutEnumOptions.name, dataWithoutEnumOptions.description, dataWithoutEnumOptions.startDateTime, 
-                dataWithoutEnumOptions.recurrence, dataWithoutEnumOptions.timeline, dataWithoutEnumOptions.emailRecipients, dataWithoutEnumOptions.emailMessage, 
-                dataWithoutEnumOptions.emailSubject, dataWithoutEnumOptions.emailAttachmentFileFormat, dataWithoutEnumOptions.stretchyReport, 
+                dataWithoutEnumOptions.recurrence, dataWithoutEnumOptions.timeline, dataWithoutEnumOptions.emailRecipients, dataWithoutEnumOptions.emailSubject, 
+                dataWithoutEnumOptions.emailMessage, dataWithoutEnumOptions.emailAttachmentFileFormat, dataWithoutEnumOptions.stretchyReport, 
                 dataWithoutEnumOptions.stretchyReportParamMap, dataWithoutEnumOptions.previousRunDateTime, dataWithoutEnumOptions.nextRunDateTime, 
                 dataWithoutEnumOptions.previousRunStatus, dataWithoutEnumOptions.previousRunErrorLog, dataWithoutEnumOptions.previousRunErrorMessage, 
                 dataWithoutEnumOptions.numberOfRuns, dataWithoutEnumOptions.isActive, dataWithEnumOptions.emailAttachmentFileFormatOptions, 
