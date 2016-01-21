@@ -250,7 +250,7 @@ public class GLClosureWritePlatformServiceJpaRepositoryImpl implements GLClosure
      */
     private void handleGLClosureIntegrityIssues(final JsonCommand command, final DataIntegrityViolationException dve) {
         final Throwable realCause = dve.getMostSpecificCause();
-        if (realCause.getMessage().contains("office_id_closing_date")) { throw new GLClosureDuplicateException(
+        if (realCause.getMessage().contains("unique_office_closing_date_is_deleted")) { throw new GLClosureDuplicateException(
                 command.longValueOfParameterNamed(GLClosureJsonInputParams.OFFICE_ID.getValue()), new LocalDate(
                         command.DateValueOfParameterNamed(GLClosureJsonInputParams.CLOSING_DATE.getValue()))); }
 
