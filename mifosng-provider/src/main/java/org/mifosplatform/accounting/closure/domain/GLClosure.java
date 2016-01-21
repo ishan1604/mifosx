@@ -19,12 +19,14 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import javax.persistence.UniqueConstraint;
+
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Entity
-@Table(name = "acc_gl_closure")
+@Table(name = "acc_gl_closure", uniqueConstraints = @UniqueConstraint(columnNames = { "office_id", "closing_date", "is_deleted" }, name = "unique_office_closing_date_is_deleted"))
 public class GLClosure extends AbstractAuditableCustom<AppUser, Long> {
 
     @ManyToOne
