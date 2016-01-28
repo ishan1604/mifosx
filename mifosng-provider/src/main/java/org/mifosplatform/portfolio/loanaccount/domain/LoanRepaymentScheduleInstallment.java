@@ -217,6 +217,11 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
                 .plus(getInterestWrittenOff(currency));
         return getInterestCharged(currency).minus(interestAccountedFor);
     }
+    
+    public Money getInterestDue(final MonetaryCurrency currency) {
+        final Money interestAccountedFor = getInterestWaived(currency).plus(getInterestWrittenOff(currency));
+        return getInterestCharged(currency).minus(interestAccountedFor);
+    }
 
     public Money getInterestAccrued(final MonetaryCurrency currency) {
         return Money.of(currency, this.interestAccrued);
@@ -243,6 +248,11 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
                 getFeeChargesWrittenOff(currency));
         return getFeeChargesCharged(currency).minus(feeChargesAccountedFor);
     }
+    
+    public Money getFeeChargesDue(final MonetaryCurrency currency) {
+        final Money feeChargesAccountedFor = getFeeChargesWaived(currency).plus(getFeeChargesWrittenOff(currency));
+        return getFeeChargesCharged(currency).minus(feeChargesAccountedFor);
+    }
 
     public Money getFeeAccrued(final MonetaryCurrency currency) {
         return Money.of(currency, this.feeAccrued);
@@ -267,6 +277,11 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
     public Money getPenaltyChargesOutstanding(final MonetaryCurrency currency) {
         final Money feeChargesAccountedFor = getPenaltyChargesPaid(currency).plus(getPenaltyChargesWaived(currency)).plus(
                 getPenaltyChargesWrittenOff(currency));
+        return getPenaltyChargesCharged(currency).minus(feeChargesAccountedFor);
+    }
+    
+    public Money getPenaltyChargesDue(final MonetaryCurrency currency) {
+        final Money feeChargesAccountedFor = getPenaltyChargesWaived(currency).plus(getPenaltyChargesWrittenOff(currency));
         return getPenaltyChargesCharged(currency).minus(feeChargesAccountedFor);
     }
 

@@ -573,6 +573,8 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
         final Collection<LoanRescheduleModelRepaymentPeriod> periods = new ArrayList<>();
 
         Money outstandingLoanBalance = loan.getPrincpal();
+        BigDecimal totalFeeChargesCharged = BigDecimal.ZERO;
+        BigDecimal totalPenaltyChargesCharged = BigDecimal.ZERO;
 
         for (LoanRepaymentScheduleInstallment repaymentScheduleInstallment : repaymentScheduleInstallments) {
 
@@ -580,9 +582,9 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
             LocalDate fromDate = repaymentScheduleInstallment.getFromDate();
             LocalDate dueDate = repaymentScheduleInstallment.getDueDate();
             Money principalDue = repaymentScheduleInstallment.getPrincipal(currency);
-            Money interestDue = repaymentScheduleInstallment.getInterestCharged(currency);
-            Money feeChargesDue = repaymentScheduleInstallment.getFeeChargesCharged(currency);
-            Money penaltyChargesDue = repaymentScheduleInstallment.getPenaltyChargesCharged(currency);
+            Money interestDue = repaymentScheduleInstallment.getInterestDue(currency);
+            Money feeChargesDue = repaymentScheduleInstallment.getFeeChargesDue(currency);
+            Money penaltyChargesDue = repaymentScheduleInstallment.getPenaltyChargesDue(currency);
             Money totalDue = principalDue.plus(interestDue).plus(feeChargesDue).plus(penaltyChargesDue);
 
             outstandingLoanBalance = outstandingLoanBalance.minus(principalDue);
@@ -592,6 +594,9 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                             feeChargesDue, penaltyChargesDue, totalDue, false);
 
             periods.add(period);
+            
+            totalFeeChargesCharged = totalFeeChargesCharged.add(feeChargesDue.getAmount());
+            totalPenaltyChargesCharged = totalPenaltyChargesCharged.add(penaltyChargesDue.getAmount());
         }
 
         Money outstandingBalance = loan.getPrincpal();
@@ -618,8 +623,13 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
         BigDecimal newInterestRate = loanRescheduleRequest.getInterestRate();
         int loanTermInDays = Integer.valueOf(0);
         final BigDecimal loanReschedulingFeeChargesDue = getLoanReschedulingFeeChargesDue(loanCharges);
-        BigDecimal totalFeeChargesCharged = loanSummary.getTotalFeeChargesCharged();
-        BigDecimal totalPenaltyChargesCharged = loanSummary.getTotalPenaltyChargesCharged();
+        
+        // add total amount due at disbursement to the total fee charges amount
+        for (LoanCharge loanCharge : loanCharges) {
+            if (loanCharge.isDueAtDisbursement()) {
+                totalFeeChargesCharged = totalFeeChargesCharged.add(loanCharge.amount());
+            }
+        }
 
         if (rescheduleFromInstallmentNo > 0) {
             // this will hold the loan repayment installment that is before the
@@ -803,8 +813,13 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                     Money interestDue = Money.of(currency, period.interestDue());
                     
                     if(principalDue.isZero() && interestDue.isZero()) {
-                        totalFeeChargesCharged = totalFeeChargesCharged.subtract(period.feeChargesDue());
-                        totalPenaltyChargesCharged = totalPenaltyChargesCharged.subtract(period.penaltyChargesDue());
+                        if (totalFeeChargesCharged != null && (totalFeeChargesCharged.compareTo(period.feeChargesDue()) >= 0)) {
+                            totalFeeChargesCharged = totalFeeChargesCharged.subtract(period.feeChargesDue());
+                        }
+                        
+                        if (totalPenaltyChargesCharged != null && (totalPenaltyChargesCharged.compareTo(period.penaltyChargesDue()) >= 0)) {
+                            totalPenaltyChargesCharged = totalPenaltyChargesCharged.subtract(period.penaltyChargesDue());
+                        }
                         
                         period.updateFeeChargesDue(Money.zero(currency));
                         period.updatePenaltyChargesDue(Money.zero(currency));
@@ -841,6 +856,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
             }
         }
         
+        // add the "Loan Reschedule Fee" and "Disbursement" charges to the total fee charges
         totalFeeChargesCharged = totalFeeChargesCharged.add(loanReschedulingFeeChargesDue);
 
         final Money totalRepaymentExpected = principal // get the loan Principal
