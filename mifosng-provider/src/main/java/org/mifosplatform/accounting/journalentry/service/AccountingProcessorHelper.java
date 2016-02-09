@@ -103,8 +103,8 @@ public class AccountingProcessorHelper {
         for (final Map<String, Object> map : newTransactionsMap) {
             // initially set flag to the value of "isAccountTransfer" in the "accountingBridgeData" map 
             // for each entry in the transactions map
-            boolean isAccountTransfer = (Boolean) accountingBridgeData.get("isAccountTransfer");
-            
+             boolean isAccountTransfer = (Boolean) map.get("isAccountTransfer");
+//
             final Long transactionOfficeId = (Long) map.get("officeId");
             final String transactionId = ((Long) map.get("id")).toString();
             final Date transactionDate = ((LocalDate) map.get("date")).toDate();
