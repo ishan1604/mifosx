@@ -5,12 +5,6 @@
  */
 package org.mifosplatform.portfolio.account.service;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.portfolio.account.data.AccountAssociationsData;
@@ -25,6 +19,12 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class AccountAssociationsReadPlatformServiceImpl implements AccountAssociationsReadPlatformService {
@@ -96,14 +96,20 @@ public class AccountAssociationsReadPlatformServiceImpl implements AccountAssoci
         final List<Map<String, Object>> statusList = this.jdbcTemplate.queryForList(sql1, savingsId);
         for (final Map<String, Object> statusMap : statusList) {
             AccountAssociationType associationType = AccountAssociationType.fromInt((Integer) statusMap.get("type"));
-            if (!associationType.isLinkedAccountAssociation() && (Boolean) statusMap.get("active")) {
-                hasActiveAccount = true;
-                break;
+            if (!associationType.isLinkedAccountAssociation()) {
+                if(statusMap.get("loanStatus") != null){
+                    final LoanStatus loanStatus = LoanStatus.fromInt((Integer) statusMap.get("loanStatus"));
+                    if(loanStatus.isActiveOrAwaitingApprovalOrDisbursal() || loanStatus.isOverpaid() || loanStatus.isUnderTransfer()){
+                        hasActiveAccount = true;
+                        break;
+                    }
+                }
+
             }
 
             if (statusMap.get("loanStatus") != null) {
                 final LoanStatus loanStatus = LoanStatus.fromInt((Integer) statusMap.get("loanStatus"));
-                if (loanStatus.isActiveOrAwaitingApprovalOrDisbursal() || loanStatus.isUnderTransfer()) {
+                if (loanStatus.isActiveOrAwaitingApprovalOrDisbursal() || loanStatus.isUnderTransfer() || loanStatus.isOverpaid()) {
                     hasActiveAccount = true;
                     break;
                 }
