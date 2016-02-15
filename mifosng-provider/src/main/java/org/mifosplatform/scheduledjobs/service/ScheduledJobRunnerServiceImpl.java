@@ -177,7 +177,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         updateSqlBuilder.append("FROM m_loan ml ");
         updateSqlBuilder.append("INNER JOIN m_loan_repayment_schedule mr on mr.loan_id = ml.id ");
         updateSqlBuilder.append("WHERE ml.loan_status_id = 300 "); // active
-        updateSqlBuilder.append("and mr.completed_derived is false ");
+        updateSqlBuilder.append("and mr.obligations_met_on_date is null "); // active
         updateSqlBuilder.append("and mr.duedate < SUBDATE(CURDATE(),INTERVAL  ifnull(ml.grace_on_arrears_ageing,0) day) ");
         updateSqlBuilder.append("GROUP BY ml.id");
 
