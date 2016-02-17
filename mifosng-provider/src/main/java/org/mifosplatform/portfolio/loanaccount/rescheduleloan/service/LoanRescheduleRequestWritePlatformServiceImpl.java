@@ -272,7 +272,10 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
             this.loanRescheduleRequestRepository.save(loanRescheduleRequest);
 
             return new CommandProcessingResultBuilder().withCommandId(jsonCommand.commandId()).withEntityId(loanRescheduleRequest.getId())
-                    .withLoanId(loan.getId()).build();
+                    .withLoanId(loan.getId()).withClientId(loan.getClientId())
+                    .withOfficeId(loan.getOfficeId()) //
+                    .withGroupId(loan.getGroupId()) //
+                    .build();
         }
 
         catch (final DataIntegrityViolationException dve) {
@@ -415,7 +418,11 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
             }
 
             return new CommandProcessingResultBuilder().withCommandId(jsonCommand.commandId()).withEntityId(loanRescheduleRequestId)
-                    .withLoanId(loanRescheduleRequest.getLoan().getId()).with(changes).build();
+                    .withLoanId(loanRescheduleRequest.getLoan().getId()).with(changes)
+                    .withClientId(loanRescheduleRequest.getLoan().getClientId()) //
+                    .withOfficeId(loanRescheduleRequest.getLoan().getOfficeId()) //
+                    .withGroupId(loanRescheduleRequest.getLoan().getGroupId()).build();
+
         }
 
         catch (final DataIntegrityViolationException dve) {
@@ -558,7 +565,10 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
             }
 
             return new CommandProcessingResultBuilder().withCommandId(jsonCommand.commandId()).withEntityId(loanRescheduleRequestId)
-                    .withLoanId(loanRescheduleRequest.getLoan().getId()).with(changes).build();
+                    .withLoanId(loanRescheduleRequest.getLoan().getId()).with(changes)
+                    .withClientId(loanRescheduleRequest.getLoan().getClientId()) //
+                    .withOfficeId(loanRescheduleRequest.getLoan().getOfficeId()) //
+                    .withGroupId(loanRescheduleRequest.getLoan().getGroupId()).build();
         }
 
         catch (final DataIntegrityViolationException dve) {
