@@ -806,7 +806,13 @@ public class Loan extends AbstractPersistable<Long> {
             updateSummaryWithTotalFeeChargesDueAtDisbursement(deriveSumTotalOfChargesDueAtDisbursement());
         }
 
-        final LoanRepaymentScheduleTransactionProcessor loanRepaymentScheduleTransactionProcessor = this.transactionProcessorFactory
+        updateLoanCharge(loanCharge);
+
+        return actualChanges;
+    }
+    
+    public void updateLoanCharge(final LoanCharge loanCharge) {
+    	final LoanRepaymentScheduleTransactionProcessor loanRepaymentScheduleTransactionProcessor = this.transactionProcessorFactory
                 .determineProcessor(this.transactionProcessingStrategy);
         if (!loanCharge.isDueAtDisbursement()) {
             /****
@@ -827,8 +833,6 @@ public class Loan extends AbstractPersistable<Long> {
         }
 
         updateLoanSummaryDerivedFields();
-
-        return actualChanges;
     }
 
     /**

@@ -19,8 +19,9 @@ public enum ChargeTimeType {
     OVERDUE_INSTALLMENT(9, "chargeTimeType.overdueInstallment"), // only for
     OVERDRAFT_FEE(10, "chargeTimeType.overdraftFee"),// only for savings
     WEEKLY_FEE(11, "chargeTimeType.weeklyFee"), // only for savings
-    TRANCHE_DISBURSEMENT(12,"chargeTimeType.tranchedisbursement"); // only for loan
-
+    TRANCHE_DISBURSEMENT(12,"chargeTimeType.tranchedisbursement"), // only for loan
+    DISBURSEMENT_PAID_WITH_REPAYMENT(13, "chargeTimeType.disbursementPaidWithRepayment"); // only for loan charge
+    
     private final Integer value;
     private final String code;
 
@@ -39,12 +40,13 @@ public enum ChargeTimeType {
 
     public static Object[] validLoanValues() {
         return new Integer[] { ChargeTimeType.DISBURSEMENT.getValue(), ChargeTimeType.SPECIFIED_DUE_DATE.getValue(),
-                ChargeTimeType.INSTALMENT_FEE.getValue(), ChargeTimeType.OVERDUE_INSTALLMENT.getValue(), ChargeTimeType.TRANCHE_DISBURSEMENT.getValue() };
+                ChargeTimeType.INSTALMENT_FEE.getValue(), ChargeTimeType.OVERDUE_INSTALLMENT.getValue(), 
+                ChargeTimeType.TRANCHE_DISBURSEMENT.getValue(), ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT.getValue() };
     }
 
     public static Object[] validLoanChargeValues() {
         return new Integer[] { ChargeTimeType.DISBURSEMENT.getValue(), ChargeTimeType.SPECIFIED_DUE_DATE.getValue(),
-                ChargeTimeType.INSTALMENT_FEE.getValue() };
+                ChargeTimeType.INSTALMENT_FEE.getValue(), ChargeTimeType.DISBURSEMENT_PAID_WITH_REPAYMENT.getValue()};
     }
 
     public static Object[] validSavingsValues() {
@@ -97,11 +99,14 @@ public enum ChargeTimeType {
                 case 12:
                     chargeTimeType = TRANCHE_DISBURSEMENT;
                 break;
+                case 13:
+                	chargeTimeType = DISBURSEMENT_PAID_WITH_REPAYMENT;
+                break; 
                 default:
                     chargeTimeType = INVALID;
                 break;
             }
-        }
+       }
         return chargeTimeType;
     }
 
@@ -146,7 +151,8 @@ public enum ChargeTimeType {
     }
 
     public boolean isAllowedLoanChargeTime() {
-        return isTimeOfDisbursement() || isOnSpecifiedDueDate() || isInstalmentFee() || isOverdueInstallment() || isTrancheDisbursement();
+        return isTimeOfDisbursement() || isOnSpecifiedDueDate() || isInstalmentFee() || isOverdueInstallment() 
+                || isTrancheDisbursement() || isDisbursementPaidWithRepayment();
     }
 
     public boolean isAllowedClientChargeTime() {
@@ -163,7 +169,10 @@ public enum ChargeTimeType {
     }
     
     public boolean isTrancheDisbursement(){
-    	return this.value.equals(ChargeTimeType.TRANCHE_DISBURSEMENT.getValue());
+        return this.value.equals(ChargeTimeType.TRANCHE_DISBURSEMENT.getValue());
     }
-
+    
+    public boolean isDisbursementPaidWithRepayment() {
+        return this.value.equals(DISBURSEMENT_PAID_WITH_REPAYMENT.getValue());
+    }
 }
