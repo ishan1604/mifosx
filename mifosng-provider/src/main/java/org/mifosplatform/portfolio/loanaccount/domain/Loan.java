@@ -2388,13 +2388,64 @@ public class Loan extends AbstractPersistable<Long> {
 
                 actualChanges.put(LoanApiConstants.approvedLoanAmountParameterName, this.proposedPrincipal);
                 actualChanges.put(LoanApiConstants.disbursementPrincipalParameterName, this.proposedPrincipal);
-
             }
 
             actualChanges.put("approvedOnDate", "");
 
             this.loanOfficerHistory.clear();
         }
+
+        return actualChanges;
+    }
+
+    public Map<String,Object> undoRejection(final LoanLifecycleStateMachine loanLifecycleStateMachine){
+        validateAccountStatus(LoanEvent.LOAN_REJECTION_UNDO);
+        final Map<String, Object> actualChanges = new LinkedHashMap<>();
+
+        final LoanStatus currentStatus = LoanStatus.fromInt(this.loanStatus);
+        final LoanStatus statusEnum = loanLifecycleStateMachine.transition(LoanEvent.LOAN_REJECTION_UNDO , currentStatus);
+
+        if (!statusEnum.hasStateOf(currentStatus)) {
+            this.loanStatus = statusEnum.getValue();
+            actualChanges.put("status", LoanEnumerations.status(this.loanStatus));
+
+            this.rejectedOnDate = null;
+            this.rejectedBy = null;
+            this.closedOnDate = null;
+            this.closedBy = null;
+
+            actualChanges.put("rejectedOnDate", "");
+            actualChanges.put("closedOnDate", "");
+            actualChanges.put("rejectedBy","");
+        }
+
+
+        return actualChanges;
+    }
+
+    public Map<String,Object> undoWithdraw(final LoanLifecycleStateMachine loanLifecycleStateMachine){
+        validateAccountStatus(LoanEvent.LOAN_WITHDRAWN_UNDO);
+        final Map<String, Object> actualChanges = new LinkedHashMap<>();
+
+        final LoanStatus currentStatus = LoanStatus.fromInt(this.loanStatus);
+        final LoanStatus statusEnum = loanLifecycleStateMachine.transition(LoanEvent.LOAN_WITHDRAWN_UNDO, currentStatus);
+
+        if (!statusEnum.hasStateOf(currentStatus)) {
+            this.loanStatus = statusEnum.getValue();
+            actualChanges.put("status", LoanEnumerations.status(this.loanStatus));
+
+            this.withdrawnOnDate = null;
+            this.withdrawnBy = null;
+            this.closedOnDate = null;
+            this.closedBy = null;
+
+            actualChanges.put("locale", "");
+            actualChanges.put("dateFormat","");
+            actualChanges.put("withdrawnOnDate", "");
+            actualChanges.put("closedOnDate", "");
+
+        }
+
 
         return actualChanges;
     }
@@ -4891,6 +4942,13 @@ public class Loan extends AbstractPersistable<Long> {
                     final String defaultUserMessage = "Loan Undo last disbursal is not allowed. Loan Account is not active.";
                     final ApiParameterError error = ApiParameterError.generalError(
                             "error.msg.loan.undo.last.disbursal.account.is.not.active", defaultUserMessage);
+                    dataValidationErrors.add(error);
+                }
+            break;
+            case LOAN_REJECTION_UNDO:
+                if(!isRejected()){
+                    final String defaultUserMessage = "Undo loan reject is not allowed. Loan account is not rejected";
+                    final ApiParameterError error = ApiParameterError.generalError("error.msg.loan.account.is.not.rejected",defaultUserMessage);
                     dataValidationErrors.add(error);
                 }
             break;

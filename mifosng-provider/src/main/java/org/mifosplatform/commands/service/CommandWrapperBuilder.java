@@ -2768,4 +2768,20 @@ public class CommandWrapperBuilder {
         this.href = "/reportmailingjobs/" + entityId;
         return this;
     }
+    public CommandWrapperBuilder undoLoanRejectApplication(final Long loanId) {
+        this.actionName = "UNDOREJECT";
+        this.entityName = "LOAN";
+        this.entityId = loanId;
+        this.loanId = loanId;
+        this.href = "/loans/" + loanId;
+        return this;
+    }
+    public CommandWrapperBuilder undoLoanWithdrawnByApplicant(final Long loanId) {
+        this.actionName = "UNDOWITHDRAW";
+        this.entityName = "LOAN";
+        this.entityId = loanId;
+        this.loanId = loanId;
+        this.href = "/loans/" + loanId;
+        return this;
+    }
 }

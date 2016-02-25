@@ -5,16 +5,10 @@
  */
 package org.mifosplatform.portfolio.loanaccount.serialization;
 
-import java.lang.reflect.Type;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.data.ApiParameterError;
@@ -36,10 +30,15 @@ import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 @Component
 public final class LoanApplicationCommandFromApiJsonHelper {
@@ -977,6 +976,45 @@ public final class LoanApplicationCommandFromApiJsonHelper {
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
         final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("loanapplication.undo");
+        final JsonElement element = this.fromApiJsonHelper.parse(json);
+
+        final String note = "note";
+        if (this.fromApiJsonHelper.parameterExists(note, element)) {
+            final String noteText = this.fromApiJsonHelper.extractStringNamed(note, element);
+            baseDataValidator.reset().parameter(note).value(noteText).notExceedingLengthOf(1000);
+        }
+
+        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
+    }
+    public void validateForUndoLoanRejection(final String json) {
+        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+
+        final Set<String> undoSupportedParameters = new HashSet<>(Arrays.asList("note"));
+        final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, undoSupportedParameters);
+
+        final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("loanapplication.undoreject");
+        final JsonElement element = this.fromApiJsonHelper.parse(json);
+
+        final String note = "note";
+        if (this.fromApiJsonHelper.parameterExists(note, element)) {
+            final String noteText = this.fromApiJsonHelper.extractStringNamed(note, element);
+            baseDataValidator.reset().parameter(note).value(noteText).notExceedingLengthOf(1000);
+        }
+
+        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
+    }
+
+    public void validateForUndoLoanWithdrawByApplicant(final String json) {
+        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+
+        final Set<String> undoSupportedParameters = new HashSet<>(Arrays.asList("note"));
+        final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, undoSupportedParameters);
+
+        final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("loanapplication.undowithdraw");
         final JsonElement element = this.fromApiJsonHelper.parse(json);
 
         final String note = "note";
