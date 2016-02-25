@@ -93,6 +93,17 @@ public class DefaultLoanLifecycleStateMachine implements LoanLifecycleStateMachi
             break;
             case WRITE_OFF_OUTSTANDING_UNDO:
             break;
+            case LOAN_REJECTION_UNDO:
+                if(from.hasStateOf(LoanStatus.REJECTED)) {
+                    newState = stateOf(LoanStatus.SUBMITTED_AND_PENDING_APPROVAL, this.allowedLoanStatuses);
+                }
+                break;
+            case LOAN_WITHDRAWN_UNDO :
+                if(from.hasStateOf(LoanStatus.WITHDRAWN_BY_CLIENT)){
+                    newState = stateOf(LoanStatus.SUBMITTED_AND_PENDING_APPROVAL, this.allowedLoanStatuses);
+                }
+                break;
+
             default:
             break;
         }

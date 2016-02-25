@@ -1029,4 +1029,67 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         return user;
     }
 
+    @Override
+    public CommandProcessingResult undoRejectApplication(Long loanId, JsonCommand command) {
+        AppUser currentUser = getAppUserIfPresent();
+
+        this.fromApiJsonDeserializer.validateForUndoLoanRejection(command.json());
+
+        final Loan loan = retrieveLoanBy(loanId);
+        checkClientOrGroupActive(loan);
+
+        final Map<String, Object> changes = loan.undoRejection(defaultLoanLifecycleStateMachine());
+        if (!changes.isEmpty()) {
+
+            this.loanRepository.save(loan);
+
+            final String noteText = command.stringValueOfParameterNamed("note");
+            if (StringUtils.isNotBlank(noteText)) {
+                final Note note = Note.loanNote(loan, noteText);
+                this.noteRepository.save(note);
+            }
+        }
+
+        return new CommandProcessingResultBuilder() //
+                .withCommandId(command.commandId()) //
+                .withEntityId(loan.getId()) //
+                .withOfficeId(loan.getOfficeId()) //
+                .withClientId(loan.getClientId()) //
+                .withGroupId(loan.getGroupId()) //
+                .withLoanId(loanId) //
+                .with(changes) //
+                .build();
+    }
+
+    @Override
+    public CommandProcessingResult undoApplicantWithdrawsFromApplication(Long loanId, JsonCommand command) {
+        AppUser currentUser = getAppUserIfPresent();
+
+        this.fromApiJsonDeserializer.validateForUndoLoanWithdrawByApplicant(command.json());
+
+        final Loan loan = retrieveLoanBy(loanId);
+        checkClientOrGroupActive(loan);
+
+        final Map<String, Object> changes = loan.undoWithdraw(defaultLoanLifecycleStateMachine());
+        if (!changes.isEmpty()) {
+
+            this.loanRepository.save(loan);
+
+            final String noteText = command.stringValueOfParameterNamed("note");
+            if (StringUtils.isNotBlank(noteText)) {
+                final Note note = Note.loanNote(loan, noteText);
+                this.noteRepository.save(note);
+            }
+        }
+
+        return new CommandProcessingResultBuilder() //
+                .withCommandId(command.commandId()) //
+                .withEntityId(loan.getId()) //
+                .withOfficeId(loan.getOfficeId()) //
+                .withClientId(loan.getClientId()) //
+                .withGroupId(loan.getGroupId()) //
+                .withLoanId(loanId) //
+                .with(changes) //
+                .build();
+    }
 }

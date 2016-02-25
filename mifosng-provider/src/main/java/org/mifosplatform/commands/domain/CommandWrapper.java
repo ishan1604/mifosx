@@ -1051,4 +1051,10 @@ public class CommandWrapper {
     public boolean isReportMailingJobResource() {
         return this.entityName.equalsIgnoreCase(ReportMailingJobConstants.REPORT_MAILING_JOB_ENTITY_NAME);
     }
+    public boolean isUndoLoanRejectApplication() {
+        return this.actionName.equalsIgnoreCase("UNDOREJECT") && this.entityName.equalsIgnoreCase("LOAN");
+    }
+    public boolean isUndoLoanWithdrawByApplicant() {
+        return this.actionName.equalsIgnoreCase("UNDOWITHDRAW") && this.entityName.equalsIgnoreCase("LOAN");
+    }
 }
