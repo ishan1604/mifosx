@@ -3486,8 +3486,8 @@ public class Loan extends AbstractPersistable<Long> {
         validateActivityNotBeforeClientOrGroupTransferDate(LoanEvent.LOAN_REPAYMENT_OR_WAIVER,
                 transactionForAdjustment.getTransactionDate());
 
-        if (transactionForAdjustment.isNotRepayment() && transactionForAdjustment.isNotWaiver()) {
-            final String errorMessage = "Only transactions of type repayment or waiver can be adjusted.";
+        if (transactionForAdjustment.isNotRepayment() && transactionForAdjustment.isNotRecoveryRepayment() && transactionForAdjustment.isNotWaiver()) {
+            final String errorMessage = "Only transactions of type repayment, recovery repayment and waiver can be adjusted.";
             throw new InvalidLoanTransactionTypeException("transaction", "adjustment.is.only.allowed.to.repayment.or.waiver.transaction",
                     errorMessage);
         }
@@ -3498,14 +3498,15 @@ public class Loan extends AbstractPersistable<Long> {
         if (isClosedWrittenOff()) {
             // find write off transaction and reverse it
             final LoanTransaction writeOffTransaction = findWriteOffTransaction();
-            writeOffTransaction.reverse();
+
+            if(writeOffTransaction!=null) writeOffTransaction.reverse();
         }
 
-        if (isClosedObligationsMet() || isClosedWrittenOff() || isClosedWithOutsandingAmountMarkedForReschedule()) {
+        if (isClosedObligationsMet() || isClosedWithOutsandingAmountMarkedForReschedule() || (isClosedWrittenOff() && newTransactionDetail.isNotRecoveryRepayment())) {
             this.loanStatus = LoanStatus.ACTIVE.getValue();
         }
 
-        if (newTransactionDetail.isRepayment() || newTransactionDetail.isInterestWaiver()) {
+        if (newTransactionDetail.isRepayment() || newTransactionDetail.isRecoveryRepayment() || newTransactionDetail.isInterestWaiver()) {
             changedTransactionDetail = handleRepaymentOrRecoveryOrWaiverTransaction(newTransactionDetail, loanLifecycleStateMachine,
                     transactionForAdjustment, scheduleGeneratorDTO, currentUser);
         }

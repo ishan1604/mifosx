@@ -843,8 +843,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         if (this.accountTransfersReadPlatformService.isAccountTransfer(transactionId, PortfolioAccountType.LOAN)) { throw new PlatformServiceUnavailableException(
                 "error.msg.loan.transfer.transaction.update.not.allowed", "Loan transaction:" + transactionId
                         + " update not allowed as it involves in account transfer", transactionId); }
-        if (loan.isClosedWrittenOff()) { throw new PlatformServiceUnavailableException("error.msg.loan.written.off.update.not.allowed",
-                "Loan transaction:" + transactionId + " update not allowed as loan status is written off", transactionId); }
+        if (loan.isClosedWrittenOff() && transactionToAdjust.isNotRecoveryRepayment()) { throw new PlatformServiceUnavailableException("error.msg.loan.written.off.update.not.allowed",
+               "Loan transaction:" + transactionId + " update not allowed as loan status is written off", transactionId); }
 
         final LocalDate transactionDate = command.localDateValueOfParameterNamed("transactionDate");
         final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
@@ -862,8 +862,16 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
         final Money transactionAmountAsMoney = Money.of(loan.getCurrency(), transactionAmount);
         final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createPaymentDetail(command, changes);
+
         LoanTransaction newTransactionDetail = LoanTransaction.repayment(loan.getOffice(), transactionAmountAsMoney, paymentDetail,
                 transactionDate, txnExternalId, DateUtils.getLocalDateTimeOfTenant(), currentUser);
+
+        if(transactionToAdjust.isRecoveryRepayment()){
+
+           newTransactionDetail = LoanTransaction.recoveryRepayment(loan.getOffice(), transactionAmountAsMoney, paymentDetail,
+                    transactionDate, txnExternalId, DateUtils.getLocalDateTimeOfTenant(), currentUser);
+        }
+
         if (transactionToAdjust.isInterestWaiver()) {
             Money unrecognizedIncome = transactionAmountAsMoney.zero();
             Money interestComponent = transactionAmountAsMoney;
