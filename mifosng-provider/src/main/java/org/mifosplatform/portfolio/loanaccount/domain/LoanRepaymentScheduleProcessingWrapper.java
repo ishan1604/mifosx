@@ -5,13 +5,14 @@
  */
 package org.mifosplatform.portfolio.loanaccount.domain;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Set;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
 import org.mifosplatform.organisation.monetary.domain.Money;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+import java.util.Set;
 
 /**
  * A wrapper around loan schedule related data exposing needed behaviour by
@@ -87,7 +88,7 @@ public class LoanRepaymentScheduleProcessingWrapper {
                             cumulative = cumulative.plus(loanChargeAmt);
                         }
                     } else {
-                        cumulative = cumulative.plus(loanCharge.amount().divide(BigDecimal.valueOf(numberOfRepayments)));
+                        cumulative = cumulative.plus(loanCharge.amount().divide(BigDecimal.valueOf(numberOfRepayments), RoundingMode.HALF_EVEN));
                     }
                 } else if (loanCharge.isOverdueInstallmentCharge()
                         && loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
