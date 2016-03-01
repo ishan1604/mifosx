@@ -133,30 +133,22 @@ public class CodeValueWritePlatformServiceJpaRepositoryImpl implements CodeValue
     @CacheEvict(value = "code_values", allEntries = true)
     public CommandProcessingResult deleteCodeValue(final Long codeId, final Long codeValueId) {
 
-        try {
-            this.context.authenticatedUser();
+        this.context.authenticatedUser();
 
-            final Code code = this.codeRepository.findOne(codeId);
-            if (code == null) { throw new CodeNotFoundException(codeId); }
+        final Code code = this.codeRepository.findOne(codeId);
+        if (code == null) { throw new CodeNotFoundException(codeId); }
 
-            final CodeValue codeValueToDelete = this.codeValueRepositoryWrapper.findOneWithNotFoundDetection(codeValueId);
+        final CodeValue codeValueToDelete = this.codeValueRepositoryWrapper.findOneWithNotFoundDetection(codeValueId);
 
-            final boolean removed = code.remove(codeValueToDelete);
-            if (removed) {
-                this.codeRepository.saveAndFlush(code);
-            }
+        // set the isActive property to false
+        codeValueToDelete.delete();
+        
+        // save and flush code value entity
+        this.codeValueRepository.saveAndFlush(codeValueToDelete);
 
-            return new CommandProcessingResultBuilder() //
-                    .withEntityId(codeId) //
-                    .withSubEntityId(codeValueId)//
-                    .build();
-        } catch (final DataIntegrityViolationException dve) {
-            logger.error(dve.getMessage(), dve);
-            final Throwable realCause = dve.getMostSpecificCause();
-            if (realCause.getMessage().contains("code_value")) { throw new PlatformDataIntegrityException("error.msg.codeValue.in.use",
-                    "This code value is in use", codeValueId); }
-            throw new PlatformDataIntegrityException("error.msg.code.value.unknown.data.integrity.issue",
-                    "Unknown data integrity issue with resource: " + dve.getMostSpecificCause().getMessage());
-        }
+        return new CommandProcessingResultBuilder() //
+                .withEntityId(codeId) //
+                .withSubEntityId(codeValueId)//
+                .build();
     }
 }

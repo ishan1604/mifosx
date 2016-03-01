@@ -137,4 +137,28 @@ public class CodeValue extends AbstractPersistable<Long> {
         return CodeValueData.instance(getId(), this.label, this.position, this.description, 
                 this.isActive, this.isMandatory);
     }
+    
+    /** 
+     * set the isActive property to false 
+     * 
+     * @return None
+     **/
+    public void delete() {
+        this.isActive = false;
+        this.label = this.label + "_deleted_" + this.getId();
+    }
+    
+    /** 
+     * @return true if the "isActive" property is false, else false
+     **/
+    public boolean isDeleted() {
+        return !this.isActive;
+    }
+    
+    /**
+     * @return true if the "isActive" property is true, else false
+     */
+    public boolean isActive() {
+        return this.isActive;
+    }
 }
