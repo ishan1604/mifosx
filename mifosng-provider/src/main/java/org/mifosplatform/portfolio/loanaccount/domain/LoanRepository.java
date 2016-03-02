@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
-import org.hibernate.annotations.NamedNativeQuery;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -57,7 +56,7 @@ public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificat
 
     public static final String DOES_PRODUCT_HAVE_NON_CLOSED_LOANS = "select case when (count (loan) > 0) then true else false end from Loan loan where loan.loanProduct.id = :productId and loan.loanStatus in (100,200,300,303,304,700)";
 
-
+    public static final String DOES_GROUP_HAVE_NON_CLOSED_LOANS = "select case when (count (loan) > 0) then true else false end from Loan loan where loan.group.id = :groupId and loan.loanStatus in (100,200,300,303,304,700)";
 
     @Query(FIND_GROUP_LOANS_DISBURSED_AFTER)
     List<Loan> getGroupLoansDisbursedAfter(@Param("disbursementDate") Date disbursementDate, @Param("groupId") Long groupId,
@@ -134,6 +133,10 @@ public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificat
     
     @Query(DOES_PRODUCT_HAVE_NON_CLOSED_LOANS)
     boolean doNonClosedLoanAccountsExistForProduct(@Param("productId") Long productId);
+
+    @Query(DOES_GROUP_HAVE_NON_CLOSED_LOANS)
+    boolean doNonClosedLoanAccountsExistForGroup(@Param("groupId") Long groupId);
+
 
 
 
