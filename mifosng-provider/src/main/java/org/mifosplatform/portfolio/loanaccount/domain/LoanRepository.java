@@ -55,6 +55,9 @@ public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificat
 
     public static final String DOES_CLIENT_HAVE_NON_CLOSED_LOANS = "select case when (count (loan) > 0) then true else false end from Loan loan where loan.client.id = :clientId and loan.loanStatus in (100,200,300,303,304,700)";
 
+    public static final String DOES_GROUP_HAVE_NON_CLOSED_LOANS = "select case when (count (loan) > 0) then true else false end from Loan loan where loan.group.id = :groupId and loan.loanStatus in (100,200,300,303,304,700)";
+
+
 
 
     @Query(FIND_GROUP_LOANS_DISBURSED_AFTER)
@@ -125,6 +128,10 @@ public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificat
 
     @Query(DOES_CLIENT_HAVE_NON_CLOSED_LOANS)
     boolean doNonClosedLoanAccountsExistForClient(@Param("clientId") Long clientId);
+
+    @Query(DOES_GROUP_HAVE_NON_CLOSED_LOANS)
+    boolean doNonClosedLoanAccountsExistForGroup(@Param("groupId") Long groupId);
+
 
 
 
