@@ -87,7 +87,7 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
         Map<Long, Collection<LoanSchedulePeriodData>> loanWaiverSchedules = new HashMap<>();
         for (final LoanScheduleAccrualData accrualData : loanScheduleAccrualDatas) {
             try {
-                if (!loansIds.contains(accrualData.getLoanId())) {
+                 if (!loansIds.contains(accrualData.getLoanId())) {
                     if (!loanChargeMap.containsKey(accrualData.getLoanId())) {
                         Collection<LoanChargeData> chargeData = this.loanChargeReadPlatformService
                                 .retrieveLoanChargesForAccural(accrualData.getLoanId());
@@ -395,6 +395,8 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
         thisTransactionData.put("feeChargesPortion", feeportion);
         thisTransactionData.put("penaltyChargesPortion", penaltyportion);
         thisTransactionData.put("overPaymentPortion", null);
+        thisTransactionData.put("isAccountTransfer", false);
+
 
         Map<LoanChargeData, BigDecimal> applicableCharges = loanScheduleAccrualData.getApplicableCharges();
         if (applicableCharges != null && !applicableCharges.isEmpty()) {

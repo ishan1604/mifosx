@@ -58,4 +58,5 @@ public interface LoanAccountDomainService {
 
     void disableStandingInstructionsLinkedToClosedLoan(Loan loan);
 
+    void disableStandingInstructions(Loan loan);
 }
