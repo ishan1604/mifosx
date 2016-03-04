@@ -871,6 +871,9 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             }
             this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_UNDO_APPROVAL, loan);
         }
+        
+        // disable all active standing instructions linked to the loan
+        this.loanAccountDomainService.disableStandingInstructions(loan);
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
