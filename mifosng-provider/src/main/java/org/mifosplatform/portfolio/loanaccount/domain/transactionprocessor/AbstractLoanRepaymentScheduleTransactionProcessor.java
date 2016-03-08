@@ -320,7 +320,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
 
         Money amountRemaining = feeCharges;
         while (amountRemaining.isGreaterThanZero()) {
-            final LoanCharge unpaidCharge = findEarliestUnpaidChargeFromUnOrderedSet(charges, feeCharges.getCurrency());
+            final LoanCharge unpaidCharge = findEarliestUnpaidChargeFromUnOrderedSet(charges, feeCharges.getCurrency(), false);
             Money feeAmount = feeCharges.zero();
             if (loanTransaction.isChargePayment()) {
                 feeAmount = feeCharges;
@@ -347,12 +347,17 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
 
     }
 
-    private LoanCharge findEarliestUnpaidChargeFromUnOrderedSet(final Set<LoanCharge> charges, final MonetaryCurrency currency) {
+    private LoanCharge findEarliestUnpaidChargeFromUnOrderedSet(final Set<LoanCharge> charges, 
+            final MonetaryCurrency currency, final boolean searchForWaivedChargeWithOutstandingAmount) {
         LoanCharge earliestUnpaidCharge = null;
         LoanCharge installemntCharge = null;
         LoanInstallmentCharge chargePerInstallment = null;
         for (final LoanCharge loanCharge : charges) {
-            if (loanCharge.getAmountOutstanding(currency).isGreaterThanZero() && !loanCharge.isDueAtDisbursement()) {
+            boolean hasOutstandingAmount = loanCharge.getAmountOutstanding(currency).isGreaterThanZero();
+            
+            if ((hasOutstandingAmount && !loanCharge.isDueAtDisbursement() && (!loanCharge.isWaived() 
+                            || loanCharge.isInstalmentFee()) && !searchForWaivedChargeWithOutstandingAmount) || 
+                            (loanCharge.isWaived() && hasOutstandingAmount && searchForWaivedChargeWithOutstandingAmount)) {
                 if (loanCharge.isInstalmentFee()) {
                     LoanInstallmentCharge unpaidLoanChargePerInstallment = loanCharge.getUnpaidInstallmentLoanCharge();
                     if (chargePerInstallment == null
@@ -370,6 +375,10 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
                 || (chargePerInstallment != null && earliestUnpaidCharge.getDueLocalDate().isAfter(
                         chargePerInstallment.getRepaymentInstallment().getDueDate()))) {
             earliestUnpaidCharge = installemntCharge;
+        }
+        
+        if (earliestUnpaidCharge == null && !searchForWaivedChargeWithOutstandingAmount) {
+            return findEarliestUnpaidChargeFromUnOrderedSet(charges, currency, true);
         }
 
         return earliestUnpaidCharge;
