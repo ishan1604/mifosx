@@ -33,6 +33,7 @@ import org.mifosplatform.portfolio.account.domain.AccountTransferRepository;
 import org.mifosplatform.portfolio.account.domain.AccountTransferTransaction;
 import org.mifosplatform.portfolio.account.domain.AccountTransferType;
 import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
+import org.mifosplatform.portfolio.account.exception.AccountTransferLoanToLoanException;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanAccountDomainService;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
@@ -180,7 +181,9 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             transferDetailId = accountTransferDetails.getId();
 
         } else {
-
+            /**  throw an exception here for loan to loan transfer not supported */
+            fromLoanAccountId = command.longValueOfParameterNamed(fromAccountIdParamName);
+            throw new AccountTransferLoanToLoanException(fromLoanAccountId);
         }
 
         final CommandProcessingResultBuilder builder = new CommandProcessingResultBuilder().withEntityId(transferDetailId);
