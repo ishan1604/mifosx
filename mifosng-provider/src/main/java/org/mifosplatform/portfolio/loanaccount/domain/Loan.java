@@ -84,6 +84,7 @@ import org.mifosplatform.portfolio.group.domain.Group;
 import org.mifosplatform.portfolio.loanaccount.api.LoanApiConstants;
 import org.mifosplatform.portfolio.loanaccount.command.LoanChargeCommand;
 import org.mifosplatform.portfolio.loanaccount.data.DisbursementData;
+import org.mifosplatform.portfolio.loanaccount.data.GroupLoanMembersAllocationData;
 import org.mifosplatform.portfolio.loanaccount.data.HolidayDetailDTO;
 import org.mifosplatform.portfolio.loanaccount.data.LoanTermVariationsData;
 import org.mifosplatform.portfolio.loanaccount.data.ScheduleGeneratorDTO;
@@ -382,6 +383,10 @@ public class Loan extends AbstractPersistable<Long> {
 
     @Column(name = "interest_rate_differential", scale = 6, precision = 19, nullable = true)
     private BigDecimal interestRateDifferential;
+    
+    @LazyCollection(LazyCollectionOption.FALSE)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "loan", orphanRemoval = true)
+    private Set<GroupLoanMemberAllocation> groupLoanMemberAllocations = new HashSet<>();
 
     public static Loan newIndividualLoanApplication(final String accountNo, final Client client, final Integer loanType,
             final LoanProduct loanProduct, final Fund fund, final Staff officer, final CodeValue loanPurpose,
@@ -394,10 +399,11 @@ public class Loan extends AbstractPersistable<Long> {
         final LoanStatus status = null;
         final Group group = null;
         final Boolean syncDisbursementWithMeeting = null;
+        final Set<GroupLoanMemberAllocation> groupLoanMemberAllocations = null;
         return new Loan(accountNo, client, group, loanType, fund, officer, loanPurpose, transactionProcessingStrategy, loanProduct,
                 loanRepaymentScheduleDetail, status, loanCharges, collateral, syncDisbursementWithMeeting, fixedEmiAmount,
                 disbursementDetails, maxOutstandingLoanBalance, createStandingInstructionAtDisbursement, isFloatingInterestRate,
-                interestRateDifferential, creditChecks);
+                interestRateDifferential, creditChecks, groupLoanMemberAllocations);
     }
 
     public static Loan newGroupLoanApplication(final String accountNo, final Group group, final Integer loanType,
@@ -407,13 +413,14 @@ public class Loan extends AbstractPersistable<Long> {
             final Set<LoanCollateral> collateral, final Boolean syncDisbursementWithMeeting, final BigDecimal fixedEmiAmount,
             final Set<LoanDisbursementDetails> disbursementDetails, final BigDecimal maxOutstandingLoanBalance,
             final Boolean createStandingInstructionAtDisbursement, final Boolean isFloatingInterestRate,
-            final BigDecimal interestRateDifferential, final Set<LoanCreditCheck> creditChecks) {
+            final BigDecimal interestRateDifferential, final Set<LoanCreditCheck> creditChecks, 
+            final Set<GroupLoanMemberAllocation> groupLoanMemberAllocations) {
         final LoanStatus status = null;
         final Client client = null;
         return new Loan(accountNo, client, group, loanType, fund, officer, loanPurpose, transactionProcessingStrategy, loanProduct,
                 loanRepaymentScheduleDetail, status, loanCharges, collateral, syncDisbursementWithMeeting, fixedEmiAmount,
                 disbursementDetails, maxOutstandingLoanBalance, createStandingInstructionAtDisbursement, isFloatingInterestRate,
-                interestRateDifferential, creditChecks);
+                interestRateDifferential, creditChecks, groupLoanMemberAllocations);
     }
 
     public static Loan newIndividualLoanApplicationFromGroup(final String accountNo, final Client client, final Group group,
@@ -425,10 +432,11 @@ public class Loan extends AbstractPersistable<Long> {
             final Boolean createStandingInstructionAtDisbursement, final Boolean isFloatingInterestRate,
             final BigDecimal interestRateDifferential, final Set<LoanCreditCheck> creditChecks) {
         final LoanStatus status = null;
+        final Set<GroupLoanMemberAllocation> groupLoanMemberAllocations = null;
         return new Loan(accountNo, client, group, loanType, fund, officer, loanPurpose, transactionProcessingStrategy, loanProduct,
                 loanRepaymentScheduleDetail, status, loanCharges, collateral, syncDisbursementWithMeeting, fixedEmiAmount,
                 disbursementDetails, maxOutstandingLoanBalance, createStandingInstructionAtDisbursement, isFloatingInterestRate,
-                interestRateDifferential, creditChecks);
+                interestRateDifferential, creditChecks, groupLoanMemberAllocations);
     }
 
     protected Loan() {
@@ -442,7 +450,7 @@ public class Loan extends AbstractPersistable<Long> {
             final BigDecimal fixedEmiAmount, final Set<LoanDisbursementDetails> disbursementDetails,
             final BigDecimal maxOutstandingLoanBalance, final Boolean createStandingInstructionAtDisbursement,
             final Boolean isFloatingInterestRate, final BigDecimal interestRateDifferential, 
-            final Set<LoanCreditCheck> creditChecks) {
+            final Set<LoanCreditCheck> creditChecks, final Set<GroupLoanMemberAllocation> groupLoanMemberAllocations) {
 
         this.loanRepaymentScheduleDetail = loanRepaymentScheduleDetail;
         this.loanRepaymentScheduleDetail.validateRepaymentPeriodWithGraceSettings();
@@ -507,6 +515,12 @@ public class Loan extends AbstractPersistable<Long> {
         else {
             this.creditChecks = null;
         }
+        
+        if(groupLoanMemberAllocations != null && !groupLoanMemberAllocations.isEmpty()){
+            this.groupLoanMemberAllocations = associateGroupLoanMemberAllocationWithThisLoan(groupLoanMemberAllocations);
+        }else{
+            this.groupLoanMemberAllocations = null;
+        }
     }
 
     private LoanSummary updateSummaryWithTotalFeeChargesDueAtDisbursement(final BigDecimal feeChargesDueAtDisbursement) {
@@ -553,6 +567,13 @@ public class Loan extends AbstractPersistable<Long> {
             loanCreditCheck.update(this);
         }
         return loanCreditChecks;
+    }
+    
+    private Set<GroupLoanMemberAllocation> associateGroupLoanMemberAllocationWithThisLoan(final Set<GroupLoanMemberAllocation> groupLoanMemberAllocation) {
+        for (final GroupLoanMemberAllocation item : groupLoanMemberAllocation) {
+            item.associateWith(this);
+        }
+        return groupLoanMemberAllocation;
     }
 
     public boolean isAccountNumberRequiresAutoGeneration() {
@@ -1193,6 +1214,20 @@ public class Loan extends AbstractPersistable<Long> {
         this.collateral.clear();
         this.collateral.addAll(associateWithThisLoan(loanCollateral));
     }
+    
+    public void updateGroupLoanMemberAllocation(final Set<GroupLoanMemberAllocation> groupLoanMemberAllocations) {
+
+        if (this.groupLoanMemberAllocations == null) {
+            this.groupLoanMemberAllocations = new HashSet<>();
+        }
+
+       this.groupLoanMemberAllocations.clear();
+       this.groupLoanMemberAllocations.addAll(associateGroupLoanMemberAllocationWithThisLoan(groupLoanMemberAllocations));
+    }
+    
+    public Set<GroupLoanMemberAllocation> getGroupLoanMemberAllocations(){
+        return this.groupLoanMemberAllocations;
+    }
 
     public void updateLoanSchedule(final LoanScheduleModel modifiedLoanSchedule, AppUser currentUser) {
         this.repaymentScheduleInstallments.clear();
@@ -1323,7 +1358,8 @@ public class Loan extends AbstractPersistable<Long> {
     }
 
     public Map<String, Object> loanApplicationModification(final JsonCommand command, final Set<LoanCharge> possiblyModifedLoanCharges,
-            final Set<LoanCollateral> possiblyModifedLoanCollateralItems, final AprCalculator aprCalculator, boolean isChargesModified) {
+            final Set<LoanCollateral> possiblyModifedLoanCollateralItems, final AprCalculator aprCalculator, boolean isChargesModified, 
+            final Set<GroupLoanMemberAllocation> possiblyModifiedGroupLoanMembersAllocation) {
 
         final Map<String, Object> actualChanges = this.loanRepaymentScheduleDetail.updateLoanApplicationAttributes(command, aprCalculator);
         if (!actualChanges.isEmpty()) {
@@ -1534,6 +1570,14 @@ public class Loan extends AbstractPersistable<Long> {
         if (isChargesModified) {
             actualChanges.put(chargesParamName, getLoanCharges(possiblyModifedLoanCharges));
             actualChanges.put("recalculateLoanSchedule", true);
+        }
+        
+        final String groupMemberAllocation = "groupMemberAllocation";
+        if (command.parameterExists(groupMemberAllocation)) {
+
+            if (!possiblyModifiedGroupLoanMembersAllocation.equals(this.groupLoanMemberAllocations)) {
+                actualChanges.put(groupMemberAllocation, listOfGroupLoanMemberAllocationData(possiblyModifiedGroupLoanMembersAllocation));
+            }
         }
 
         final String collateralParamName = "collateral";
@@ -5808,5 +5852,27 @@ public class Loan extends AbstractPersistable<Long> {
         }
         
         return installment;
+    }
+    
+    public Set<GroupLoanMemberAllocation> groupLoanMemberAllocations(){
+
+        return groupLoanMemberAllocations;
+    }
+    
+    private GroupLoanMembersAllocationData[] listOfGroupLoanMemberAllocationData(final Set<GroupLoanMemberAllocation> setOfGroupLoanMemberAllocation) {
+
+        GroupLoanMembersAllocationData[] existingGroupLoanMemberAllocation = null;
+
+        final List<GroupLoanMembersAllocationData> GroupLoanMemberAllocationList = new ArrayList<>();
+        for (final GroupLoanMemberAllocation memberAllocation : setOfGroupLoanMemberAllocation) {
+
+            final GroupLoanMembersAllocationData data = memberAllocation.toData();
+
+            GroupLoanMemberAllocationList.add(data);
+        }
+
+        existingGroupLoanMemberAllocation = GroupLoanMemberAllocationList.toArray(new GroupLoanMembersAllocationData[GroupLoanMemberAllocationList.size()]);
+
+        return existingGroupLoanMemberAllocation;
     }
 }

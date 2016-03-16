@@ -73,7 +73,8 @@ public final class LoanApplicationCommandFromApiJsonHelper {
             "linkAccountId", LoanApiConstants.disbursementDataParameterName, LoanApiConstants.emiAmountParameterName,
             LoanApiConstants.maxOutstandingBalanceParameterName, LoanProductConstants.graceOnArrearsAgeingParameterName,
             LoanProductConstants.recalculationRestFrequencyDateParamName,
-            LoanProductConstants.recalculationCompoundingFrequencyDateParamName, "createStandingInstructionAtDisbursement"));
+            LoanProductConstants.recalculationCompoundingFrequencyDateParamName, "createStandingInstructionAtDisbursement", 
+            "groupMemberAllocation"));
 
     private final FromJsonHelper fromApiJsonHelper;
     private final CalculateLoanScheduleQueryFromApiJsonHelper apiJsonHelper;
@@ -447,6 +448,49 @@ public final class LoanApplicationCommandFromApiJsonHelper {
             baseDataValidator.reset().parameter(LoanApiConstants.maxOutstandingBalanceParameterName).value(maxOutstandingBalance)
                     .ignoreIfNull().positiveAmount();
         }
+        
+        final String groupMemberAllocation = "groupMemberAllocation";
+
+        if(element.isJsonObject() && this.fromApiJsonHelper.parameterExists(groupMemberAllocation, element)){
+            final JsonObject topLevelJsonElement = element.getAsJsonObject();
+
+            if (topLevelJsonElement.get("groupMemberAllocation").isJsonArray()) {
+
+                final Type arrayObjectParameterTypeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+                final Set<String> supportedParameters = new HashSet<>(Arrays.asList("client_id", "amount"));
+
+
+                final JsonArray array = topLevelJsonElement.get("groupMemberAllocation").getAsJsonArray();
+                final Locale locale = this.fromApiJsonHelper.extractLocaleParameter(topLevelJsonElement);
+
+                long total = 0;
+
+                for (int i = 1; i <= array.size(); i++) {
+
+                    final JsonObject groupMemberAllocationElement = array.get(i - 1).getAsJsonObject();
+                    final String arrayObjectJson = this.fromApiJsonHelper.toJson(groupMemberAllocationElement);
+
+                    this.fromApiJsonHelper.checkForUnsupportedParameters(arrayObjectParameterTypeOfMap, arrayObjectJson,
+                            supportedParameters);
+
+                    final Long clientId = this.fromApiJsonHelper.extractLongNamed("client_id", groupMemberAllocationElement);
+                    baseDataValidator.reset().parameter("groupMemberAllocation.client_id").parameterAtIndexArray("client_id", i).value(clientId).notNull()
+                            .integerGreaterThanZero();
+
+                    final BigDecimal amount = this.fromApiJsonHelper.extractBigDecimalNamed("amount", groupMemberAllocationElement, locale);
+                    baseDataValidator.reset().parameter("groupMemberAllocation.amount").parameterAtIndexArray("amount", i).value(amount).notNull().zeroOrPositiveAmount();
+
+                    total += amount.longValue();
+                }
+
+                baseDataValidator.reset().parameter("groupMemberAllocation").value(total).equalToParameter("principal", principal.longValue());
+
+
+            } else {
+                baseDataValidator.reset().parameter(collateralParameterName).expectedArrayButIsNot();
+            }
+        }
+        
         validateLoanMultiDisbursementdate(element, baseDataValidator, expectedDisbursementDate, principal);
         validatePartialPeriodSupport(interestCalculationPeriodType, baseDataValidator, element, loanProduct);
         if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
@@ -874,6 +918,49 @@ public final class LoanApplicationCommandFromApiJsonHelper {
             baseDataValidator.reset().parameter(LoanApiConstants.maxOutstandingBalanceParameterName).value(maxOutstandingBalance)
                     .ignoreIfNull().positiveAmount();
         }
+        
+        final String groupMemberAllocation = "groupMemberAllocation";
+
+        if(element.isJsonObject() && this.fromApiJsonHelper.parameterExists(groupMemberAllocation, element)){
+            final JsonObject topLevelJsonElement = element.getAsJsonObject();
+
+            if (topLevelJsonElement.get("groupMemberAllocation").isJsonArray()) {
+
+                final Type arrayObjectParameterTypeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+                final Set<String> supportedParameters = new HashSet<>(Arrays.asList("client_id", "amount"));
+
+
+                final JsonArray array = topLevelJsonElement.get("groupMemberAllocation").getAsJsonArray();
+                final Locale locale = this.fromApiJsonHelper.extractLocaleParameter(topLevelJsonElement);
+
+                long total = 0;
+
+                for (int i = 1; i <= array.size(); i++) {
+
+                    final JsonObject groupMemberAllocationElement = array.get(i - 1).getAsJsonObject();
+                    final String arrayObjectJson = this.fromApiJsonHelper.toJson(groupMemberAllocationElement);
+
+                    this.fromApiJsonHelper.checkForUnsupportedParameters(arrayObjectParameterTypeOfMap, arrayObjectJson,
+                            supportedParameters);
+
+                    final Long clientId = this.fromApiJsonHelper.extractLongNamed("client_id", groupMemberAllocationElement);
+                    baseDataValidator.reset().parameter("groupMemberAllocation").parameterAtIndexArray("client_id", i).value(clientId).notNull()
+                            .integerGreaterThanZero();
+
+                    final BigDecimal amount = this.fromApiJsonHelper.extractBigDecimalNamed("amount", groupMemberAllocationElement, locale);
+                    baseDataValidator.reset().parameter("groupMemberAllocation").parameterAtIndexArray("amount", i).value(amount).notNull().zeroOrPositiveAmount();
+
+                    total += amount.longValue();
+                }
+
+                baseDataValidator.reset().parameter("groupMemberAllocation").value(total).equalToParameter("principal", principal.longValue());
+
+
+            } else {
+                baseDataValidator.reset().parameter(collateralParameterName).expectedArrayButIsNot();
+            }
+        }
+        
         validateLoanMultiDisbursementdate(element, baseDataValidator, expectedDisbursementDate, principal);
         validatePartialPeriodSupport(interestCalculationPeriodType, baseDataValidator, element, loanProduct);
 

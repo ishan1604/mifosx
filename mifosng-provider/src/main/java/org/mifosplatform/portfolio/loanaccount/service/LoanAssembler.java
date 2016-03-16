@@ -46,6 +46,7 @@ import org.mifosplatform.portfolio.group.exception.GroupNotActiveException;
 import org.mifosplatform.portfolio.group.exception.GroupNotFoundException;
 import org.mifosplatform.portfolio.loanaccount.api.LoanApiConstants;
 import org.mifosplatform.portfolio.loanaccount.domain.DefaultLoanLifecycleStateMachine;
+import org.mifosplatform.portfolio.loanaccount.domain.GroupLoanMemberAllocation;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanDisbursementDetails;
@@ -97,6 +98,7 @@ public class LoanAssembler {
     private final HolidayRepository holidayRepository;
     private final ConfigurationDomainService configurationDomainService;
     private final WorkingDaysRepositoryWrapper workingDaysRepository;
+    private final GroupLoanMemberAllocationAssembler groupLoanMemberAllocationAssembler;
 
     @Autowired
     public LoanAssembler(final FromJsonHelper fromApiJsonHelper, final LoanRepositoryWrapper loanRepository,
@@ -108,7 +110,8 @@ public class LoanAssembler {
             final CollateralAssembler loanCollateralAssembler, final LoanSummaryWrapper loanSummaryWrapper,
             final LoanRepaymentScheduleTransactionProcessorFactory loanRepaymentScheduleTransactionProcessorFactory,
             final HolidayRepository holidayRepository, final ConfigurationDomainService configurationDomainService,
-            final WorkingDaysRepositoryWrapper workingDaysRepository) {
+            final WorkingDaysRepositoryWrapper workingDaysRepository, 
+            final GroupLoanMemberAllocationAssembler groupLoanMemberAllocationAssembler) {
         this.fromApiJsonHelper = fromApiJsonHelper;
         this.loanRepository = loanRepository;
         this.loanProductRepository = loanProductRepository;
@@ -126,6 +129,7 @@ public class LoanAssembler {
         this.holidayRepository = holidayRepository;
         this.configurationDomainService = configurationDomainService;
         this.workingDaysRepository = workingDaysRepository;
+        this.groupLoanMemberAllocationAssembler = groupLoanMemberAllocationAssembler;
     }
 
     public Loan assembleFrom(final Long accountId) {
@@ -245,11 +249,14 @@ public class LoanAssembler {
                     createStandingInstructionAtDisbursement, isFloatingInterestRate, interestRateDifferential, null);
 
         } else if (group != null) {
+            
+            Set<GroupLoanMemberAllocation> groupLoanMemberAllocations = this.groupLoanMemberAllocationAssembler.fromParsedJson(element);
 
             loanApplication = Loan.newGroupLoanApplication(accountNo, group, loanType.getId().intValue(), loanProduct, fund, loanOfficer,
                     loanPurpose, loanTransactionProcessingStrategy, loanProductRelatedDetail, loanCharges, collateral,
                     syncDisbursementWithMeeting, fixedEmiAmount, disbursementDetails, maxOutstandingLoanBalance,
-                    createStandingInstructionAtDisbursement,isFloatingInterestRate, interestRateDifferential, null);
+                    createStandingInstructionAtDisbursement,isFloatingInterestRate, interestRateDifferential, null, 
+                    groupLoanMemberAllocations);
 
         } else if (client != null) {
 
