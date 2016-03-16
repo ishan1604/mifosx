@@ -122,7 +122,7 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
         TransactionStatus transactionStatus = this.transactionManager.getTransaction(new DefaultTransactionDefinition());
         try{
             String transactionSql = "INSERT INTO m_loan_transaction  (loan_id,office_id,is_reversed,transaction_type_enum,transaction_date,amount,suspended_interest_portion_derived,"
-                    + "suspended_fee_charges_portion_derived,suspended_penalty_charges_portion_derived, submitted_on_date) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?)";
+                    + "suspended_fee_charges_portion_derived,suspended_penalty_charges_portion_derived, submitted_on_date, is_account_transfer) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 0)";
             this.jdbcTemplate.update(transactionSql, loanScheduleSuspendedAccruedIncomeData.getLoanId(), loanScheduleSuspendedAccruedIncomeData.getOfficeId(),
                     LoanTransactionType.SUSPENDED_ACCRUED_INCOME.getValue(), DateUtils.getLocalDateOfTenant().toDate(), amount, interestPortion, feePortion, penaltyPortion,
                     DateUtils.getDateOfTenant());
@@ -154,7 +154,7 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
         TransactionStatus transactionStatus = this.transactionManager.getTransaction(new DefaultTransactionDefinition());
         try{
             String transactionSql = "INSERT INTO m_loan_transaction  (loan_id,office_id,is_reversed,transaction_type_enum,transaction_date,amount,suspended_interest_portion_derived,"
-                    + "suspended_fee_charges_portion_derived,suspended_penalty_charges_portion_derived, submitted_on_date) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?)";
+                    + "suspended_fee_charges_portion_derived,suspended_penalty_charges_portion_derived, submitted_on_date, is_account_transfer) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 0)";
             this.jdbcTemplate.update(transactionSql, loanScheduleSuspendedAccruedIncomeData.getLoanId(), loanScheduleSuspendedAccruedIncomeData.getOfficeId(),
                     LoanTransactionType.REVERSE_SUSPENDED_ACCRUED_INCOME.getValue(), DateUtils.getLocalDateOfTenant().toDate(), amount, interestPortion, feePortion, penaltyPortion,
                     DateUtils.getDateOfTenant());
@@ -249,6 +249,8 @@ public class LoanSuspendAccruedIncomeWritePlatformServiceImpl implements LoanSus
         thisTransactionData.put("feeChargesPortion", feePortion);
         thisTransactionData.put("penaltyChargesPortion", penaltyPortion);
         thisTransactionData.put("overPaymentPortion", null);
+        thisTransactionData.put("isAccountTransfer", false);
+
 
 
 
