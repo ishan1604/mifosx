@@ -46,7 +46,7 @@ public class DatatableCommandFromApiJsonDeserializer {
     private final Set<String> supportedParametersForChangeColumns = new HashSet<>(Arrays.asList("name", "newName", "length",
             "mandatory", "after", "code", "newCode", "labelName", "order"));
     private final Set<String> supportedParametersForDropColumns = new HashSet<>(Arrays.asList("name"));
-    private final Object[] supportedColumnTypes = { "string", "number", "boolean", "decimal", "date", "datetime", "text", "dropdown" };
+    private final Object[] supportedColumnTypes = { "string", "number", "boolean", "decimal", "date", "datetime", "text", "dropdown","checkbox"};
     private final Object[] supportedApptableNames = { "m_loan", "m_savings_account", "m_client", "m_group", "m_center", "m_office",
             "m_savings_product", "m_product_loan" };
 
@@ -81,7 +81,7 @@ public class DatatableCommandFromApiJsonDeserializer {
         }
 
         final String code = this.fromApiJsonHelper.extractStringNamed("code", column);
-        if (type != null && type.equalsIgnoreCase("Dropdown")) {
+        if (type != null && ( type.equalsIgnoreCase("Dropdown") || type.equalsIgnoreCase("Checkbox"))) {
             if (code != null) {
                 baseDataValidator.reset().parameter("code").value(code).notBlank().matchesRegularExpression(DATATABLE_NAME_REGEX_PATTERN);
             } else {
@@ -90,6 +90,8 @@ public class DatatableCommandFromApiJsonDeserializer {
         } else {
             baseDataValidator.reset().parameter("code").value(code).mustBeBlankWhenParameterProvided("type", type);
         }
+
+
     }
 
     public void validateForCreate(final String json) {

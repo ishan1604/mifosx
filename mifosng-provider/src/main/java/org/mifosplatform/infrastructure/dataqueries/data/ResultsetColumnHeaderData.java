@@ -214,6 +214,13 @@ public final class ResultsetColumnHeaderData {
         return "CODEVALUE".equalsIgnoreCase(this.columnDisplayType);
     }
 
+    public boolean isCheckboxColumnType(){
+
+       if(this.columnName.indexOf("_cb")>0) return true;
+
+        return false;
+    }
+
     public boolean isCodeLookupDisplayType() {
         return "CODELOOKUP".equalsIgnoreCase(this.columnDisplayType);
     }
