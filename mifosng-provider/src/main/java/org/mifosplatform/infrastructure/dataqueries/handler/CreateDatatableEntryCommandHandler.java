@@ -28,17 +28,17 @@ public class CreateDatatableEntryCommandHandler implements NewCommandSourceHandl
     @Override
     public CommandProcessingResult processCommand(final JsonCommand command) {
 
-        final CommandProcessingResult commandProcessingResult = this.writePlatformService.createNewDatatableEntry(command.entityName(),
+        return this.writePlatformService.createNewDatatableEntry(command.entityName(),
                 command.entityId(), command);
 
-        return new CommandProcessingResultBuilder() //
-                .withCommandId(command.commandId()) //
-                .withEntityId(command.entityId()) //
-                .withOfficeId(commandProcessingResult.getOfficeId()) //
-                .withGroupId(commandProcessingResult.getGroupId()) //
-                .withClientId(commandProcessingResult.getClientId()) //
-                .withSavingsId(commandProcessingResult.getSavingsId()) //
-                .withLoanId(commandProcessingResult.getLoanId()) //
-                .build();
+//        return new CommandProcessingResultBuilder() //
+//                .withCommandId(command.commandId()) //
+//                .withEntityId(command.entityId()) //
+//                .withOfficeId(commandProcessingResult.getOfficeId()) //
+//                .withGroupId(commandProcessingResult.getGroupId()) //
+//                .withClientId(commandProcessingResult.getClientId()) //
+//                .withSavingsId(commandProcessingResult.getSavingsId()) //
+//                .withLoanId(commandProcessingResult.getLoanId()) //
+//                .build();
     }
 }

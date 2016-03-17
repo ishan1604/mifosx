@@ -24,10 +24,12 @@ public class DocumentCommand {
     private String location;
     private Integer storageType;
 
+    private Long appTableId;
+
     private final Set<String> modifiedParameters;
 
     public DocumentCommand(final Set<String> modifiedParameters, final Long id, final String parentEntityType, final Long parentEntityId,
-            final String name, final String fileName, final Long size, final String type, final String description, final String location) {
+            final String name, final String fileName, final Long size, final String type, final String description, final String location,final Long appTableId) {
         this.modifiedParameters = modifiedParameters;
         this.id = id;
         this.parentEntityType = parentEntityType;
@@ -38,7 +40,10 @@ public class DocumentCommand {
         this.type = type;
         this.description = description;
         this.location = location;
+        this.appTableId = appTableId;
     }
+
+    public Long getAppTableId() {return this.appTableId;}
 
     public Long getId() {
         return this.id;

@@ -61,4 +61,6 @@ public interface ReadWriteNonCoreDataService {
 
     List<DatatableCategoryData> retreiveCategories();
 
+    public boolean isRegisteredDataTable(final String name);
+
 }
