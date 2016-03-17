@@ -87,7 +87,10 @@ public final class ResultsetColumnHeaderData {
         } else {
             if (isInt()) {
                 displayType = "CODELOOKUP";
-            } else if (isVarchar()) {
+            } else if(isVarchar() && isCheckboxColumnType()){
+                displayType = "CHECKBOX";
+            }
+            else if (isVarchar()) {
                 displayType = "CODEVALUE";
             } else {
                 throw new PlatformDataIntegrityException("error.msg.invalid.lookup.type", "Invalid Lookup Type:" + this.columnType
@@ -212,6 +215,13 @@ public final class ResultsetColumnHeaderData {
 
     public boolean isCodeValueDisplayType() {
         return "CODEVALUE".equalsIgnoreCase(this.columnDisplayType);
+    }
+
+    public boolean isCheckboxColumnType(){
+
+       if(this.columnName.indexOf("_cb")>0) return true;
+
+        return false;
     }
 
     public boolean isCodeLookupDisplayType() {

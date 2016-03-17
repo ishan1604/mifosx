@@ -208,19 +208,28 @@ public class GenericDataServiceImpl implements GenericDataService {
             if ("varchar".equalsIgnoreCase(columnType)) {
 
                 final int codePosition = columnName.indexOf("_cv");
+                final int codePositionForCb = columnName.indexOf("_cb");
+
                 if (codePosition > 0) {
                     codeName = columnName.substring(0, codePosition);
 
+                    columnValues = retreiveColumnValues(codeName);
+                }
+                else if(codePositionForCb >0 ){
+
+                    codeName = columnName.substring(0, codePositionForCb);
                     columnValues = retreiveColumnValues(codeName);
                 }
 
             } else if ("int".equalsIgnoreCase(columnType)) {
 
                 final int codePosition = columnName.indexOf("_cd");
+
                 if (codePosition > 0) {
                     codeName = columnName.substring(0, codePosition);
                     columnValues = retreiveColumnValues(codeName);
                 }
+
             }
             if (codeName == null) {
                 final SqlRowSet rsValues = getDatatableCodeData(datatable, columnName);
