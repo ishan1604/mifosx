@@ -388,7 +388,7 @@ public class LoanCharge extends AbstractPersistable<Long> {
     }
 
     public void update(final BigDecimal amount, final LocalDate dueDate, final BigDecimal loanPrincipal, Integer numberOfRepayments,
-            BigDecimal loanCharge) {
+            BigDecimal loanCharge, final MonetaryCurrency currency) {
         if (dueDate != null) {
             this.dueDate = dueDate.toDate();
         }
@@ -425,7 +425,7 @@ public class LoanCharge extends AbstractPersistable<Long> {
                     if (loanCharge.compareTo(BigDecimal.ZERO) == 0) {
                         loanCharge = percentageOf(this.amountPercentageAppliedTo);
                     }
-                    this.amount = loanCharge;
+                    this.amount = Money.of(currency, loanCharge).getAmount();
                 break;
             }
             this.amountOrPercentage = amount;
@@ -467,7 +467,7 @@ public class LoanCharge extends AbstractPersistable<Long> {
                 break;
             }
         }
-        update(amount, dueDate, amountPercentageAppliedTo, numberOfRepayments, BigDecimal.ZERO);
+        update(amount, dueDate, amountPercentageAppliedTo, numberOfRepayments, BigDecimal.ZERO, this.loan.getCurrency());
     }
 
     public Map<String, Object> update(final JsonCommand command, final BigDecimal amount) {

@@ -625,7 +625,7 @@ public class Loan extends AbstractPersistable<Long> {
         } else {
             chargeAmt = loanCharge.amountOrPercentage();
         }
-        loanCharge.update(chargeAmt, loanCharge.getDueLocalDate(), amount, fetchNumberOfInstallmensAfterExceptions(), totalChargeAmt);
+        loanCharge.update(chargeAmt, loanCharge.getDueLocalDate(), amount, fetchNumberOfInstallmensAfterExceptions(), totalChargeAmt, this.getCurrency());
 
         // NOTE: must add new loan charge to set of loan charges before
         // reporcessing the repayment schedule.
@@ -1202,7 +1202,7 @@ public class Loan extends AbstractPersistable<Long> {
                 chargeAmt = loanCharge.amountOrPercentage();
             }
             if (charge != null)
-                charge.update(chargeAmt, loanCharge.getDueLocalDate(), amount, fetchNumberOfInstallmensAfterExceptions(), totalChargeAmt);
+                charge.update(chargeAmt, loanCharge.getDueLocalDate(), amount, fetchNumberOfInstallmensAfterExceptions(), totalChargeAmt, this.getCurrency());
 
         }
 
@@ -1737,7 +1737,7 @@ public class Loan extends AbstractPersistable<Long> {
             chargeAmt = loanCharge.amountOrPercentage();
         }
         if (loanCharge.isActive()) {
-            loanCharge.update(chargeAmt, loanCharge.getDueLocalDate(), amount, fetchNumberOfInstallmensAfterExceptions(), totalChargeAmt);
+            loanCharge.update(chargeAmt, loanCharge.getDueLocalDate(), amount, fetchNumberOfInstallmensAfterExceptions(), totalChargeAmt, this.getCurrency());
             validateChargeHasValidSpecifiedDateIfApplicable(loanCharge, getDisbursementDate(), getLastRepaymentPeriodDueDate());
         }
 
