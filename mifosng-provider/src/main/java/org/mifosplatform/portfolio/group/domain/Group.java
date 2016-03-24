@@ -326,6 +326,21 @@ public final class Group extends AbstractPersistable<Long> {
             actualChanges.put(GroupingTypesApiConstants.accountNoParamName, newValue);
             this.accountNumber = StringUtils.defaultIfEmpty(newValue, null);
         }
+        
+        if (command.isChangeInLocalDateParameterNamed(GroupingTypesApiConstants.submittedOnDateParamName, getSubmittedOnDate())) {
+            final String valueAsInput = command.stringValueOfParameterNamed(GroupingTypesApiConstants.submittedOnDateParamName);
+            actualChanges.put(GroupingTypesApiConstants.submittedOnDateParamName, valueAsInput);
+            actualChanges.put(GroupingTypesApiConstants.dateFormatParamName, dateFormatAsInput);
+            actualChanges.put(GroupingTypesApiConstants.localeParamName, localeAsInput);
+
+            final LocalDate newValue = command.localDateValueOfParameterNamed(GroupingTypesApiConstants.submittedOnDateParamName);
+            this.submittedOnDate = newValue.toDate();
+
+            /** validate for submitted on date */
+            final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+            validateActivationDate(dataValidationErrors);
+            throwExceptionIfErrors(dataValidationErrors);
+        }
 
         return actualChanges;
     }
