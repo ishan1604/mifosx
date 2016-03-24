@@ -251,7 +251,7 @@ public class GenericDataServiceImpl implements GenericDataService {
         final List<ResultsetColumnValueData> columnValues = new ArrayList<>();
 
         final String sql = "select v.id, v.code_score, v.code_value from m_code m " + " join m_code_value v on v.code_id = m.id "
-                + " where m.code_name = '" + codeName + "' order by v.order_position, v.id";
+                + " where m.code_name = '" + codeName + "' and v.is_active = 1 order by v.order_position, v.id";
 
         final SqlRowSet rsValues = this.jdbcTemplate.queryForRowSet(sql);
 
@@ -272,7 +272,7 @@ public class GenericDataServiceImpl implements GenericDataService {
         final List<ResultsetColumnValueData> columnValues = new ArrayList<>();
         if (codeId != null) {
             final String sql = "select v.id, v.code_value from m_code_value v where v.code_id =" + codeId
-                    + " order by v.order_position, v.id";
+                    + " and v.is_active = 1 order by v.order_position, v.id";
             final SqlRowSet rsValues = this.jdbcTemplate.queryForRowSet(sql);
             rsValues.beforeFirst();
             while (rsValues.next()) {
