@@ -316,6 +316,7 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
         thisTransactionData.put("feeChargesPortion", feeportion);
         thisTransactionData.put("penaltyChargesPortion", penaltyportion);
         thisTransactionData.put("overPaymentPortion", null);
+        thisTransactionData.put("isAccountTransfer", false);
 
         Map<LoanChargeData, BigDecimal> applicableCharges = loanScheduleAccrualData.getApplicableCharges();
         if (applicableCharges != null && !applicableCharges.isEmpty()) {
