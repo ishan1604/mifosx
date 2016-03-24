@@ -210,7 +210,7 @@ public final class LoanSummaryWrapper {
         final Money totalOverdue = calculateTotalOverdueOn(repaymentScheduleInstallments, currency, from);
         if (totalOverdue.isGreaterThanZero()) {
             for (final LoanRepaymentScheduleInstallment installment : repaymentScheduleInstallments) {
-                if (installment.isOverdueOn(from)) {
+                if (installment.isOverdueOn(from) && installment.isNotFullyPaidOff()) {
                     if (overdueSince == null || overdueSince.isAfter(installment.getDueDate())) {
                         overdueSince = installment.getDueDate();
                     }

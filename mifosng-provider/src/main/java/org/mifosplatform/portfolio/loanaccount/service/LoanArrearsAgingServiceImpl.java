@@ -101,7 +101,7 @@ public class LoanArrearsAgingServiceImpl implements LoanArrearsAgingService, Bus
         updateSqlBuilder.append(" INNER JOIN m_loan_repayment_schedule mr on mr.loan_id = ml.id ");
         updateSqlBuilder.append(" left join m_product_loan_recalculation_details prd on prd.product_id = ml.product_id ");
         updateSqlBuilder.append(" WHERE ml.loan_status_id = 300 "); // active
-        updateSqlBuilder.append(" and mr.completed_derived is false ");
+        updateSqlBuilder.append(" and mr.obligations_met_on_date is null ");
         updateSqlBuilder.append(" and mr.duedate < SUBDATE(CURDATE(),INTERVAL  ifnull(ml.grace_on_arrears_ageing,0) day) ");
         updateSqlBuilder.append(" and (prd.arrears_based_on_original_schedule = 0 or prd.arrears_based_on_original_schedule is null) ");
         updateSqlBuilder.append(" GROUP BY ml.id");
