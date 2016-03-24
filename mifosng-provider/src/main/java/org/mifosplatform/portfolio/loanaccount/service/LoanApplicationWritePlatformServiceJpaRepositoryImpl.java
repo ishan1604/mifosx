@@ -66,6 +66,7 @@ import org.mifosplatform.portfolio.loanaccount.data.ScheduleGeneratorDTO;
 import org.mifosplatform.portfolio.loanaccount.domain.DefaultLoanLifecycleStateMachine;
 import org.mifosplatform.portfolio.loanaccount.domain.GroupLoanMemberAllocation;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanAccountDomainService;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanDisbursementDetails;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanLifecycleStateMachine;
@@ -146,6 +147,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     private final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService;
     private final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService;
     private final GroupLoanMemberAllocationAssembler groupLoanMemberAllocationAssembler;
+    private final LoanAccountDomainService loanAccountDomainService;
 
     @Autowired
     public LoanApplicationWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context, final FromJsonHelper fromJsonHelper,
@@ -167,7 +169,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             final LoanScheduleAssembler loanScheduleAssembler, final LoanUtilService loanUtilService, 
             final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService, 
             final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService, 
-            final GroupLoanMemberAllocationAssembler groupLoanMemberAllocationAssembler) {
+            final GroupLoanMemberAllocationAssembler groupLoanMemberAllocationAssembler, 
+            final LoanAccountDomainService loanAccountDomainService) {
         this.context = context;
         this.fromJsonHelper = fromJsonHelper;
         this.loanApplicationTransitionApiJsonValidator = loanApplicationTransitionApiJsonValidator;
@@ -200,6 +203,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         this.loanCreditCheckWritePlatformService = loanCreditCheckWritePlatformService;
         this.entityDatatableChecksWritePlatformService = entityDatatableChecksWritePlatformService;
         this.groupLoanMemberAllocationAssembler = groupLoanMemberAllocationAssembler;
+        this.loanAccountDomainService = loanAccountDomainService;
     }
 
     private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
@@ -988,6 +992,9 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_UNDO_APPROVAL,
                     constructEntityMap(BUSINESS_ENTITY.LOAN, loan));
         }
+        
+        // disable all active standing instructions linked to the loan
+        this.loanAccountDomainService.disableStandingInstructions(loan);
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //

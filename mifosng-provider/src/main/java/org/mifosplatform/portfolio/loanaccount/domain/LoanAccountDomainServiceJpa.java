@@ -588,26 +588,48 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
     /** 
      * Disable all standing instructions linked to the loan account if the status is "closed" 
      * 
-     * @param loan -- the loan account object
+     * @param loan -- the loan account entity
      * @return None
      **/
     @Override
-    @Transactional
     public void disableStandingInstructionsLinkedToClosedLoan(final Loan loan) {
         if ((loan != null) && (loan.status() != null) && loan.status().isClosed()) {
-            final Integer standingInstructionStatus = StandingInstructionStatus.ACTIVE.getValue();
-            final Collection<AccountTransferStandingInstruction> accountTransferStandingInstructions = this.standingInstructionRepository
-                    .findByLoanAccountAndStatus(loan, standingInstructionStatus);
-            
-            if (!accountTransferStandingInstructions.isEmpty()) {
-                for (AccountTransferStandingInstruction accountTransferStandingInstruction : accountTransferStandingInstructions) {
-                    accountTransferStandingInstruction.updateStatus(StandingInstructionStatus.DISABLED.getValue());
-                    this.standingInstructionRepository.save(accountTransferStandingInstruction);
-                }
+            this.disableStandingInstructions(loan);
+        }
+    }
+    
+    /** 
+     * Disable all standing instructions linked to the specified loan account
+     * 
+     * @param loan -- the loan account entity
+     * @return None
+     **/
+    @Override
+    public void disableStandingInstructions(final Loan loan) {
+        final int fromStatus = StandingInstructionStatus.ACTIVE.getValue();
+        final int toStatus = StandingInstructionStatus.DISABLED.getValue();
+        
+        this.updateStatusOfStandingInstructions(loan, fromStatus, toStatus);
+    }
+    
+    /**
+     * update the status of all standing instructions linked to the specified loan account
+     * 
+     * @param loan -- the loan account entity
+     * @param fromStatus -- only standing instructions with this status will be updated
+     * @param toStatus -- new status of standing instructions
+     * @return None
+     */
+    @Transactional
+    private void updateStatusOfStandingInstructions(Loan loan, final int fromStatus, final int toStatus) {
+        final Collection<AccountTransferStandingInstruction> accountTransferStandingInstructions = this.standingInstructionRepository
+                .findByLoanAccountAndStatus(loan, fromStatus);
+        
+        if (accountTransferStandingInstructions != null && !accountTransferStandingInstructions.isEmpty()) {
+            for (AccountTransferStandingInstruction accountTransferStandingInstruction : accountTransferStandingInstructions) {
+                accountTransferStandingInstruction.updateStatus(toStatus);
+                this.standingInstructionRepository.save(accountTransferStandingInstruction);
             }
         }
     }
-
-
-
 }

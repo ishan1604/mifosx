@@ -338,4 +338,44 @@ public class AccountTransferStandingInstruction extends AbstractPersistable<Long
         this.status = StandingInstructionStatus.DELETED.getValue();
         this.name = this.name + "_deleted_" + this.getId();
     }
+    
+    /**
+     * check if the standing instruction is active
+     * 
+     * @return boolean true if status is set to active, else false
+     */
+    public boolean isActive() {
+        final StandingInstructionStatus standingInstructionStatus = StandingInstructionStatus.fromInt(this.status);
+        
+        return standingInstructionStatus.isActive();
+    }
+    
+    /**
+     * check if the standing instruction is disabled
+     * 
+     * @return boolean true if status is set to disabled, else false
+     */
+    public boolean isDisabled() {
+        final StandingInstructionStatus standingInstructionStatus = StandingInstructionStatus.fromInt(this.status);
+        
+        return standingInstructionStatus.isDisabled();
+    }
+    
+    /**
+     * check if the standing instruction is deleted
+     * 
+     * @return boolean true if status is set to deleted, else false
+     */
+    public boolean isDeleted() {
+        final StandingInstructionStatus standingInstructionStatus = StandingInstructionStatus.fromInt(this.status);
+        
+        return standingInstructionStatus.isDeleted();
+    }
+    
+    /** 
+     * change status of entity to active
+     */
+    public void activate() {
+        this.status = StandingInstructionStatus.ACTIVE.getValue();
+    }
 }

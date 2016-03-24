@@ -64,6 +64,7 @@ import org.mifosplatform.portfolio.account.domain.AccountTransferStandingInstruc
 import org.mifosplatform.portfolio.account.domain.AccountTransferTransaction;
 import org.mifosplatform.portfolio.account.domain.AccountTransferType;
 import org.mifosplatform.portfolio.account.domain.StandingInstructionPriority;
+import org.mifosplatform.portfolio.account.domain.StandingInstructionRepository;
 import org.mifosplatform.portfolio.account.domain.StandingInstructionStatus;
 import org.mifosplatform.portfolio.account.domain.StandingInstructionType;
 import org.mifosplatform.portfolio.account.service.AccountAssociationsReadPlatformService;
@@ -208,6 +209,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     private final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService;
     private final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService;
     private final LoanSuspendAccruedIncomeWritePlatformService loanSuspendAccruedIncomeWritePlatformService;
+    private final StandingInstructionRepository standingInstructionRepository;
 
     @Autowired
     public LoanWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -237,7 +239,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             final LoanUtilService loanUtilService, 
             final LoanCreditCheckWritePlatformService loanCreditCheckWritePlatformService, 
             final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,
-            final LoanSuspendAccruedIncomeWritePlatformService loanSuspendAccruedIncomeWritePlatformService) {
+            final LoanSuspendAccruedIncomeWritePlatformService loanSuspendAccruedIncomeWritePlatformService, 
+            final StandingInstructionRepository standingInstructionRepository) {
         this.context = context;
         this.loanEventApiJsonValidator = loanEventApiJsonValidator;
         this.loanAssembler = loanAssembler;
@@ -275,6 +278,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         this.loanCreditCheckWritePlatformService = loanCreditCheckWritePlatformService;
         this.entityDatatableChecksWritePlatformService = entityDatatableChecksWritePlatformService;
         this.loanSuspendAccruedIncomeWritePlatformService = loanSuspendAccruedIncomeWritePlatformService;
+        this.standingInstructionRepository = standingInstructionRepository;
     }
 
     private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
@@ -452,10 +456,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
      * @return void
      **/
     private void createStandingInstruction(Loan loan) {
-
         if (loan.shouldCreateStandingInstructionAtDisbursement()) {
-            AccountAssociations accountAssociations = this.accountAssociationRepository.findByLoanIdAndType(loan.getId(),
-                    AccountAssociationType.LINKED_ACCOUNT_ASSOCIATION.getValue());
+            AccountAssociations accountAssociations = this.accountAssociationRepository.findByLoanId(loan.getId());
 
             if (accountAssociations != null) {
 
@@ -473,17 +475,27 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 final Integer status = StandingInstructionStatus.ACTIVE.getValue();
                 final Integer recurrenceType = AccountTransferRecurrenceType.AS_PER_DUES.getValue();
                 final LocalDate validFrom = new LocalDate();
-
-                AccountTransferDetails accountTransferDetails = AccountTransferDetails.savingsToLoanTransfer(fromOffice, fromClient,
-                        linkedSavingsAccount, toOffice, toClient, loan, transferType);
-
-                AccountTransferStandingInstruction accountTransferStandingInstruction = AccountTransferStandingInstruction.create(
-                        accountTransferDetails, name, priority, instructionType, status, null, validFrom, null, 
-                        recurrenceType, null, null, null, null);
                 
-                accountTransferDetails.updateAccountTransferStandingInstruction(accountTransferStandingInstruction);
+                AccountTransferStandingInstruction existingAccountTransferStandingInstruction = this.standingInstructionRepository.findOneByName(name);
+                
+                // do not create a new standing instruction entity if one already exist
+                if (existingAccountTransferStandingInstruction != null) {
+                    // activate the standing instruction entity
+                    existingAccountTransferStandingInstruction.activate();
+                }
+                
+                else {
+                    AccountTransferDetails accountTransferDetails = AccountTransferDetails.savingsToLoanTransfer(fromOffice, fromClient,
+                            linkedSavingsAccount, toOffice, toClient, loan, transferType);
 
-                this.accountTransferDetailRepository.save(accountTransferDetails);
+                    AccountTransferStandingInstruction accountTransferStandingInstruction = AccountTransferStandingInstruction.create(
+                            accountTransferDetails, name, priority, instructionType, status, null, validFrom, null, 
+                            recurrenceType, null, null, null, null);
+                    
+                    accountTransferDetails.updateAccountTransferStandingInstruction(accountTransferStandingInstruction);
+
+                    this.accountTransferDetailRepository.save(accountTransferDetails);
+                }
             }
         }
     }
@@ -710,6 +722,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_UNDO_DISBURSAL,
                     constructEntityMap(BUSINESS_ENTITY.LOAN, loan));
         }
+        
+        // disable all active standing instructions linked to the loan
+        this.loanAccountDomainService.disableStandingInstructions(loan);
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
