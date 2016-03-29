@@ -44,10 +44,10 @@ public class IncomeAndExpenseReadPlatformServiceImpl implements IncomeAndExpense
                     " from acc_gl_account as ac" +
                     " inner join ( select * from (" +
                     " select * from acc_gl_journal_entry " +
-                    " where office_id = ? and reversed = 0 and currency_code = ? " +
+                    " where office_id = ? and reversed = 0 and currency_code = ? and entry_date <= ? " +
                     " order by entry_date desc,created_date desc,id desc ) t group by t.account_id )" +
                     " as je on je.account_id = ac.id " +
-                    " where je.entry_date <= ? and ac.classification_enum IN (?,?) group by je.account_id, je.office_id " +
+                    " where  ac.classification_enum IN (?,?) group by je.account_id, je.office_id " +
                     " order by entry_date,created_date";
         }
         @Override
