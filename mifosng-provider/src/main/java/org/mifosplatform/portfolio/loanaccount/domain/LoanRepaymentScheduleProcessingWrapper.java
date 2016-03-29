@@ -79,9 +79,13 @@ public class LoanRepaymentScheduleProcessingWrapper {
                         }
                         BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
                         
-                        if (loanCharge.getChargeCalculation().isPercentageOfTotalOutstandingPrincipal() || 
-                                loanCharge.getChargeCalculation().isPercentageOfOriginalPrincipal()) {
-                            cumulative = cumulative.plus(loanCharge.getInstallmentLoanCharge(period.getInstallmentNumber()).getAmount());
+                        if ((loanCharge.getChargeCalculation().isPercentageOfTotalOutstandingPrincipal() || 
+                                loanCharge.getChargeCalculation().isPercentageOfOriginalPrincipal()) && period != null) {
+                            LoanInstallmentCharge loanInstallmentCharge = loanCharge.getInstallmentLoanCharge(period.getInstallmentNumber());
+                            
+                            if (loanInstallmentCharge != null) {
+                                cumulative = cumulative.plus(loanInstallmentCharge.getAmount());
+                            }
                         }
                         
                         else {
