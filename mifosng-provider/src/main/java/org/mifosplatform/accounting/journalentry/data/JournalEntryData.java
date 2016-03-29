@@ -30,7 +30,6 @@ public class JournalEntryData {
     @SuppressWarnings("unused")
     private final String glAccountCode;
     private final EnumOptionData glAccountType;
-    @SuppressWarnings("unused")
     private final LocalDate transactionDate;
     private final EnumOptionData entryType;
     private final BigDecimal amount;
@@ -59,7 +58,6 @@ public class JournalEntryData {
     private final BigDecimal officeRunningBalance;
     @SuppressWarnings("unused")
     private final BigDecimal organizationRunningBalance;
-    @SuppressWarnings("unused")
     private final Boolean runningBalanceComputed;
 
     @SuppressWarnings("unused")
@@ -207,5 +205,20 @@ public class JournalEntryData {
 
     public String getTransactionId() {
         return transactionId;
+    }
+
+    public LocalDate getTransactionDate() {
+        return transactionDate;
+    }
+
+    public Boolean getRunningBalanceComputed() {
+        return runningBalanceComputed;
+    }
+
+    /**
+     * @return the glClosureId
+     */
+    public Long getGlClosureId() {
+        return glClosureId;
     }
 }
