@@ -101,7 +101,7 @@ public class CalculateIncomeAndExpenseBookingImpl implements CalculateIncomeAndE
         }else{
             final List<IncomeAndExpenseJournalEntryData> incomeAndExpenseJournalEntryDataList = this.incomeAndExpenseReadPlatformService.retrieveAllIncomeAndExpenseJournalEntryData(officeId,incomeAndExpenseBookOffDate,closureCommand.getCurrencyCode());
             final IncomeAndExpenseBookingData incomeAndExpBookingData= this.bookOffIncomeAndExpense(incomeAndExpenseJournalEntryDataList, closureCommand, true,glAccount,office);
-            incomeAndExpenseBookingCollection.add(incomeAndExpBookingData);
+            if(incomeAndExpBookingData.getJournalEntries().size() > 0){ incomeAndExpenseBookingCollection.add(incomeAndExpBookingData);}
         }
         return incomeAndExpenseBookingCollection;
     }
