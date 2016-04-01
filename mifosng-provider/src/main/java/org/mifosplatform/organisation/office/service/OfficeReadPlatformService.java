@@ -5,11 +5,11 @@
  */
 package org.mifosplatform.organisation.office.service;
 
-import java.util.Collection;
-
+import org.mifosplatform.infrastructure.core.service.SearchParameters;
 import org.mifosplatform.organisation.office.data.OfficeData;
 import org.mifosplatform.organisation.office.data.OfficeTransactionData;
-import org.mifosplatform.infrastructure.core.service.SearchParameters;
+
+import java.util.Collection;
 
 public interface OfficeReadPlatformService {
 
@@ -26,4 +26,6 @@ public interface OfficeReadPlatformService {
     Collection<OfficeTransactionData> retrieveAllOfficeTransactions();
 
     OfficeTransactionData retrieveNewOfficeTransactionDetails();
+
+    Collection<Long> officeByHierarchy(Long officeId);
 }
