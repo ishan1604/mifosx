@@ -5,17 +5,6 @@
  */
 package org.mifosplatform.portfolio.charge.domain;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
-
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.joda.time.MonthDay;
@@ -34,6 +23,16 @@ import org.mifosplatform.portfolio.charge.exception.ChargeParameterUpdateNotSupp
 import org.mifosplatform.portfolio.charge.service.ChargeEnumerations;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
 import org.springframework.data.jpa.domain.AbstractPersistable;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "m_charge", uniqueConstraints = { @UniqueConstraint(columnNames = { "name" }, name = "name") })
@@ -251,6 +250,12 @@ public class Charge extends AbstractPersistable<Long> {
     public boolean isPercentageOfAmount() {
         return ChargeCalculationType.fromInt(this.chargeCalculation).isPercentageOfAmount();
     }
+    public boolean isPercentageOfApprovedAmount() {
+        return ChargeCalculationType.fromInt(this.chargeCalculation).isPercentageOfAmount();
+    }
+    public boolean isPercentageBased() {
+        return ChargeCalculationType.fromInt(this.chargeCalculation).isPercentageBased();
+    }
 
     public BigDecimal getMinCap() {
         return this.minCap;
@@ -418,7 +423,7 @@ public class Charge extends AbstractPersistable<Long> {
             this.active = newValue;
         }
         // allow min and max cap to be only added to PERCENT_OF_AMOUNT for now
-        if (isPercentageOfAmount()) {
+        if (isPercentageBased()) {
             final String minCapParamName = "minCap";
             if (command.isChangeInBigDecimalParameterNamed(minCapParamName, this.minCap)) {
                 final BigDecimal newValue = command.bigDecimalValueOfParameterNamed(minCapParamName);
