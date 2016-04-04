@@ -2828,6 +2828,8 @@ public class Loan extends AbstractPersistable<Long> {
         LoanEvent event = null;
         if (isRecoveryRepayment) {
             event = LoanEvent.LOAN_RECOVERY_PAYMENT;
+            validateRepaymentDateIsAfterWriteOff(repaymentTransaction.getTransactionDate());
+
         } else {
             event = LoanEvent.LOAN_REPAYMENT_OR_WAIVER;
         }
@@ -3305,7 +3307,7 @@ public class Loan extends AbstractPersistable<Long> {
         transactionForAdjustment.reverse();
         transactionForAdjustment.manuallyAdjustedOrReversed();
 
-        if (isClosedWrittenOff()) {
+        if (isClosedWrittenOff() && newTransactionDetail.isNotRecoveryRepayment()) {
             // find write off transaction and reverse it
             final LoanTransaction writeOffTransaction = findWriteOffTransaction();
 
@@ -4347,6 +4349,14 @@ public class Loan extends AbstractPersistable<Long> {
                 final String errorMessage = "Repayment date cannot be on a holiday";
                 throw new LoanApplicationDateException("repayment.date.on.holiday", errorMessage, repaymentDate);
             }
+        }
+    }
+
+    private void validateRepaymentDateIsAfterWriteOff(final LocalDate repaymentDate)
+    {
+        if(this.getWrittenOffDate().isAfter(repaymentDate)) {
+            final String errorMessage = "Recovery payment date cannot be before the write-off date";
+            throw new LoanApplicationDateException("repayment.date.before.writeoff", errorMessage, repaymentDate);
         }
     }
 
