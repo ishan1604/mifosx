@@ -185,7 +185,8 @@ public class Charge extends AbstractPersistable<Long> {
                         .failWithCodeNoParameterAddedToErrorCode("not.allowed.charge.time.for.loan");
             }
         }
-        if (isPercentageOfApprovedAmount()) {
+        
+        if (isPercentageOfApprovedAmount() || isPercentageOfInterest() || isPercentOfInterestAndAmount()) {
             this.minCap = minCap;
             this.maxCap = maxCap;
         }
@@ -275,8 +276,20 @@ public class Charge extends AbstractPersistable<Long> {
         return ChargeCalculationType.fromInt(this.chargeCalculation).isAllowedClientChargeCalculationType();
     }
 
+    public boolean isPercentageOfInterest(){
+        return ChargeCalculationType.fromInt(this.chargeCalculation).isPercentageOfInterest();
+    }
+    
+    public boolean isPercentOfInterestAndAmount(){
+        return ChargeCalculationType.fromInt(this.chargeCalculation).isPercentageOfAmountAndInterest();
+    }
+
     public boolean isPercentageOfApprovedAmount() {
         return ChargeCalculationType.fromInt(this.chargeCalculation).isPercentageOfAmount();
+    }
+    
+    public boolean isPercentageBased() {
+        return ChargeCalculationType.fromInt(this.chargeCalculation).isPercentageBased();
     }
 
     public boolean isPercentageOfDisbursementAmount() {
@@ -458,8 +471,8 @@ public class Charge extends AbstractPersistable<Long> {
             actualChanges.put(activeParamName, newValue);
             this.active = newValue;
         }
-        // allow min and max cap to be only added to PERCENT_OF_AMOUNT for now
-        if (isPercentageOfApprovedAmount()) {
+
+        if (isPercentageBased()) {
             final String minCapParamName = "minCap";
             if (command.isChangeInBigDecimalParameterNamed(minCapParamName, this.minCap)) {
                 final BigDecimal newValue = command.bigDecimalValueOfParameterNamed(minCapParamName);

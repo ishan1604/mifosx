@@ -652,7 +652,7 @@ public class LoanCharge extends AbstractPersistable<Long> {
      *          else it returns the percentageOf if the amount is within min and
      *          max cap
      */
-    private BigDecimal minimumAndMaximumCap(final BigDecimal percentageOf) {
+    public BigDecimal minimumAndMaximumCap(final BigDecimal percentageOf) {
         BigDecimal minMaxCap = BigDecimal.ZERO;
         if (this.minCap != null) {
             final int minimumCap = percentageOf.compareTo(this.minCap);
