@@ -2422,9 +2422,18 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         final List<Long> existingReversedTransactionIds = new ArrayList<>();
         if (!loan.isClosedWrittenOff()) { throw new PlatformServiceUnavailableException(
                 "error.msg.loan.status.not.written.off.update.not.allowed", "Loan :" + loanId
-                        + " update not allowed as loan status is not written off", loanId); }
+                        + " update not allowed as loan status is not written off", loanId); 
+        }
+
+        if(loan.hasRecoveryPayments()) {
+            throw new PlatformServiceUnavailableException(
+                    "error.msg.loan.has.recoverypayment.update.not.allowed", "Loan :" + loanId
+                    + " update ot allowed as loan has non-reversed recovery payments", loanId);
+        }
+
         LocalDate recalculateFrom = null;
         LoanTransaction writeOffTransaction = loan.findWriteOffTransaction();
+
         this.businessEventNotifierService.notifyBusinessEventToBeExecuted(BUSINESS_EVENTS.LOAN_UNDO_WRITTEN_OFF,
                 constructEntityMap(BUSINESS_ENTITY.LOAN_TRANSACTION, writeOffTransaction));
 
