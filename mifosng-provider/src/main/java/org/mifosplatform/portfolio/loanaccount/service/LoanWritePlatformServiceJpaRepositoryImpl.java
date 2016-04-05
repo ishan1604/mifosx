@@ -2519,6 +2519,13 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         if (!loan.isClosedWrittenOff()) { throw new PlatformServiceUnavailableException(
                 "error.msg.loan.status.not.written.off.update.not.allowed", "Loan :" + loanId
                         + " update not allowed as loan status is not written off", loanId); }
+
+        if(loan.hasRecoveryPayments()) {
+            throw new PlatformServiceUnavailableException(
+                    "error.msg.loan.has.recoverypayment.update.not.allowed", "Loan :" + loanId
+                    + " update ot allowed as loan has non-reversed recovery payments", loanId);
+        }
+
         CalendarInstance restCalendarInstance = null;
         ApplicationCurrency applicationCurrency = null;
         LocalDate calculatedRepaymentsStartingFromDate = null;
@@ -2529,6 +2536,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         Long overdurPenaltyWaitPeriod = null;
         LocalDate lastTransactionDate = null;
         LoanTransaction writeOffTransaction = loan.findWriteOffTransaction();
+
         if (loan.repaymentScheduleDetail().isInterestRecalculationEnabled()) {
             restCalendarInstance = calendarInstanceRepository.findCalendarInstaneByEntityId(loan.loanInterestRecalculationDetailId(),
                     CalendarEntityType.LOAN_RECALCULATION_DETAIL.getValue());

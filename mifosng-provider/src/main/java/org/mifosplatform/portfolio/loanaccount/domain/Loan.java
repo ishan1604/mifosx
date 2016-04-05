@@ -3360,6 +3360,19 @@ public class Loan extends AbstractPersistable<Long> {
         return writeOff;
     }
 
+
+    public Boolean hasRecoveryPayments() {
+
+        Boolean activeRecoveryPayments = false;
+        for (final LoanTransaction transaction : this.loanTransactions) {
+            if (transaction.isRecoveryRepayment()) {
+                activeRecoveryPayments = true;
+            }
+        }
+
+        return activeRecoveryPayments;
+    }
+
     private boolean isOverPaid() {
         return calculateTotalOverpayment().isGreaterThanZero();
     }
