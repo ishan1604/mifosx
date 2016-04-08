@@ -169,7 +169,7 @@ public class Charge extends AbstractPersistable<Long> {
                         .failWithCodeNoParameterAddedToErrorCode("not.allowed.charge.time.for.loan");
             }
         }
-        if (isPercentageOfAmount()) {
+        if (isPercentageOfAmount() || isPercentageOfInterest() || isPercentOfInterestAndAmount()) {
             this.minCap = minCap;
             this.maxCap = maxCap;
         }
@@ -249,6 +249,13 @@ public class Charge extends AbstractPersistable<Long> {
 
     public boolean isPercentageOfAmount() {
         return ChargeCalculationType.fromInt(this.chargeCalculation).isPercentageOfAmount();
+    }
+
+    public boolean isPercentageOfInterest(){
+        return ChargeCalculationType.fromInt(this.chargeCalculation).isPercentageOfInterest();
+    }
+    public boolean isPercentOfInterestAndAmount(){
+        return ChargeCalculationType.fromInt(this.chargeCalculation).isPercentageOfAmountAndInterest();
     }
     public boolean isPercentageOfApprovedAmount() {
         return ChargeCalculationType.fromInt(this.chargeCalculation).isPercentageOfAmount();

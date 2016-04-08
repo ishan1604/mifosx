@@ -1708,12 +1708,12 @@ public class Loan extends AbstractPersistable<Long> {
         if (loanCharge.getChargeCalculation().isPercentageBased()) {
             chargeAmt = loanCharge.getPercentage();
             if (loanCharge.isInstalmentFee()) {
-                totalChargeAmt = calculatePerInstallmentChargeAmount(loanCharge);
+                totalChargeAmt = loanCharge.minimumAndMaximumCap(calculatePerInstallmentChargeAmount(loanCharge));
             }
         } else {
             chargeAmt = loanCharge.amount();
             if (loanCharge.isInstalmentFee()) {
-                chargeAmt = chargeAmt.divide(BigDecimal.valueOf(repaymentScheduleDetail().getNumberOfRepayments()));
+                chargeAmt =  chargeAmt.divide(BigDecimal.valueOf(repaymentScheduleDetail().getNumberOfRepayments()));
             }
         }
         if (loanCharge.isActive()) {
@@ -4604,7 +4604,11 @@ public class Loan extends AbstractPersistable<Long> {
                     BigDecimal amount = BigDecimal.ZERO;
                     if (loanCharge.getChargeCalculation().isFlat()) {
                         amount = loanCharge.amount().divide(BigDecimal.valueOf(repaymentScheduleDetail().getNumberOfRepayments()));
-                    } else {
+                    } else if(loanCharge.getChargeCalculation().isPercentageOfAmountAndInterest() || loanCharge.getChargeCalculation().isPercentageOfAmount() ||
+                            loanCharge.getChargeCalculation().isPercentageOfInterest()){
+                        amount = loanCharge.minimumAndMaximumCap(calculateInstallmentChargeAmount(loanCharge.getChargeCalculation(), loanCharge.getPercentage(),
+                                installment).getAmount());
+                    }else {
                         amount = calculateInstallmentChargeAmount(loanCharge.getChargeCalculation(), loanCharge.getPercentage(),
                                 installment).getAmount();
                     }
