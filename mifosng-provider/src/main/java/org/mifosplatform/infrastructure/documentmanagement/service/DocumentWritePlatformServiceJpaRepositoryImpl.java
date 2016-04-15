@@ -7,8 +7,11 @@ package org.mifosplatform.infrastructure.documentmanagement.service;
 
 import java.io.InputStream;
 
+import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.mifosplatform.infrastructure.dataqueries.service.ReadWriteNonCoreDataService;
+import org.mifosplatform.infrastructure.dataqueries.service.ReadWriteNonCoreDataServiceImpl;
 import org.mifosplatform.infrastructure.documentmanagement.command.DocumentCommand;
 import org.mifosplatform.infrastructure.documentmanagement.command.DocumentCommandValidator;
 import org.mifosplatform.infrastructure.documentmanagement.contentrepository.ContentRepository;
@@ -35,13 +38,15 @@ public class DocumentWritePlatformServiceJpaRepositoryImpl implements DocumentWr
     private final PlatformSecurityContext context;
     private final DocumentRepository documentRepository;
     private final ContentRepositoryFactory contentRepositoryFactory;
+    private final ReadWriteNonCoreDataService readWriteNonCoreDataService;
 
     @Autowired
     public DocumentWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
-            final DocumentRepository documentRepository, final ContentRepositoryFactory documentStoreFactory) {
+            final DocumentRepository documentRepository, final ContentRepositoryFactory documentStoreFactory, final ReadWriteNonCoreDataService readWriteNonCoreDataService) {
         this.context = context;
         this.documentRepository = documentRepository;
         this.contentRepositoryFactory = documentStoreFactory;
+        this.readWriteNonCoreDataService = readWriteNonCoreDataService;
     }
 
     @Transactional
@@ -65,6 +70,17 @@ public class DocumentWritePlatformServiceJpaRepositoryImpl implements DocumentWr
                     documentCommand.getDescription(), fileLocation, contentRepository.getStorageType());
 
             this.documentRepository.save(document);
+
+            if(documentCommand.getAppTableId()!=null){
+
+                final String commandJsonString ="{"+documentCommand.getName()+":"+document.getId()+"}";
+
+                final JsonCommand datatable = new JsonCommand(null,commandJsonString,null,null,null,null,null,null,null,null,null,null,null,null);
+
+                this.readWriteNonCoreDataService.updateDatatableEntryOneToMany(documentCommand.getParentEntityType(),documentCommand.getAppTableId(),documentCommand.getParentEntityId(), datatable);
+
+            }
+
 
             return document.getId();
         } catch (final DataIntegrityViolationException dve) {
@@ -135,7 +151,7 @@ public class DocumentWritePlatformServiceJpaRepositoryImpl implements DocumentWr
     }
 
     private void validateParentEntityType(final DocumentCommand documentCommand) {
-        if (!checkValidEntityType(documentCommand.getParentEntityType())) { throw new InvalidEntityTypeForDocumentManagementException(
+        if (!checkValidEntityType(documentCommand.getParentEntityType()) && !readWriteNonCoreDataService.isRegisteredDataTable(documentCommand.getParentEntityType())) { throw new InvalidEntityTypeForDocumentManagementException(
                 documentCommand.getParentEntityType()); }
     }
 

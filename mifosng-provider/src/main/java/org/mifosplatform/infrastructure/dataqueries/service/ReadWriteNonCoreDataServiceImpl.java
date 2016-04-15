@@ -7,6 +7,8 @@ package org.mifosplatform.infrastructure.dataqueries.service;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.sql.DataSource;
+
 
 import org.apache.commons.lang.BooleanUtils;
 import com.google.gson.JsonArray;
@@ -61,6 +64,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.jdbc.support.rowset.SqlRowSetMetaData;
 import org.springframework.stereotype.Service;
@@ -93,6 +99,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             put("datetime", "DATETIME");
             put("text", "TEXT");
             put("dropdown", "INT");
+            put("image", "INT");
+            put("signature", "INT");
         }
     };
 
@@ -409,15 +417,33 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final CommandProcessingResult commandProcessingResult = checkMainResourceExistsWithinScope(appTable, appTableId);
 
             final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName);
-
+            KeyHolder keyHolder = new GeneratedKeyHolder();
             final Type typeOfMap = new TypeToken<Map<String, String>>() {}.getType();
             final Map<String, String> dataParams = this.fromJsonHelper.extractDataMap(typeOfMap, command.json());
 
             final String sql = getAddSql(columnHeaders, dataTableName, getFKField(appTable), appTableId, dataParams);
 
-            this.jdbcTemplate.update(sql);
+            KeyHolder idHolder = new GeneratedKeyHolder();
 
-            return commandProcessingResult; //
+            final int row = this.jdbcTemplate.update(
+                    new PreparedStatementCreator() {
+                        public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
+                            PreparedStatement ps =
+                                    connection.prepareStatement(sql, new String[] {"id"});
+                            //ps.setString(1, name);
+                            return ps;
+                        }
+                    }
+                    ,idHolder);
+
+             return new CommandProcessingResultBuilder() //
+                    .withOfficeId(commandProcessingResult.getOfficeId()) //
+                    .withGroupId(commandProcessingResult.getGroupId()) //
+                    .withClientId(commandProcessingResult.getClientId()) //
+                    .withSavingsId(commandProcessingResult.getSavingsId()) //
+                    .withLoanId(commandProcessingResult.getLoanId()).withEntityId(idHolder.getKey().longValue())//
+                    .build();
+
 
         } catch (final ConstraintViolationException dve) {
             // NOTE: jdbctemplate throws a
@@ -485,7 +511,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
     }
 
-    private boolean isRegisteredDataTable(final String name) {
+    public boolean isRegisteredDataTable(final String name) {
         // PERMITTED datatables
         final String sql = "select if((exists (select 1 from x_registered_table where registered_table_name = ?)) = 1, 'true', 'false')";
         final String isRegisteredDataTable = this.jdbcTemplate.queryForObject(sql, String.class, new Object[] { name });
@@ -522,6 +548,17 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         return (code + "_cd_" + columnName);
     }
 
+    private String getSignatureAndImageColumnName(final String columnName,final String type){
+
+        if(type.equalsIgnoreCase("signature")){
+            return "signature_"+columnName;
+        }else if(type.equalsIgnoreCase("image")){
+            return  "image_"+columnName;
+        }
+
+        return columnName;
+    }
+
     private void throwExceptionIfValidationWarningsExist(final List<ApiParameterError> dataValidationErrors) {
         if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist",
                 "Validation errors exist.", dataValidationErrors); }
@@ -547,6 +584,18 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             }
         }
 
+        if(type !=null){
+
+            if(type.equalsIgnoreCase("signature")){
+                name = "signature_"+name;
+            }else if(type.equalsIgnoreCase("image")){
+                name = "image_"+name;
+            }
+
+        }
+
+
+
         final String mysqlType = apiTypeToMySQL.get(type);
         sqlBuilder = sqlBuilder.append("`" + name + "` " + mysqlType);
 
@@ -555,9 +604,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 sqlBuilder = sqlBuilder.append("(" + length + ")");
             } else if (type.equalsIgnoreCase("Decimal")) {
                 sqlBuilder = sqlBuilder.append("(19,6)");
-            } else if (type.equalsIgnoreCase("Dropdown")) {
+            } else if (type.equalsIgnoreCase("Dropdown") || type.equalsIgnoreCase("image") || type.equalsIgnoreCase("signature") ) {
                 sqlBuilder = sqlBuilder.append("(11)");
-            }else if(type.equalsIgnoreCase("checkbox")){
+            } else if(type.equalsIgnoreCase("checkbox")){
                 sqlBuilder = sqlBuilder.append("(250)");
             }
         }
@@ -1491,6 +1540,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         return applicationTableName.substring(2) + "_id";
     }
 
+
+
     private String getAddSql(final List<ResultsetColumnHeaderData> columnHeaders, final String datatable, final String fkName,
             final Long appTableId, final Map<String, String> queryParams) {
 
@@ -1744,15 +1795,27 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
                     for (final String val : codeValuesParams ){
 
-                        if (columnHeader.isColumnValueNotAllowed(val)) {
+                        final Integer codeLookup = Integer.valueOf(val);
+
+
+                        if (columnHeader.isColumnCodeNotAllowed(codeLookup)) {
                             final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
                             final ApiParameterError error = ApiParameterError.parameterError("error.msg.invalid.columnValue",
-                                    "Value not found in Allowed Value list", columnHeader.getColumnName(), val);
+                                    "Value not found in Allowed Value list", columnHeader.getColumnName(), paramValue);
                             dataValidationErrors.add(error);
                             throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
                                     dataValidationErrors);
-
                         }
+
+//                        if (columnHeader.isColumnValueNotAllowed(val)) {
+//                            final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+//                            final ApiParameterError error = ApiParameterError.parameterError("error.msg.invalid.columnValue",
+//                                    "Value not found in Allowed Value list", columnHeader.getColumnName(), val);
+//                            dataValidationErrors.add(error);
+//                            throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
+//                                    dataValidationErrors);
+//
+//                        }
 
                     }
 
@@ -1902,7 +1965,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             } else {
                 fieldNameAndOrder.put("fieldName",datatableColumnNameToCodeValueName(fieldName,code,type));
             }
-        }else{fieldNameAndOrder.put("fieldName",fieldName);}
+        }
+        else{fieldNameAndOrder.put("fieldName",getSignatureAndImageColumnName(fieldName,type));}
 
         fieldNameAndOrder.put("labelName",labelName);
         fieldNameAndOrder.put("order",order);
