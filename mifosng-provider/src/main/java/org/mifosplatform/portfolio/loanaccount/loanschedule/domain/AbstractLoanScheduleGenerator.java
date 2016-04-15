@@ -5,18 +5,6 @@
  */
 package org.mifosplatform.portfolio.loanaccount.loanschedule.domain;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-
 import org.joda.time.Days;
 import org.joda.time.LocalDate;
 import org.mifosplatform.organisation.monetary.domain.ApplicationCurrency;
@@ -39,6 +27,18 @@ import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanResched
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleModelRepaymentPeriod;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleRequest;
 import org.mifosplatform.portfolio.loanproduct.domain.LoanProductMinimumRepaymentScheduleRelatedDetail;
+
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 /**
  *
@@ -997,7 +997,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                         } else {
                             amount = amount.add(principalInterestForThisPeriod.principal().getAmount());
                         }
-                        BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
+                        BigDecimal loanChargeAmt = loanCharge.minimumAndMaximumCap(amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100)));
                         cumulative = cumulative.plus(loanChargeAmt);
                     } else {
                         cumulative = cumulative.plus(loanCharge.amount().divide(BigDecimal.valueOf(numberOfRepayments)));
@@ -1018,7 +1018,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                     } else {
                         amount = amount.add(principalDisbursed.getAmount());
                     }
-                    BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
+                    BigDecimal loanChargeAmt = loanCharge.minimumAndMaximumCap(amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100)));
                     cumulative = cumulative.plus(loanChargeAmt);
                 } else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd) || 
                         (loanCharge.isDisbursementPaidWithRepayment() && periodNumber == 1)) {
@@ -1054,7 +1054,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                         } else {
                             amount = amount.add(principalInterestForThisPeriod.principal().getAmount());
                         }
-                        BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
+                        BigDecimal loanChargeAmt = loanCharge.minimumAndMaximumCap(amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100)));
                         cumulative = cumulative.plus(loanChargeAmt);
                     } else {
                         cumulative = cumulative.plus(loanCharge.amount().divide(BigDecimal.valueOf(numberOfRepayments)));
@@ -1074,7 +1074,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                     } else {
                         amount = amount.add(principalDisbursed.getAmount());
                     }
-                    BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
+                    BigDecimal loanChargeAmt = loanCharge.minimumAndMaximumCap(amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100)));
                     cumulative = cumulative.plus(loanChargeAmt);
                 } else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)) {
                     cumulative = cumulative.plus(loanCharge.amount());

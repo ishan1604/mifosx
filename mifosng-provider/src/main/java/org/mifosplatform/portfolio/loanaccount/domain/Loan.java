@@ -1708,12 +1708,12 @@ public class Loan extends AbstractPersistable<Long> {
         if (loanCharge.getChargeCalculation().isPercentageBased()) {
             chargeAmt = loanCharge.getPercentage();
             if (loanCharge.isInstalmentFee()) {
-                totalChargeAmt = calculatePerInstallmentChargeAmount(loanCharge);
+                totalChargeAmt = loanCharge.minimumAndMaximumCap(calculatePerInstallmentChargeAmount(loanCharge));
             }
         } else {
             chargeAmt = loanCharge.amount();
             if (loanCharge.isInstalmentFee()) {
-                chargeAmt = chargeAmt.divide(BigDecimal.valueOf(repaymentScheduleDetail().getNumberOfRepayments()));
+                chargeAmt =  chargeAmt.divide(BigDecimal.valueOf(repaymentScheduleDetail().getNumberOfRepayments()));
             }
         }
         if (loanCharge.isActive()) {
@@ -3145,8 +3145,10 @@ public class Loan extends AbstractPersistable<Long> {
                     LoanStatus.fromInt(this.loanStatus));
             this.loanStatus = statusEnum.getValue();
 
-            this.closedOnDate = transactionDate.toDate();
-            this.actualMaturityDate = transactionDate.toDate();
+
+
+            this.closedOnDate = this.getLastUserTransactionDate().toDate();
+            this.actualMaturityDate = this.getLastUserTransactionDate().toDate();
         } else if (LoanStatus.fromInt(this.loanStatus).isOverpaid()) {
             final LoanStatus statusEnum = loanLifecycleStateMachine.transition(LoanEvent.LOAN_REPAYMENT_OR_WAIVER,
                     LoanStatus.fromInt(this.loanStatus));
@@ -3316,6 +3318,8 @@ public class Loan extends AbstractPersistable<Long> {
 
         if (isClosedObligationsMet() || isClosedWithOutsandingAmountMarkedForReschedule() || (isClosedWrittenOff() && newTransactionDetail.isNotRecoveryRepayment())) {
             this.loanStatus = LoanStatus.ACTIVE.getValue();
+            this.closedOnDate = null;
+            this.actualMaturityDate = null;
         }
 
         if (newTransactionDetail.isRepayment() || newTransactionDetail.isRecoveryRepayment() || newTransactionDetail.isInterestWaiver()) {
@@ -3334,7 +3338,13 @@ public class Loan extends AbstractPersistable<Long> {
         existingReversedTransactionIds.addAll(findExistingReversedTransactionIds());
         final LoanTransaction writeOffTransaction = findWriteOffTransaction();
         writeOffTransaction.reverse();
+
+        // Correct the loan Status fields:
         this.loanStatus = LoanStatus.ACTIVE.getValue();
+        this.closedOnDate = null;
+        this.writtenOffOnDate = null;
+        this.actualMaturityDate = null;
+
         final LoanRepaymentScheduleTransactionProcessor loanRepaymentScheduleTransactionProcessor = this.transactionProcessorFactory
                 .determineProcessor(this.transactionProcessingStrategy);
         final List<LoanTransaction> allNonContraTransactionsPostDisbursement = retreiveListOfTransactionsPostDisbursement();
@@ -4594,7 +4604,11 @@ public class Loan extends AbstractPersistable<Long> {
                     BigDecimal amount = BigDecimal.ZERO;
                     if (loanCharge.getChargeCalculation().isFlat()) {
                         amount = loanCharge.amount().divide(BigDecimal.valueOf(repaymentScheduleDetail().getNumberOfRepayments()));
-                    } else {
+                    } else if(loanCharge.getChargeCalculation().isPercentageOfAmountAndInterest() || loanCharge.getChargeCalculation().isPercentageOfAmount() ||
+                            loanCharge.getChargeCalculation().isPercentageOfInterest()){
+                        amount = loanCharge.minimumAndMaximumCap(calculateInstallmentChargeAmount(loanCharge.getChargeCalculation(), loanCharge.getPercentage(),
+                                installment).getAmount());
+                    }else {
                         amount = calculateInstallmentChargeAmount(loanCharge.getChargeCalculation(), loanCharge.getPercentage(),
                                 installment).getAmount();
                     }
