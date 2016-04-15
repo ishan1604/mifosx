@@ -75,7 +75,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
         final ChangedTransactionDetail changedTransactionDetail = new ChangedTransactionDetail();
         final List<LoanTransaction> transactionstoBeProcessed = new ArrayList<>();
         for (final LoanTransaction loanTransaction : transactionsPostDisbursement) {
-            if (loanTransaction.isChargePayment()) {
+            if (loanTransaction.isChargePayment() || loanTransaction.isPenaltyPayment()) {
                 List<LoanChargePaidDetail> chargePaidDetails = new ArrayList<>();
                 final Set<LoanChargePaidBy> chargePaidBies = loanTransaction.getLoanChargesPaid();
                 final Set<LoanCharge> transferCharges = new HashSet<>();
