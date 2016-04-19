@@ -24,6 +24,7 @@ import org.mifosplatform.organisation.office.domain.Office;
 import org.mifosplatform.organisation.staff.domain.Staff;
 import org.mifosplatform.portfolio.client.api.ClientApiConstants;
 import org.mifosplatform.portfolio.client.data.ClientData;
+import org.mifosplatform.portfolio.client.exception.InvalidClientStateTransitionException;
 import org.mifosplatform.portfolio.group.domain.Group;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccount;
 import org.mifosplatform.portfolio.savings.domain.SavingsProduct;
@@ -385,9 +386,9 @@ public final class Client extends AbstractPersistable<Long> {
 
     public void activate(final AppUser currentUser, final DateTimeFormatter formatter, final LocalDate activationLocalDate) {
 
-        if (isActive()) {
-            final String defaultUserMessage = "Cannot activate client. Client is already active.";
-            final ApiParameterError error = ApiParameterError.parameterError("error.msg.clients.already.active", defaultUserMessage,
+        if(isNotPending()){
+            final String defaultUserMessage = "Cannot activate client. Client must be in a pending state.";
+            final ApiParameterError error = ApiParameterError.parameterError("error.msg.client.not.in.pending.state", defaultUserMessage,
                     ClientApiConstants.activationDateParamName, activationLocalDate.toString(formatter));
 
             final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
@@ -398,15 +399,11 @@ public final class Client extends AbstractPersistable<Long> {
 
 
 
+
         this.activationDate = activationLocalDate.toDate();
         this.activatedBy = currentUser;
         this.officeJoiningDate = this.activationDate;
         this.status = ClientStatus.ACTIVE.getValue();
-
-        // in case a closed client is being re open
-        this.closureDate = null;
-        this.closureReason = null;
-        this.closedBy = null;
 
         validate();
     }
@@ -421,6 +418,14 @@ public final class Client extends AbstractPersistable<Long> {
 
     public boolean isClosed() {
         return ClientStatus.fromInt(this.status).isClosed();
+    }
+
+    public boolean isRejected(){
+        return ClientStatus.fromInt(this.status).isRejected();
+    }
+
+    public boolean isWithdrawn(){
+        return ClientStatus.fromInt(this.status).isWithdrawn();
     }
 
     public boolean isTransferInProgress() {
@@ -889,6 +894,13 @@ public final class Client extends AbstractPersistable<Long> {
         return (LocalDate) ObjectUtils.defaultIfNull(new LocalDate(this.closureDate), null);
     }
 
+    public LocalDate getRejectedDate(){
+        return (LocalDate) ObjectUtils.defaultIfNull(new LocalDate(this.rejectionDate),null);
+    }
+    public LocalDate getWithdrawnDate(){
+        return (LocalDate) ObjectUtils.defaultIfNull(new LocalDate(this.withdrawalDate),null);
+    }
+
     public CodeValue gender() {
         return this.gender;
     }
@@ -953,7 +965,6 @@ public final class Client extends AbstractPersistable<Long> {
         this.updatedBy = currentUser;
         this.updatedOnDate = reactivateDate;
         this.status = ClientStatus.PENDING.getValue();
-
     }
 
 	public Integer getLegalForm() {
@@ -968,5 +979,55 @@ public final class Client extends AbstractPersistable<Long> {
 	    return ClientData.instance(this.accountNumber, null, null, null, null, null, null, this.getId(), 
 	            null, null, null, null, this.displayName, null, null, null, null, null, null, null, null, 
 	            null, null, null, null, null, null);
+    }
+
+    public void validateReactivation(final LocalDate reactivateDate){
+        final ClientStatus clientStatus = ClientStatus.fromInt(this.status);
+
+        if(isClosed() || isRejected() || isWithdrawn()){
+            switch(clientStatus){
+                case CLOSED :
+                    if (this.getClosureDate().isAfter(reactivateDate)) {
+                        final String errorMessage = "The client reactivation date cannot be before the client closed date.";
+                        throw new InvalidClientStateTransitionException("reactivation", "date.cannot.before.client.closed.date", errorMessage,
+                                reactivateDate, this.getClosureDate());
+                    }
+                    this.closedBy = null;
+                    this.closureDate = null;
+                    this.closureReason = null;
+                    break;
+                case REJECTED:
+                    if(isRejected()){
+                        if(this.getRejectedDate().isAfter(reactivateDate)){
+                            final String errorMessage = "The client reactivation date cannot be before the client rejected date.";
+                            throw new InvalidClientStateTransitionException("reactivation", "date.cannot.before.client.rejected.date", errorMessage,
+                                    reactivateDate, this.getRejectedDate());
+                        }
+                        this.rejectedBy = null;
+                        this.rejectionDate = null;
+                        this.rejectionReason = null;
+                    }
+                    break;
+                case WITHDRAWN:
+                    if(isWithdrawn()){
+                        if(this.getWithdrawnDate().isAfter(reactivateDate)){
+                            final String errorMessage = "The client reactivation date cannot be before the client withdrawn date.";
+                            throw new InvalidClientStateTransitionException("reactivation", "date.cannot.before.client.withdrawn.date", errorMessage,
+                                    reactivateDate, this.getWithdrawnDate());
+                        }
+                        this.withdrawalDate = null;
+                        this.withdrawnBy = null;
+                        this.withdrawalReason = null;
+                    }
+                    break;
+                default:
+                   break;
+            }
+
+        }else{
+            /* for all status that doesn't fall in 600,700,800*/
+            final String errorMessage = "only closed,withdrawn and rejected clients may be reactivated.";
+            throw new InvalidClientStateTransitionException("reactivation", "on.nonclosed.nonwithdrawn.nonrejected.account", errorMessage);
+        }
     }
 }
