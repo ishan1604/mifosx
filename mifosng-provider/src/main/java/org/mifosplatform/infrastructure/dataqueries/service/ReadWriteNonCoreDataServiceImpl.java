@@ -19,6 +19,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import javassist.bytecode.stackmap.BasicBlock;
 
 import org.apache.commons.lang.BooleanUtils;
 import com.google.gson.JsonArray;
@@ -64,6 +65,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -117,6 +123,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     private final DataTableValidator dataTableValidator;
     private final RegisteredTableMetaDataRepository registeredTableMetaDataRepository;
     private final RegisteredTableRepository registeredTableRepository;
+    private final EvaluationContext expressionContext;
 
 
 
@@ -142,6 +149,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         this.dataTableValidator = dataTableValidator;
         this.registeredTableMetaDataRepository = registeredTableMetaDataRepository;
         this.registeredTableRepository = registeredTableRepository;
+        this.expressionContext = new StandardEvaluationContext();
         // this.configurationWriteService = configurationWriteService;
     }
 
@@ -178,7 +186,6 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     .fillResultsetColumnHeaders(registeredDatatableName);
 
             final List<MetaDataResultSet> metaDataResultSets = this.genericDataService.retrieveRegisteredTableMetaData(registeredDatatableName);
-            logger.info("getting the datatable");
             datatables.add(DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined,displayName));
         }
 
@@ -287,7 +294,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         this.dataTableValidator.validateDataTableRegistration(command.json());
 
-        this._registerDataTable(applicationTableName, dataTableName, category, permissionSql,displayName);
+        this._registerDataTable(applicationTableName, dataTableName, category, permissionSql, displayName);
 
     }
 
@@ -417,31 +424,58 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final CommandProcessingResult commandProcessingResult = checkMainResourceExistsWithinScope(appTable, appTableId);
 
             final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName);
-            KeyHolder keyHolder = new GeneratedKeyHolder();
-            final Type typeOfMap = new TypeToken<Map<String, String>>() {}.getType();
-            final Map<String, String> dataParams = this.fromJsonHelper.extractDataMap(typeOfMap, command.json());
+            final List<MetaDataResultSet> metaData = this.genericDataService.retrieveRegisteredTableMetaData(dataTableName);
 
-            final String sql = getAddSql(columnHeaders, dataTableName, getFKField(appTable), appTableId, dataParams);
 
-            KeyHolder idHolder = new GeneratedKeyHolder();
+            final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+            final Map<String, Object> dataParams = this.fromJsonHelper.extractObjectMap(typeOfMap, command.json());
 
-            final int row = this.jdbcTemplate.update(
-                    new PreparedStatementCreator() {
-                        public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
-                            PreparedStatement ps =
-                                    connection.prepareStatement(sql, new String[] {"id"});
-                            //ps.setString(1, name);
-                            return ps;
+            final String sql = getAddSql(columnHeaders, dataTableName, getFKField(appTable), appTableId, dataParams, metaData);
+
+
+            boolean pKey = false;
+            Long resourceId =null;
+
+            for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
+                final String key = pColumnHeader.getColumnName();
+
+                if("id".equalsIgnoreCase(key)){ pKey = true; break;}
+
+            }
+
+            if(pKey){
+
+                KeyHolder idHolder = new GeneratedKeyHolder();
+
+                final int row = this.jdbcTemplate.update(
+                        new PreparedStatementCreator() {
+                            public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
+                                PreparedStatement ps =
+                                        connection.prepareStatement(sql, new String[] {"id"});
+                                //ps.setString(1, name);
+                                return ps;
+                            }
                         }
-                    }
-                    ,idHolder);
+                        ,idHolder);
+
+                resourceId = idHolder.getKey().longValue();
+
+
+            }else{
+
+                this.jdbcTemplate.update(sql);
+
+                resourceId = appTableId;
+            }
+
+
 
              return new CommandProcessingResultBuilder() //
                     .withOfficeId(commandProcessingResult.getOfficeId()) //
                     .withGroupId(commandProcessingResult.getGroupId()) //
                     .withClientId(commandProcessingResult.getClientId()) //
                     .withSavingsId(commandProcessingResult.getSavingsId()) //
-                    .withLoanId(commandProcessingResult.getLoanId()).withEntityId(idHolder.getKey().longValue())//
+                    .withLoanId(commandProcessingResult.getLoanId()).withEntityId(resourceId)//
                     .build();
 
 
@@ -483,7 +517,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName);
 
             final Type typeOfMap = new TypeToken<Map<String, String>>() {}.getType();
-            final Map<String, String> dataParams = this.fromJsonHelper.extractDataMap(typeOfMap, command.json());
+            final Map<String, Object> dataParams = this.fromJsonHelper.extractObjectMap(typeOfMap, command.json());
 
             final String sql = getAddSqlWithScore(columnHeaders, dataTableName, getFKField(appTable), appTableId, dataParams);
 
@@ -680,7 +714,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             StringBuilder sqlBuilder = new StringBuilder();
             final StringBuilder constrainBuilder = new StringBuilder();
             final Map<String, Long> codeMappings = new HashMap<>();
-			final List<Map<String,Object>> fieldNameAndOrder = new ArrayList<Map<String,Object>>();
+            List<Map<String,Object>> fieldNameAndOrder = new ArrayList<Map<String,Object>>();
 
             sqlBuilder = sqlBuilder.append("CREATE TABLE `" + datatableName + "` (");
 
@@ -724,6 +758,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
              */
 
             if(metaData){
+
+                fieldNameAndOrder = this.updateExpressionVariables(fieldNameAndOrder);
+
                 final RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
                 for(final Map<String,Object> map : fieldNameAndOrder){
                     this.registeredTableMetaDataRepository.save(RegisteredTableMetaData.createNewRegisterTableMetaData(registeredTable,datatableName,map));
@@ -749,6 +786,44 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
 
         return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withResourceIdAsString(datatableName).build();
+    }
+
+    private List<Map<String,Object>> updateExpressionVariables(List<Map<String,Object>> columnMetaData)
+    {
+
+        List<Map<String,Object>> columnsToUpdate = new ArrayList<>();
+
+        // Run through all columns and see if the original name equals the current name
+        for(Map<String,Object> column : columnMetaData )
+        {
+            if(!column.get("originalName").toString().isEmpty() && !column.get("originalName").toString().equals(column.get("fieldName").toString()))
+            {
+                columnsToUpdate.add(column);
+            }
+        }
+
+        for(int i = 0; i < columnMetaData.size(); i++ )
+        {
+            Map<String,Object> column = columnMetaData.get(i);
+
+            if(column.get("displayCondition") != null && !column.get("displayCondition").toString().isEmpty()) {
+                for (Map<String,Object> newValues : columnsToUpdate)
+                {
+                    column.put("displayCondition", column.get("displayCondition").toString().replace(newValues.get("originalName").toString(), newValues.get("fieldName").toString()));
+                    columnMetaData.set(i, column );
+                }
+            }
+
+            if(column.get("formulaExpression") != null && !column.get("formulaExpression").toString().isEmpty()) {
+                for (Map<String,Object> newValues : columnsToUpdate)
+                {
+                    column.put("formulaExpression", column.get("formulaExpression").toString().replace(newValues.get("originalName").toString(), newValues.get("fieldName").toString()));
+                    columnMetaData.set(i, column );
+                }
+            }
+        }
+
+        return columnMetaData;
     }
 
     private void parseDatatableColumnForUpdate(final JsonObject column,
@@ -961,7 +1036,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
      *            Name of data table
      * @param column
      *            JSON encoded array of column properties
-     * @see https://mifosforge.jira.com/browse/MIFOSX-1145
+     * @see       https://mifosforge.jira.com/browse/MIFOSX-1145
      **/
     private void removeNullValuesFromStringColumn(final String datatableName, final JsonObject column,
             final Map<String, ResultsetColumnHeaderData> mapColumnNameDefinition) {
@@ -985,7 +1060,18 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         try {
             this.context.authenticatedUser();
-            this.fromApiJsonDeserializer.validateForUpdate(command.json());
+
+            // Validate the name first, to make sure we are still doing something useful:
+            validateDatatableName(datatableName);
+
+            // Grab the existing column headers used in the validation:
+            final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService.fillResultsetColumnHeaders(datatableName);
+            final Map<String, ResultsetColumnHeaderData> mapColumnNameDefinition = new HashMap<>();
+            for (final ResultsetColumnHeaderData columnHeader : columnHeaderData) {
+                mapColumnNameDefinition.put(columnHeader.getColumnName(), columnHeader);
+            }
+
+            this.fromApiJsonDeserializer.validateForUpdate(command.json(), mapColumnNameDefinition);
 
             final JsonElement element = this.fromJsonHelper.parse(command.json());
             final JsonArray changeColumns = this.fromJsonHelper.extractJsonArrayNamed("changeColumns", element);
@@ -1010,13 +1096,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 metaData = false;
             }
 
-            validateDatatableName(datatableName);
 
-            final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService.fillResultsetColumnHeaders(datatableName);
-            final Map<String, ResultsetColumnHeaderData> mapColumnNameDefinition = new HashMap<>();
-            for (final ResultsetColumnHeaderData columnHeader : columnHeaderData) {
-                mapColumnNameDefinition.put(columnHeader.getColumnName(), columnHeader);
-            }
+
+
 
             final boolean isConstraintApproach = this.configurationDomainService.isConstraintApproachEnabledForDatatables();
 
@@ -1109,6 +1191,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     }
                 }
 
+
                 // Remove the first comma, right after ALTER TABLE `datatable`
                 final int indexOfFirstComma = sqlBuilder.indexOf(",");
                 if (indexOfFirstComma != -1) {
@@ -1156,11 +1239,16 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                             final JsonObject columnName = column.getAsJsonObject();
                             final String name = (columnName.has("name")) ? columnName.get("name").getAsString() : null;
                             final String labelName = (columnName.has("labelName")) ? columnName.get("labelName").getAsString() : null;
+                            final String displayCondition = (columnName.has("displayCondition")) ? columnName.get("displayCondition").getAsString() : null;
+                            final String formulaExpression = (columnName.has("formulaExpression") && !columnName.get("formulaExpression").getAsString().isEmpty() ) ? columnName.get("formulaExpression").getAsString() : null;
+
                             final Integer order =(columnName.has("order")) ? columnName.get("order").getAsInt() : 0;
                             final  RegisteredTableMetaData registeredTableMetaData = this.registeredTableMetaDataRepository.findOneByTableNameAndFieldName(datatableName,name);
                             if(registeredTableMetaData != null){
                                 registeredTableMetaData.updateLabelName(labelName);
                                 registeredTableMetaData.updateOrder(order);
+                                registeredTableMetaData.updateDisplayCondition(displayCondition);
+                                registeredTableMetaData.updateFormulaExpression(formulaExpression);
                                 this.registeredTableMetaDataRepository.saveAndFlush(registeredTableMetaData);
                             }else{
                                 //if column does not exist save the column
@@ -1267,6 +1355,45 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         return updateDatatableEntry(dataTableName, appTableId, datatableId, command);
     }
 
+    @Transactional
+    @Override
+    public CommandProcessingResult updateDatatableEntryOneAndMany(final String dataTableName, final Long appTableId, final Long datatableId,final JsonCommand command) {
+
+        boolean onToMany = false;
+
+        if(datatableId.equals(appTableId)){
+
+            final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName);
+
+            for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
+                final String key = pColumnHeader.getColumnName();
+
+                if("id".equalsIgnoreCase(key)){  onToMany = true; break;}
+
+            }
+
+        }else{
+
+            onToMany = true;
+        }
+
+        if(onToMany){
+
+            return updateDatatableEntry(dataTableName, appTableId, datatableId, command);
+
+        }else{
+
+            return updateDatatableEntry(dataTableName, appTableId,null, command);
+        }
+
+
+    }
+
+
+
+
+
+
     private CommandProcessingResult updateDatatableEntry(final String dataTableName, final Long appTableId, final Long datatableId,
             final JsonCommand command) {
 
@@ -1275,27 +1402,37 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         final GenericResultsetData grs = retrieveDataTableGenericResultSetForUpdate(appTable, dataTableName, appTableId, datatableId);
 
+        final List<MetaDataResultSet> metaData = this.genericDataService.retrieveRegisteredTableMetaData(dataTableName);
+
+
         if (grs.hasNoEntries()) { throw new DatatableNotFoundException(dataTableName, appTableId); }
 
         if (grs.hasMoreThanOneEntry()) { throw new PlatformDataIntegrityException("error.msg.attempting.multiple.update",
                 "Application table: " + dataTableName + " Foreign key id: " + appTableId); }
 
         final Type typeOfMap = new TypeToken<Map<String, String>>() {}.getType();
-        final Map<String, String> dataParams = this.fromJsonHelper.extractDataMap(typeOfMap, command.json());
+        final Map<String, Object> dataParams = this.fromJsonHelper.extractObjectMap(typeOfMap, command.json());
 
         String pkName = "id"; // 1:M datatable
         if (datatableId == null) {
             pkName = getFKField(appTable);
         } // 1:1 datatable
 
-        final Map<String, Object> changes = getAffectedAndChangedColumns(grs, dataParams, pkName);
+        Locale clientApplicationLocale = null;
+
+        if(dataParams.get("locale") != null && !dataParams.get("locale").toString().isEmpty())
+        {
+            clientApplicationLocale = new Locale(dataParams.get("locale").toString());
+        }
+
+        final Map<String,Object> changes = getAffectedAndChangedColumns(grs, dataParams, pkName, clientApplicationLocale);
 
         if (!changes.isEmpty()) {
             Long pkValue = appTableId;
             if (datatableId != null) {
                 pkValue = datatableId;
             }
-            final String sql = getUpdateSql(grs.getColumnHeaders(), dataTableName, pkName, pkValue, changes);
+            final String sql = getUpdateSql(grs.getColumnHeaders(), dataTableName, pkName, pkValue, changes, metaData);
             logger.info("Update sql: " + sql);
             if (StringUtils.isNotBlank(sql)) {
                 this.jdbcTemplate.update(sql);
@@ -1306,13 +1443,20 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             }
         }
 
+        final Map<String, Object> fChanges =  new HashMap<>();
+
+        for(Map.Entry<String, Object> change : changes.entrySet()){
+
+            fChanges.put(change.getKey(),change.getValue());
+        }
+
         return new CommandProcessingResultBuilder() //
                 .withOfficeId(commandProcessingResult.getOfficeId()) //
                 .withGroupId(commandProcessingResult.getGroupId()) //
                 .withClientId(commandProcessingResult.getClientId()) //
                 .withSavingsId(commandProcessingResult.getSavingsId()) //
                 .withLoanId(commandProcessingResult.getLoanId()) //
-                .with(changes) //
+                .with(fChanges) //
                 .build();
     }
 
@@ -1517,13 +1661,15 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         while (rs.next()) {
             final List<String> columnValues = new ArrayList<>();
+            final Map<String,String> columnNameAndValue = new HashMap<>();;
             for (int i = 0; i < rsmd.getColumnCount(); i++) {
                 final String columnName = rsmd.getColumnName(i + 1);
                 final String columnValue = rs.getString(columnName);
+                columnNameAndValue.put(columnName,columnValue);
                 columnValues.add(columnValue);
             }
 
-            final ResultsetRowData resultsetDataRow = ResultsetRowData.create(columnValues);
+            final ResultsetRowData resultsetDataRow = ResultsetRowData.createWithColumnName(columnValues,columnNameAndValue);
             resultsetDataRows.add(resultsetDataRow);
         }
 
@@ -1553,9 +1699,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
 
     private String getAddSql(final List<ResultsetColumnHeaderData> columnHeaders, final String datatable, final String fkName,
-            final Long appTableId, final Map<String, String> queryParams) {
+            final Long appTableId, final Map<String, Object> queryParams, final List<MetaDataResultSet> metaData) {
 
-        final Map<String, String> affectedColumns = getAffectedColumns(columnHeaders, queryParams, fkName);
+        final Map<String, Object> affectedColumns = getAffectedColumns(columnHeaders, queryParams, fkName);
 
         String pValueWrite = "";
         String addSql = "";
@@ -1565,18 +1711,32 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         String selectColumns = "";
         String columnName = "";
         String pValue = null;
+
         for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
             final String key = pColumnHeader.getColumnName();
-            if (affectedColumns.containsKey(key)) {
-                pValue = affectedColumns.get(key);
+            if(pColumnHeader.getColumnFormulaExpression() != null && !pColumnHeader.getColumnFormulaExpression().isEmpty()) {
+                // If this field has a column Expression the we parse that instead of the value
+                pValueWrite = this.getFormulaExpressionValue(affectedColumns, metaData, pColumnHeader.getColumnFormulaExpression());
+                columnName = "`" + key + "`";
+                insertColumns += ", " + columnName;
+                selectColumns += "," + pValueWrite + " as " + columnName;
+            }
+            else if (affectedColumns.containsKey(key)) {
+                pValue = affectedColumns.get(key).toString();
                 if (StringUtils.isEmpty(pValue)) {
                     pValueWrite = "null";
                 } else {
-                    if ("bit".equalsIgnoreCase(pColumnHeader.getColumnType())) {
-                        pValueWrite = BooleanUtils.toString(BooleanUtils.toBooleanObject(pValue), "1", "0", "null");
-                    } else {
-                        pValueWrite = singleQuote + this.genericDataService.replace(pValue, singleQuote, singleQuote + singleQuote)
-                                + singleQuote;
+
+                    pValueWrite = "null";
+
+                    if (pColumnHeader.getColumnDisplayExpression() == null || pColumnHeader.getColumnDisplayExpression().isEmpty() || this.evaluateConditionalFields(affectedColumns, metaData, key))
+                    {
+                        if ("bit".equalsIgnoreCase(pColumnHeader.getColumnType())) {
+                            pValueWrite = BooleanUtils.toString(BooleanUtils.toBooleanObject(pValue), "1", "0", "null");
+                        } else {
+                            pValueWrite = singleQuote + this.genericDataService.replace(pValue, singleQuote, singleQuote + singleQuote)
+                                    + singleQuote;
+                        }
                     }
 
                 }
@@ -1594,6 +1754,77 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         return addSql;
     }
 
+    private String getFormulaExpressionValue(Map<String, Object> affectedColumns, final List<MetaDataResultSet> metaData, String expression)
+    {
+
+        try{
+            // Initiate expression parser:
+            ExpressionParser parser = new SpelExpressionParser();
+            EvaluationContext context = new StandardEvaluationContext();
+
+            for(final String col : affectedColumns.keySet())
+            {
+                context.setVariable(col, affectedColumns.get(col));
+            }
+
+            Expression exp = parser.parseExpression(expression);
+            Object result = exp.getValue(context);
+
+            return result.toString();
+
+        } catch (Exception e){
+
+            throw new PlatformDataIntegrityException("error.msg.invalid.expression", "Invalid expression result: " + expression, "name");
+        }
+    }
+
+
+    private boolean evaluateConditionalFields(Map<String, Object> affectedColumns, final List<MetaDataResultSet> metaData, String key)
+    {
+
+
+            // Get MetaData:
+            for(MetaDataResultSet d : metaData){
+                if(d.getColumnName() != null && d.getColumnName().equals(key)) {
+                    if(d.getDisplayCondition() != null && !d.getDisplayCondition().isEmpty()) {
+
+                        final boolean result = evaluateExpression(affectedColumns, d);
+                        logger.info("Found expression: " + d.getDisplayCondition() + "Result: " + result );
+
+                        return result;
+                    }
+                }
+            }
+
+        return false;
+    }
+
+    private boolean evaluateExpression(Map<String, Object> affectedColumns, MetaDataResultSet d ){
+        try{
+
+
+            // Initiate expression parser:
+            ExpressionParser parser = new SpelExpressionParser();
+            EvaluationContext context = new StandardEvaluationContext();
+
+            for(final String col : affectedColumns.keySet())
+            {
+                context.setVariable(col, affectedColumns.get(col));
+            }
+
+            Expression exp = parser.parseExpression(d.getDisplayCondition());
+            boolean result = exp.getValue(context, Boolean.class);
+
+            return result;
+
+        } catch (Exception e){
+
+            throw new PlatformDataIntegrityException("error.msg.invalid.expression", "Invalid column expression: " + d.getDisplayCondition(), "name",
+                    d.getColumnName());
+        }
+
+    }
+
     /**
      * This method is used special for ppi cases Where the score need to be
      * computed
@@ -1606,9 +1837,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
      * @return
      */
     public String getAddSqlWithScore(final List<ResultsetColumnHeaderData> columnHeaders, final String datatable, final String fkName,
-            final Long appTableId, final Map<String, String> queryParams) {
+            final Long appTableId, final Map<String, Object> queryParams) {
 
-        final Map<String, String> affectedColumns = getAffectedColumns(columnHeaders, queryParams, fkName);
+        final Map<String, Object> affectedColumns = getAffectedColumns(columnHeaders, queryParams, fkName);
 
         String pValueWrite = "";
         String scoresId = " ";
@@ -1619,7 +1850,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         String columnName = "";
         String pValue = null;
         for (final String key : affectedColumns.keySet()) {
-            pValue = affectedColumns.get(key);
+            pValue = affectedColumns.get(key).toString();
 
             if (StringUtils.isEmpty(pValue)) {
                 pValueWrite = "null";
@@ -1646,7 +1877,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     }
 
     private String getUpdateSql(List<ResultsetColumnHeaderData> columnHeaders, final String datatable, final String keyFieldName,
-            final Long keyFieldValue, final Map<String, Object> changedColumns) {
+            final Long keyFieldValue, final Map<String, Object> changedColumns, final List<MetaDataResultSet> metaData) {
 
         // just updating fields that have changed since pre-update read - though
         // its possible these values are different from the page the user was
@@ -1662,8 +1893,12 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         final String singleQuote = "'";
         boolean firstColumn = true;
         String sql = "update `" + datatable + "` ";
+
+
+
         for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
             final String key = pColumnHeader.getColumnName();
+
             if (changedColumns.containsKey(key)) {
                 if (firstColumn) {
                     sql += " set ";
@@ -1672,15 +1907,20 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     sql += ", ";
                 }
 
-                pValue = (String) changedColumns.get(key);
+                pValue =  changedColumns.get(key).toString();
+
                 if (StringUtils.isEmpty(pValue)) {
                     pValueWrite = "null";
                 } else {
-                    if ("bit".equalsIgnoreCase(pColumnHeader.getColumnType())) {
-                        pValueWrite = BooleanUtils.toString(BooleanUtils.toBooleanObject(pValue), "1", "0", "null");
-                    } else {
-                        pValueWrite = singleQuote + this.genericDataService.replace(pValue, singleQuote, singleQuote + singleQuote)
-                                + singleQuote;
+                    pValueWrite = "null";
+                    if (pColumnHeader.getColumnDisplayExpression() == null || pColumnHeader.getColumnDisplayExpression().isEmpty() || this.evaluateConditionalFields(changedColumns, metaData, key)) {
+
+                        if ("bit".equalsIgnoreCase(pColumnHeader.getColumnType())) {
+                            pValueWrite = BooleanUtils.toString(BooleanUtils.toBooleanObject(pValue), "1", "0", "null");
+                        } else {
+                            pValueWrite = singleQuote + this.genericDataService.replace(pValue, singleQuote, singleQuote + singleQuote)
+                                    + singleQuote;
+                        }
                     }
                 }
                 sql += "`" + key + "` = " + pValueWrite;
@@ -1692,17 +1932,39 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         return sql;
     }
 
-    private Map<String, Object> getAffectedAndChangedColumns(final GenericResultsetData grs, final Map<String, String> queryParams,
-            final String fkName) {
+    private Map<String, Object> getAffectedAndChangedColumns(final GenericResultsetData grs, final Map<String, Object> queryParams,
+            final String fkName, final Locale locale) {
 
-        final Map<String, String> affectedColumns = getAffectedColumns(grs.getColumnHeaders(), queryParams, fkName);
+        final Map<String, Object> affectedColumns = getAffectedColumns(grs.getColumnHeaders(), queryParams, fkName);
         final Map<String, Object> affectedAndChangedColumns = new HashMap<>();
+        //final Map<String, String> originalColumnValue = grs.getData().get
 
         for (final String key : affectedColumns.keySet()) {
-            final String columnValue = affectedColumns.get(key);
-            final String colType = grs.getColTypeOfColumnNamed(key);
+            final String columnValue = affectedColumns.get(key).toString();
+            final ResultsetColumnHeaderData colHeader = grs.getColumnHeaderOfColumnNamed(key);
+            final String colType = colHeader.getColumnDisplayType();
+
             if (columnChanged(key, columnValue, colType, grs)) {
-                affectedAndChangedColumns.put(key, columnValue);
+
+                affectedAndChangedColumns.put(key, getObjectValueforColumn(colHeader, columnValue, locale));
+
+            }else{
+
+
+                // put in the current value stored in the db
+                //  affectedAndChangedColumns.put(key, grs.getColTypeOfColumnNamed());
+                affectedAndChangedColumns.put(key,getObjectValueforColumn(colHeader, grs.getValueForColumnNamed(key), locale));
+            }
+        }
+
+        // add the value of the column that were not submitted
+        // we need this for the conditional expression check
+        for (int i = 0; i < grs.getColumnHeaders().size(); i++) {
+
+            final String key = grs.getColumnHeaders().get(i).getColumnName();
+
+            if (!affectedAndChangedColumns.containsKey(key)) {
+                    affectedAndChangedColumns.put(key,getObjectValueforColumn(grs.getColumnHeaders().get(i), grs.getValueForColumnNamed(key), locale));
             }
         }
 
@@ -1727,24 +1989,32 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         throw new PlatformDataIntegrityException("error.msg.invalid.columnName", "Parameter Column Name: " + key + " not found");
     }
 
-    public Map<String, String> getAffectedColumns(final List<ResultsetColumnHeaderData> columnHeaders,
-            final Map<String, String> queryParams, final String keyFieldName) {
+    public Map<String, Object> getAffectedColumns(final List<ResultsetColumnHeaderData> columnHeaders,
+            final Map<String, Object> queryParams, final String keyFieldName) {
 
-        final String dateFormat = queryParams.get("dateFormat");
+        String dateFormat = "";
+
+        if(queryParams.get("dateFormat") != null && !queryParams.get("dateFormat").toString().isEmpty())
+        {
+            dateFormat = queryParams.get("dateFormat").toString();
+        }
+
         Locale clientApplicationLocale = null;
-        final String localeQueryParam = queryParams.get("locale");
-        if (!(StringUtils.isBlank(localeQueryParam))) {
-            clientApplicationLocale = new Locale(queryParams.get("locale"));
+
+        if(queryParams.get("locale") != null && !queryParams.get("locale").toString().isEmpty())
+        {
+            clientApplicationLocale = new Locale(queryParams.get("locale").toString());
         }
 
         final String underscore = "_";
         final String space = " ";
         String pValue = null;
+        Object pObjectValue;
         String queryParamColumnUnderscored;
         String columnHeaderUnderscored;
         boolean notFound;
 
-        final Map<String, String> affectedColumns = new HashMap<>();
+        final Map<String, Object> affectedColumns = new HashMap<>();
         final Set<String> keys = queryParams.keySet();
         for (final String key : keys) {
             // ignores id and foreign key fields
@@ -1760,9 +2030,46 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     if (notFound) {
                         columnHeaderUnderscored = this.genericDataService.replace(columnHeader.getColumnName(), space, underscore);
                         if (queryParamColumnUnderscored.equalsIgnoreCase(columnHeaderUnderscored)) {
-                            pValue = queryParams.get(key);
-                            pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
-                            affectedColumns.put(columnHeader.getColumnName(), pValue);
+
+                            pObjectValue = queryParams.get(key);
+
+                            if(queryParams.get(key) != null) {
+                                if (columnHeader.isIntegerDisplayType()) {
+                                    Integer intValue = new Integer(0);
+                                    if (!queryParams.get(key).toString().isEmpty()) {
+                                        intValue = this.helper.convertToInteger(pObjectValue.toString(), columnHeader.getColumnName(), clientApplicationLocale);
+                                    }
+
+                                    affectedColumns.put(columnHeader.getColumnName(), intValue);
+
+                                } else if (columnHeader.isDecimalDisplayType()) {
+
+                                    Double dValue = new Double("0");
+                                    if (!queryParams.get(key).toString().isEmpty()) {
+                                        dValue = new Double(queryParams.get(key).toString());
+                                    }
+
+
+                                    pValue = String.valueOf(dValue.intValue());
+                                    pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
+                                    affectedColumns.put(columnHeader.getColumnName(), dValue);
+                                } else if (columnHeader.isCodeLookupDisplayType()) {
+
+                                    pValue = validateColumn(columnHeader, pObjectValue.toString(), dateFormat, clientApplicationLocale);
+
+                                    final Integer codeLookup = this.helper.convertToInteger(pObjectValue.toString(), columnHeader.getColumnName(), clientApplicationLocale);
+                                    affectedColumns.put(columnHeader.getColumnName(), codeLookup);
+                                } else {
+                                    pValue = "";
+                                    if (!queryParams.get(key).toString().isEmpty()) {
+                                        pValue = queryParams.get(key).toString();
+                                    }
+                                    pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
+                                    affectedColumns.put(columnHeader.getColumnName(), pValue);
+
+                                }
+                            }
+
                             notFound = false;
                         }
                     }
@@ -1773,6 +2080,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
         return affectedColumns;
     }
+
 
     private String validateColumn(final ResultsetColumnHeaderData columnHeader, final String pValue, final String dateFormat,
             final Locale clientApplicationLocale) {
@@ -1817,15 +2125,6 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                                     dataValidationErrors);
                         }
 
-//                        if (columnHeader.isColumnValueNotAllowed(val)) {
-//                            final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-//                            final ApiParameterError error = ApiParameterError.parameterError("error.msg.invalid.columnValue",
-//                                    "Value not found in Allowed Value list", columnHeader.getColumnName(), val);
-//                            dataValidationErrors.add(error);
-//                            throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
-//                                    dataValidationErrors);
-//
-//                        }
 
                     }
 
@@ -1847,7 +2146,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     return paramValue;
                 } else if (columnHeader.isCodeLookupDisplayType()) {
 
-                    final Integer codeLookup = Integer.valueOf(paramValue);
+                    final Integer codeLookup = this.helper.convertToInteger(paramValue, columnHeader.getColumnName(), clientApplicationLocale);
+
                     if (columnHeader.isColumnCodeNotAllowed(codeLookup)) {
                         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
                         final ApiParameterError error = ApiParameterError.parameterError("error.msg.invalid.columnValue",
@@ -1963,13 +2263,18 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         if(fieldName == null){
             fieldName =(column.has("name")) ? column.get("name").getAsString() : null;
         }
+        fieldNameAndOrder.put("originalName", fieldName);
+
+
         String labelName =  (column.has("labelName")) ? column.get("labelName").getAsString() : null;
-        if(labelName == null){
+        if (labelName == null){
             labelName = fieldName;
         }
         final String code = (column.has("code")) ? column.get("code").getAsString() : null;
         final Integer order =(column.has("order")) ? column.get("order").getAsInt() : 0;
         final String type = (column.has("type")) ? column.get("type").getAsString().toLowerCase() : null;
+        String displayCondition = (column.has("displayCondition") && !column.get("displayCondition").getAsString().isEmpty()) ? column.get("displayCondition").getAsString() : null;
+        String formulaExpression = (column.has("formulaExpression") && !column.get("formulaExpression").getAsString().isEmpty()) ? column.get("formulaExpression").getAsString() : null;
 
 
         if (StringUtils.isNotBlank(code)) {
@@ -1983,6 +2288,10 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         fieldNameAndOrder.put("labelName",labelName);
         fieldNameAndOrder.put("order",order);
+        fieldNameAndOrder.put("displayCondition", displayCondition);
+        fieldNameAndOrder.put("formulaExpression", formulaExpression);
+
+
 
         return fieldNameAndOrder;
     }
@@ -2055,5 +2364,38 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
 
         return listOfCategoryData;
+    }
+
+    private Object getObjectValueforColumn(final ResultsetColumnHeaderData colHeader, final String columnValue, final Locale locale )
+    {
+
+        final String key = colHeader.getColumnName();
+
+        if (colHeader.isIntegerDisplayType()) {
+
+            Integer intValue = new Integer(0);
+
+            intValue = this.helper.convertToInteger(columnValue, key, locale);
+
+            return intValue;
+
+        } else if (colHeader.isDecimalDisplayType()) {
+
+            Double dValue = new Double("0");
+
+            dValue = new Double(columnValue);
+
+            return dValue;
+
+        } else if (colHeader.isCodeLookupDisplayType()) {
+
+            final Integer codeLookup = this.helper.convertToInteger(columnValue,key, locale);
+
+            return codeLookup;
+
+        } else {
+
+            return columnValue;
+        }
     }
 }
