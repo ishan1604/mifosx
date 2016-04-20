@@ -86,7 +86,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
         final ChangedTransactionDetail changedTransactionDetail = new ChangedTransactionDetail();
         final List<LoanTransaction> transactionstoBeProcessed = new ArrayList<>();
         for (final LoanTransaction loanTransaction : transactionsPostDisbursement) {
-            if (loanTransaction.isChargePayment()) {
+            if (loanTransaction.isChargePayment() || loanTransaction.isPenaltyPayment()) {
                 List<LoanChargePaidDetail> chargePaidDetails = new ArrayList<>();
                 final Set<LoanChargePaidBy> chargePaidBies = loanTransaction.getLoanChargesPaid();
                 final Set<LoanCharge> transferCharges = new HashSet<>();
@@ -336,6 +336,7 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
             if (loanTransaction.isChargePayment()) {
                 feeAmount = feeCharges;
             }
+            if (unpaidCharge == null) break; // All are trache charges
             final Money amountPaidTowardsCharge = unpaidCharge.updatePaidAmountBy(amountRemaining, installmentNumber, feeAmount);
             if (!amountPaidTowardsCharge.isZero()) {
                 Set<LoanChargePaidBy> chargesPaidBies = loanTransaction.getLoanChargesPaid();

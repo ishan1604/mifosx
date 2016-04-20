@@ -24,6 +24,7 @@ import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.organisation.office.domain.Office;
 import org.mifosplatform.organisation.office.domain.OfficeRepository;
 import org.mifosplatform.organisation.office.exception.OfficeNotFoundException;
+import org.mifosplatform.organisation.office.service.OfficeReadPlatformService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -41,16 +42,19 @@ public class CalculateIncomeAndExpenseBookingImpl implements CalculateIncomeAndE
     private final GLClosureRepository glClosureRepository;
     private final GLAccountRepository glAccountRepository;
     private final IncomeAndExpenseReadPlatformService incomeAndExpenseReadPlatformService;
+    private final OfficeReadPlatformService officeReadPlatformService;
 
     @Autowired
     public CalculateIncomeAndExpenseBookingImpl(final GLClosureCommandFromApiJsonDeserializer fromApiJsonDeserializer,
             final OfficeRepository officeRepository,final GLClosureRepository glClosureRepository,
-            final GLAccountRepository glAccountRepository,final IncomeAndExpenseReadPlatformService incomeAndExpenseReadPlatformService) {
+            final GLAccountRepository glAccountRepository,final IncomeAndExpenseReadPlatformService incomeAndExpenseReadPlatformService,
+            final OfficeReadPlatformService officeReadPlatformService) {
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.officeRepository = officeRepository;
         this.glClosureRepository = glClosureRepository;
         this.glAccountRepository = glAccountRepository;
         this.incomeAndExpenseReadPlatformService = incomeAndExpenseReadPlatformService;
+        this.officeReadPlatformService = officeReadPlatformService;
     }
 
     @Override
@@ -73,10 +77,11 @@ public class CalculateIncomeAndExpenseBookingImpl implements CalculateIncomeAndE
         final LocalDate incomeAndExpenseBookOffDate = LocalDate.fromDateFields(closureDate);
 
          /*get all offices underneath it valid closure date for all, get Jl for all and make bookings*/
-        final List<Office> childOffices = office.getChildren();
-        if(closureCommand.getSubBranches() && childOffices.size() > 0){
-            for(final Office childOffice : childOffices){
-                final GLClosure latestChildGlClosure = this.glClosureRepository.getLatestGLClosureByBranch(childOffice.getId());
+       // final List<Office> childOffices = office.getChildren();
+        final Collection<Long> childOfficesByHierarchy = this.officeReadPlatformService.officeByHierarchy(officeId);
+        if(closureCommand.getSubBranches() && childOfficesByHierarchy.size() > 0){
+            for(final Long childOffice : childOfficesByHierarchy){
+                final GLClosure latestChildGlClosure = this.glClosureRepository.getLatestGLClosureByBranch(childOffice);
                 if (latestChildGlClosure != null) {
                     if (latestChildGlClosure.getClosingDate().after(closureDate)) { throw new GLClosureInvalidException(
                             GLClosureInvalidException.GL_CLOSURE_INVALID_REASON.ACCOUNTING_CLOSED, latestChildGlClosure.getClosingDate()); }
@@ -91,17 +96,17 @@ public class CalculateIncomeAndExpenseBookingImpl implements CalculateIncomeAndE
 
         if(glAccount == null){throw new GLAccountNotFoundException(equityGlAccountId);}
 
-        if(closureCommand.getSubBranches() && childOffices.size() > 0){
-            for(final Office childOffice : office.getChildren()){
+        if(closureCommand.getSubBranches() && childOfficesByHierarchy.size() > 0){
+            for(final Long childOffice : childOfficesByHierarchy){
                 final List<IncomeAndExpenseJournalEntryData> incomeAndExpenseJournalEntryDataList = this.incomeAndExpenseReadPlatformService.
-                        retrieveAllIncomeAndExpenseJournalEntryData(childOffice.getId(), incomeAndExpenseBookOffDate,closureCommand.getCurrencyCode());
-                final IncomeAndExpenseBookingData incomeAndExpBookingData = this.bookOffIncomeAndExpense(incomeAndExpenseJournalEntryDataList, closureCommand, true, glAccount, childOffice);
+                        retrieveAllIncomeAndExpenseJournalEntryData(childOffice, incomeAndExpenseBookOffDate,closureCommand.getCurrencyCode());
+                final IncomeAndExpenseBookingData incomeAndExpBookingData = this.bookOffIncomeAndExpense(incomeAndExpenseJournalEntryDataList, closureCommand, true, glAccount,this.officeRepository.findOne(childOffice));
                 if(incomeAndExpBookingData.getJournalEntries().size() > 0){ incomeAndExpenseBookingCollection.add(incomeAndExpBookingData);}
             }
         }else{
             final List<IncomeAndExpenseJournalEntryData> incomeAndExpenseJournalEntryDataList = this.incomeAndExpenseReadPlatformService.retrieveAllIncomeAndExpenseJournalEntryData(officeId,incomeAndExpenseBookOffDate,closureCommand.getCurrencyCode());
             final IncomeAndExpenseBookingData incomeAndExpBookingData= this.bookOffIncomeAndExpense(incomeAndExpenseJournalEntryDataList, closureCommand, true,glAccount,office);
-            incomeAndExpenseBookingCollection.add(incomeAndExpBookingData);
+            if(incomeAndExpBookingData.getJournalEntries().size() > 0){ incomeAndExpenseBookingCollection.add(incomeAndExpBookingData);}
         }
         return incomeAndExpenseBookingCollection;
     }

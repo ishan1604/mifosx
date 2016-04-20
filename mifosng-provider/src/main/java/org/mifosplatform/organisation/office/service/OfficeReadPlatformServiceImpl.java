@@ -5,22 +5,16 @@
  */
 package org.mifosplatform.organisation.office.service;
 
-import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
+import org.mifosplatform.infrastructure.core.service.SearchParameters;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.organisation.monetary.data.CurrencyData;
 import org.mifosplatform.organisation.monetary.service.CurrencyReadPlatformService;
 import org.mifosplatform.organisation.office.data.OfficeData;
 import org.mifosplatform.organisation.office.data.OfficeTransactionData;
 import org.mifosplatform.organisation.office.exception.OfficeNotFoundException;
-import org.mifosplatform.infrastructure.core.service.SearchParameters;
 import org.mifosplatform.useradministration.domain.AppUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
@@ -28,6 +22,12 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
 
 @Service
 public class OfficeReadPlatformServiceImpl implements OfficeReadPlatformService {
@@ -86,6 +86,7 @@ public class OfficeReadPlatformServiceImpl implements OfficeReadPlatformService 
             return OfficeData.dropdown(id, name, nameDecorated);
         }
     }
+
 
     private static final class OfficeTransactionMapper implements RowMapper<OfficeTransactionData> {
 
@@ -247,5 +248,21 @@ public class OfficeReadPlatformServiceImpl implements OfficeReadPlatformService 
 
     public PlatformSecurityContext getContext() {
         return this.context;
+    }
+
+    @Override
+    public Collection<Long> officeByHierarchy(Long officeId) {
+        StringBuilder sqlBuilder = new StringBuilder();
+        sqlBuilder.append("SELECT ounder.id FROM m_office mo ");
+        sqlBuilder.append(" JOIN m_office ounder ON ounder.hierarchy LIKE CONCAT(mo.hierarchy, '%') ");
+        sqlBuilder.append(" AND ounder.hierarchy like CONCAT('.', '%') where mo.id = ? ");
+
+
+        try {
+            return this.jdbcTemplate.queryForList(sqlBuilder.toString(), Long.class,
+                    new Object[] { officeId});
+        } catch (final EmptyResultDataAccessException e) {
+            return null;
+        }
     }
 }
