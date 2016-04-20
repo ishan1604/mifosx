@@ -77,7 +77,7 @@ public class DocumentWritePlatformServiceJpaRepositoryImpl implements DocumentWr
 
                 final JsonCommand datatable = new JsonCommand(null,commandJsonString,null,null,null,null,null,null,null,null,null,null,null,null);
 
-                this.readWriteNonCoreDataService.updateDatatableEntryOneToMany(documentCommand.getParentEntityType(),documentCommand.getAppTableId(),documentCommand.getParentEntityId(), datatable);
+                this.readWriteNonCoreDataService.updateDatatableEntryOneAndMany(documentCommand.getParentEntityType(),documentCommand.getAppTableId(),documentCommand.getParentEntityId(), datatable);
 
             }
 

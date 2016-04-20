@@ -417,31 +417,56 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final CommandProcessingResult commandProcessingResult = checkMainResourceExistsWithinScope(appTable, appTableId);
 
             final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName);
-            KeyHolder keyHolder = new GeneratedKeyHolder();
+
             final Type typeOfMap = new TypeToken<Map<String, String>>() {}.getType();
             final Map<String, String> dataParams = this.fromJsonHelper.extractDataMap(typeOfMap, command.json());
 
             final String sql = getAddSql(columnHeaders, dataTableName, getFKField(appTable), appTableId, dataParams);
 
-            KeyHolder idHolder = new GeneratedKeyHolder();
 
-            final int row = this.jdbcTemplate.update(
-                    new PreparedStatementCreator() {
-                        public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
-                            PreparedStatement ps =
-                                    connection.prepareStatement(sql, new String[] {"id"});
-                            //ps.setString(1, name);
-                            return ps;
+            boolean pKey = false;
+            Long resourceId =null;
+
+            for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
+                final String key = pColumnHeader.getColumnName();
+
+                if("id".equalsIgnoreCase(key)){ pKey = true; break;}
+
+            }
+
+            if(pKey){
+
+                KeyHolder idHolder = new GeneratedKeyHolder();
+
+                final int row = this.jdbcTemplate.update(
+                        new PreparedStatementCreator() {
+                            public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
+                                PreparedStatement ps =
+                                        connection.prepareStatement(sql, new String[] {"id"});
+                                //ps.setString(1, name);
+                                return ps;
+                            }
                         }
-                    }
-                    ,idHolder);
+                        ,idHolder);
+
+                resourceId = idHolder.getKey().longValue();
+
+
+            }else{
+
+                this.jdbcTemplate.update(sql);
+
+                resourceId = appTableId;
+            }
+
+
 
              return new CommandProcessingResultBuilder() //
                     .withOfficeId(commandProcessingResult.getOfficeId()) //
                     .withGroupId(commandProcessingResult.getGroupId()) //
                     .withClientId(commandProcessingResult.getClientId()) //
                     .withSavingsId(commandProcessingResult.getSavingsId()) //
-                    .withLoanId(commandProcessingResult.getLoanId()).withEntityId(idHolder.getKey().longValue())//
+                    .withLoanId(commandProcessingResult.getLoanId()).withEntityId(resourceId)//
                     .build();
 
 
@@ -1240,6 +1265,45 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         return updateDatatableEntry(dataTableName, appTableId, datatableId, command);
     }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult updateDatatableEntryOneAndMany(final String dataTableName, final Long appTableId, final Long datatableId,final JsonCommand command) {
+
+        boolean onToMany = false;
+
+        if(datatableId.equals(appTableId)){
+
+            final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName);
+
+            for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
+                final String key = pColumnHeader.getColumnName();
+
+                if("id".equalsIgnoreCase(key)){  onToMany = true; break;}
+
+            }
+
+        }else{
+
+            onToMany = true;
+        }
+
+        if(onToMany){
+
+            return updateDatatableEntry(dataTableName, appTableId, datatableId, command);
+
+        }else{
+
+            return updateDatatableEntry(dataTableName, appTableId,null, command);
+        }
+
+
+    }
+
+
+
+
+
 
     private CommandProcessingResult updateDatatableEntry(final String dataTableName, final Long appTableId, final Long datatableId,
             final JsonCommand command) {
