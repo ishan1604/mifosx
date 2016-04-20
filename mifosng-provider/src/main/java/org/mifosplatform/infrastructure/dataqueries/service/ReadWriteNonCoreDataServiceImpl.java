@@ -60,6 +60,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.jdbc.support.rowset.SqlRowSetMetaData;
@@ -409,11 +414,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final CommandProcessingResult commandProcessingResult = checkMainResourceExistsWithinScope(appTable, appTableId);
 
             final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName);
+            final List<MetaDataResultSet> metaData = this.genericDataService.retrieveRegisteredTableMetaData(dataTableName);
+
 
             final Type typeOfMap = new TypeToken<Map<String, String>>() {}.getType();
             final Map<String, String> dataParams = this.fromJsonHelper.extractDataMap(typeOfMap, command.json());
 
-            final String sql = getAddSql(columnHeaders, dataTableName, getFKField(appTable), appTableId, dataParams);
+            final String sql = getAddSql(columnHeaders, dataTableName, getFKField(appTable), appTableId, dataParams, metaData);
 
             this.jdbcTemplate.update(sql);
 
@@ -897,7 +904,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
      *            Name of data table
      * @param column
      *            JSON encoded array of column properties
-     * @see https://mifosforge.jira.com/browse/MIFOSX-1145
+     * @see   https://mifosforge.jira.com/browse/MIFOSX-1145
      **/
     private void removeNullValuesFromStringColumn(final String datatableName, final JsonObject column,
             final Map<String, ResultsetColumnHeaderData> mapColumnNameDefinition) {
@@ -1492,7 +1499,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     }
 
     private String getAddSql(final List<ResultsetColumnHeaderData> columnHeaders, final String datatable, final String fkName,
-            final Long appTableId, final Map<String, String> queryParams) {
+            final Long appTableId, final Map<String, String> queryParams, final List<MetaDataResultSet> metaData) {
 
         final Map<String, String> affectedColumns = getAffectedColumns(columnHeaders, queryParams, fkName);
 
@@ -1504,9 +1511,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         String selectColumns = "";
         String columnName = "";
         String pValue = null;
+
         for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
             final String key = pColumnHeader.getColumnName();
             if (affectedColumns.containsKey(key)) {
+
+                this.evaluateConditionalFields(affectedColumns,metaData,key);
+
                 pValue = affectedColumns.get(key);
                 if (StringUtils.isEmpty(pValue)) {
                     pValueWrite = "null";
@@ -1531,6 +1542,36 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         logger.info(addSql);
 
         return addSql;
+    }
+
+
+    private void evaluateConditionalFields(Map<String, String> affectedColumns, final List<MetaDataResultSet> metaData, String key)
+    {
+        // Initiate expression parser:
+        ExpressionParser parser = new SpelExpressionParser();
+        EvaluationContext context = new StandardEvaluationContext();
+        for(final String col : affectedColumns.keySet())
+        {
+            context.setVariable(key, affectedColumns.get(col));
+        }
+
+        // Get MetaData:
+        for(MetaDataResultSet d : metaData){
+            if(d.getColumnName() != null && d.getColumnName().equals(key)) {
+                if(d.getDisplayCondition() != null)
+                {
+                    Expression exp = parser.parseExpression(d.getDisplayCondition());
+                    boolean result = exp.getValue(context, Boolean.class);
+                    logger.info("Found expression: " + d.getDisplayCondition() + "Result: " + result );
+
+                    if(!result)
+                    {
+                        throw new PlatformDataIntegrityException("error.msg.invalid.column.specified", "Invalid column provided: " + key, "name",
+                                key);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -1894,7 +1935,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         final String code = (column.has("code")) ? column.get("code").getAsString() : null;
         final Integer order =(column.has("order")) ? column.get("order").getAsInt() : 0;
         final String type = (column.has("type")) ? column.get("type").getAsString().toLowerCase() : null;
-
+        final String displayCondition = (column.has("displayCondition")) ? column.get("displayCondition").getAsString() : null;
 
         if (StringUtils.isNotBlank(code)) {
             if (isConstraintApproach) {
@@ -1906,6 +1947,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         fieldNameAndOrder.put("labelName",labelName);
         fieldNameAndOrder.put("order",order);
+        fieldNameAndOrder.put("displayCondition", displayCondition);
 
         return fieldNameAndOrder;
     }

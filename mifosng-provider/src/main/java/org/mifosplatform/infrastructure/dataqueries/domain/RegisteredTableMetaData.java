@@ -39,6 +39,8 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
     @Column(name="system_defined")
     private boolean systemDefined;
 
+    @Column(name="display_condition")
+    private String displayCondition;
 
     public RegisteredTableMetaData() {
     }
@@ -47,15 +49,17 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
         final String fieldName = mapObject.get("fieldName").toString();
         final String labelName =  mapObject.get("labelName").toString();
         final Integer order    = (Integer) mapObject.get("order");
-        return new RegisteredTableMetaData(registeredTable,tableName,fieldName,labelName,order);
+        final String displayCondition = mapObject.get("displayCondition").toString();
+        return new RegisteredTableMetaData(registeredTable,tableName,fieldName,labelName,order, displayCondition);
     }
 
-    private RegisteredTableMetaData(final RegisteredTable registeredTable,final String tableName, final String fieldName, final String labelName, final Integer order) {
+    private RegisteredTableMetaData(final RegisteredTable registeredTable,final String tableName, final String fieldName, final String labelName, final Integer order, final String displayCondition) {
         this.registeredTable = registeredTable;
         this.tableName = tableName;
         this.fieldName = fieldName;
         this.labelName = labelName;
         this.order = order;
+        this.displayCondition = displayCondition;
     }
 
     public Map<String, Object> update(final JsonCommand command) {
@@ -81,6 +85,14 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
                 actualChanges.put("order", newValue);
             }
         }
+
+        if(command.parameterExists("displayCondition"))  {
+            if (command.isChangeInStringParameterNamed("displayCondition", this.displayCondition)) {
+                final String newValue = command.stringValueOfParameterNamed("displayCondition");
+                actualChanges.put("displayCondition", newValue);
+            }
+        }
+
         return actualChanges;
     }
 
@@ -115,4 +127,6 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
     public boolean isSystemDefined() { return this.systemDefined;}
 
     public void updateIsSystemDefined(final boolean systemDefined) { this.systemDefined = systemDefined;}
+
+    public String getDisplayCondition() { return this.displayCondition; }
 }

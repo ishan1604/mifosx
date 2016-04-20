@@ -20,6 +20,7 @@ public final class ResultsetColumnHeaderData {
     private final String columnType;
     private final Long columnLength;
     private final String columnDisplayType;
+    private final String columnDisplayExpression;
     private final boolean isColumnNullable;
     @SuppressWarnings("unused")
     private final boolean isColumnPrimaryKey;
@@ -39,20 +40,21 @@ public final class ResultsetColumnHeaderData {
         final String columnCode = null;
         final String labelName = null;
         final Integer order  = null;
+        final String columnDisplayExpression = null;
         return new ResultsetColumnHeaderData(columnName, columnType, columnLength, columnNullable, columnIsPrimaryKey, columnValues,
-                columnCode,labelName,order);
+                columnCode,labelName,order, columnDisplayExpression);
     }
 
     public static ResultsetColumnHeaderData detailed(final String columnName, final String columnType, final Long columnLength,
             final boolean columnNullable, final boolean columnIsPrimaryKey, final List<ResultsetColumnValueData> columnValues,
-            final String columnCode) {
+            final String columnCode ) {
         return new ResultsetColumnHeaderData(columnName, columnType, columnLength, columnNullable, columnIsPrimaryKey, columnValues,
-                columnCode,null,null);
+                columnCode,null,null, null);
     }
 
     private ResultsetColumnHeaderData(final String columnName, final String columnType, final Long columnLength,
             final boolean columnNullable, final boolean columnIsPrimaryKey, final List<ResultsetColumnValueData> columnValues,
-            final String columnCode, final String labelName,final Integer order) {
+            final String columnCode, final String labelName,final Integer order, final String columnDisplayExpression) {
         this.columnName = columnName;
         this.columnType = columnType;
         this.columnLength = columnLength;
@@ -62,6 +64,7 @@ public final class ResultsetColumnHeaderData {
         this.columnCode = columnCode;
         this.labelName = labelName;
         this.order   = order;
+        this.columnDisplayExpression = columnDisplayExpression;
 
         String displayType = null;
         if (this.columnCode == null) {

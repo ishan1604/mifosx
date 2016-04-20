@@ -186,8 +186,6 @@ public class GenericDataServiceImpl implements GenericDataService {
     @Override
     public List<ResultsetColumnHeaderData> fillResultsetColumnHeaders(final String datatable) {
 
-        logger.debug("::3 Was inside the fill ResultSetColumnHeader");
-
         final SqlRowSet columnDefinitions = getDatatableMetaData(datatable);
 
         final List<ResultsetColumnHeaderData> columnHeaders = new ArrayList<>();
@@ -243,7 +241,7 @@ public class GenericDataServiceImpl implements GenericDataService {
             }
 
             final ResultsetColumnHeaderData rsch = ResultsetColumnHeaderData.detailed(columnName, columnType, columnLength, columnNullable,
-                    columnIsPrimaryKey, columnValues, codeName);
+                    columnIsPrimaryKey, columnValues, codeName );
 
             columnHeaders.add(rsch);
         }
@@ -334,6 +332,7 @@ public class GenericDataServiceImpl implements GenericDataService {
             sql.append("xr.field_name as columnName, ");
             sql.append("xr.label_name as labelName, ");
             sql.append("xr.ordering as ordering, ");
+            sql.append("xr.display_condition as displayCondition, ");
             sql.append("xr.system_defined as systemDefined ");
             sql.append("from x_registered_table_metadata xr ");
 
@@ -350,8 +349,9 @@ public class GenericDataServiceImpl implements GenericDataService {
             final String columnName = rs.getString("columnName");
             final Long order = JdbcSupport.getLong(rs, "ordering");
             final String labelName = rs.getString("labelName");
+            final String displayCondition = rs.getString("displayCondition");
             final boolean systemDefined = rs.getBoolean("systemDefined");
-            return MetaDataResultSet.createMetaDataResultSet(id,columnName,labelName,order,systemDefined);
+            return MetaDataResultSet.createMetaDataResultSet(id,columnName,labelName,order,systemDefined, displayCondition);
         }
     }
 }

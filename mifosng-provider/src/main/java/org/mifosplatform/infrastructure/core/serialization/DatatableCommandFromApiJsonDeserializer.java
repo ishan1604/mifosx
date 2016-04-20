@@ -21,7 +21,10 @@ import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidation
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.mifosplatform.portfolio.client.api.ClientApiConstants;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.expression.Expression;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.stereotype.Component;
+import org.springframework.expression.ExpressionParser;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -147,9 +150,8 @@ public class DatatableCommandFromApiJsonDeserializer {
                             .notExceedingLengthOf(300);
                     final Integer order = this.fromApiJsonHelper.extractIntegerSansLocaleNamed("order",column);
                     baseDataValidator.reset().parameter("order").value(order).notNull().integerGreaterThanZero();
+
                 }
-
-
 
             }
 
