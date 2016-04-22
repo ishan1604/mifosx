@@ -890,6 +890,15 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             }
         }
 
+        if (type != null) {
+
+            if (type.equalsIgnoreCase("signature")) {
+                name = "signature_" + name;
+            } else if (type.equalsIgnoreCase("image")) {
+                name = "image_" + name;
+            }
+        }
+
         final String mysqlType = apiTypeToMySQL.get(type);
         sqlBuilder = sqlBuilder.append(", ADD `" + name + "` " + mysqlType);
 
@@ -904,6 +913,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 sqlBuilder = sqlBuilder.append("(250)");
             }
         }
+
         if (mandatory != null) {
             if (mandatory) {
                 if(type !=null && type.equalsIgnoreCase("date")){
