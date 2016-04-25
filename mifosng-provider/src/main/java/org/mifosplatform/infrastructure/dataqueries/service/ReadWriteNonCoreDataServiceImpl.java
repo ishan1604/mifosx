@@ -177,7 +177,6 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     .fillResultsetColumnHeaders(registeredDatatableName);
 
             final List<MetaDataResultSet> metaDataResultSets = this.genericDataService.retrieveRegisteredTableMetaData(registeredDatatableName);
-            logger.info("getting the datatable");
             datatables.add(DatatableData.create(appTableName, registeredDatatableName, columnHeaderData,category,metaDataResultSets,systemDefined,displayName));
         }
 
@@ -1207,6 +1206,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         final GenericResultsetData grs = retrieveDataTableGenericResultSetForUpdate(appTable, dataTableName, appTableId, datatableId);
 
+        final List<MetaDataResultSet> metaData = this.genericDataService.retrieveRegisteredTableMetaData(dataTableName);
+
+
         if (grs.hasNoEntries()) { throw new DatatableNotFoundException(dataTableName, appTableId); }
 
         if (grs.hasMoreThanOneEntry()) { throw new PlatformDataIntegrityException("error.msg.attempting.multiple.update",
@@ -1227,7 +1229,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             if (datatableId != null) {
                 pkValue = datatableId;
             }
-            final String sql = getUpdateSql(grs.getColumnHeaders(), dataTableName, pkName, pkValue, changes);
+            final String sql = getUpdateSql(grs.getColumnHeaders(), dataTableName, pkName, pkValue, changes, metaData);
             logger.info("Update sql: " + sql);
             if (StringUtils.isNotBlank(sql)) {
                 this.jdbcTemplate.update(sql);
@@ -1515,13 +1517,14 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
             final String key = pColumnHeader.getColumnName();
             if (affectedColumns.containsKey(key)) {
-
-                this.evaluateConditionalFields(affectedColumns,metaData,key);
-
                 pValue = affectedColumns.get(key);
                 if (StringUtils.isEmpty(pValue)) {
                     pValueWrite = "null";
                 } else {
+
+                    this.evaluateConditionalFields(affectedColumns,metaData,key);
+
+
                     if ("bit".equalsIgnoreCase(pColumnHeader.getColumnType())) {
                         pValueWrite = BooleanUtils.toString(BooleanUtils.toBooleanObject(pValue), "1", "0", "null");
                     } else {
@@ -1626,7 +1629,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     }
 
     private String getUpdateSql(List<ResultsetColumnHeaderData> columnHeaders, final String datatable, final String keyFieldName,
-            final Long keyFieldValue, final Map<String, Object> changedColumns) {
+            final Long keyFieldValue, final Map<String, Object> changedColumns, final List<MetaDataResultSet> metaData) {
 
         // just updating fields that have changed since pre-update read - though
         // its possible these values are different from the page the user was
@@ -1656,6 +1659,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 if (StringUtils.isEmpty(pValue)) {
                     pValueWrite = "null";
                 } else {
+
+                    
+
                     if ("bit".equalsIgnoreCase(pColumnHeader.getColumnType())) {
                         pValueWrite = BooleanUtils.toString(BooleanUtils.toBooleanObject(pValue), "1", "0", "null");
                     } else {
