@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.sql.DataSource;
-
+import javassist.bytecode.stackmap.BasicBlock;
 import org.apache.commons.lang.BooleanUtils;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -285,7 +285,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         this.dataTableValidator.validateDataTableRegistration(command.json());
 
-        this._registerDataTable(applicationTableName, dataTableName, category, permissionSql,displayName);
+        this._registerDataTable(applicationTableName, dataTableName, category, permissionSql, displayName);
 
     }
 
@@ -1222,7 +1222,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             pkName = getFKField(appTable);
         } // 1:1 datatable
 
-        final Map<String, Object> changes = getAffectedAndChangedColumns(grs, dataParams, pkName);
+        final Map<String,String> changes = getAffectedAndChangedColumns(grs, dataParams, pkName);
 
         if (!changes.isEmpty()) {
             Long pkValue = appTableId;
@@ -1240,13 +1240,20 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             }
         }
 
+        final Map<String, Object> fChanges =  new HashMap<>();
+
+        for(Map.Entry<String, String> change : changes.entrySet()){
+
+            fChanges.put(change.getKey(),change.getValue());
+        }
+
         return new CommandProcessingResultBuilder() //
                 .withOfficeId(commandProcessingResult.getOfficeId()) //
                 .withGroupId(commandProcessingResult.getGroupId()) //
                 .withClientId(commandProcessingResult.getClientId()) //
                 .withSavingsId(commandProcessingResult.getSavingsId()) //
                 .withLoanId(commandProcessingResult.getLoanId()) //
-                .with(changes) //
+                .with(fChanges) //
                 .build();
     }
 
@@ -1550,31 +1557,56 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
     private void evaluateConditionalFields(Map<String, String> affectedColumns, final List<MetaDataResultSet> metaData, String key)
     {
-        // Initiate expression parser:
-        ExpressionParser parser = new SpelExpressionParser();
-        EvaluationContext context = new StandardEvaluationContext();
-        for(final String col : affectedColumns.keySet())
-        {
-            context.setVariable(key, affectedColumns.get(col));
-        }
 
-        // Get MetaData:
-        for(MetaDataResultSet d : metaData){
-            if(d.getColumnName() != null && d.getColumnName().equals(key)) {
-                if(d.getDisplayCondition() != null)
-                {
-                    Expression exp = parser.parseExpression(d.getDisplayCondition());
-                    boolean result = exp.getValue(context, Boolean.class);
-                    logger.info("Found expression: " + d.getDisplayCondition() + "Result: " + result );
 
-                    if(!result)
+            // Get MetaData:
+            for(MetaDataResultSet d : metaData){
+                if(d.getColumnName() != null && d.getColumnName().equals(key)) {
+                    if(d.getDisplayCondition() != null)
                     {
-                        throw new PlatformDataIntegrityException("error.msg.invalid.column.specified", "Invalid column provided: " + key, "name",
-                                key);
+
+
+                        final boolean result = evaluateExpression(affectedColumns, d);
+
+
+                        logger.info("Found expression: " + d.getDisplayCondition() + "Result: " + result );
+
+                        if(!result)
+                        {
+                            throw new PlatformDataIntegrityException("error.msg.invalid.column.specified", "Invalid column provided: " + key, "name",
+                                    key);
+                        }
                     }
                 }
             }
+
+
+    }
+
+    private boolean evaluateExpression(Map<String, String> affectedColumns, MetaDataResultSet d ){
+        try{
+
+
+            // Initiate expression parser:
+            ExpressionParser parser = new SpelExpressionParser();
+            EvaluationContext context = new StandardEvaluationContext();
+
+            for(final String col : affectedColumns.keySet())
+            {
+                context.setVariable(col, affectedColumns.get(col));
+            }
+
+            Expression exp = parser.parseExpression(d.getDisplayCondition());
+            boolean result = exp.getValue(context, Boolean.class);
+
+            return result;
+
+        } catch (Exception e){
+
+            throw new PlatformDataIntegrityException("error.msg.invalid.expression", "Invalid column expression: " + d.getDisplayCondition(), "name",
+                    d.getColumnName());
         }
+
     }
 
     /**
@@ -1629,7 +1661,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     }
 
     private String getUpdateSql(List<ResultsetColumnHeaderData> columnHeaders, final String datatable, final String keyFieldName,
-            final Long keyFieldValue, final Map<String, Object> changedColumns, final List<MetaDataResultSet> metaData) {
+            final Long keyFieldValue, final Map<String, String> changedColumns, final List<MetaDataResultSet> metaData) {
 
         // just updating fields that have changed since pre-update read - though
         // its possible these values are different from the page the user was
@@ -1645,8 +1677,14 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         final String singleQuote = "'";
         boolean firstColumn = true;
         String sql = "update `" + datatable + "` ";
+
+
+
         for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
             final String key = pColumnHeader.getColumnName();
+
+            this.evaluateConditionalFields(changedColumns,metaData,key);
+
             if (changedColumns.containsKey(key)) {
                 if (firstColumn) {
                     sql += " set ";
@@ -1678,11 +1716,11 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         return sql;
     }
 
-    private Map<String, Object> getAffectedAndChangedColumns(final GenericResultsetData grs, final Map<String, String> queryParams,
+    private Map<String, String> getAffectedAndChangedColumns(final GenericResultsetData grs, final Map<String, String> queryParams,
             final String fkName) {
 
         final Map<String, String> affectedColumns = getAffectedColumns(grs.getColumnHeaders(), queryParams, fkName);
-        final Map<String, Object> affectedAndChangedColumns = new HashMap<>();
+        final Map<String, String> affectedAndChangedColumns = new HashMap<>();
 
         for (final String key : affectedColumns.keySet()) {
             final String columnValue = affectedColumns.get(key);
