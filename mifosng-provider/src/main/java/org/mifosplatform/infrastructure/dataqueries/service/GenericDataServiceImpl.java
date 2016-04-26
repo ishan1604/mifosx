@@ -245,7 +245,6 @@ public class GenericDataServiceImpl implements GenericDataService {
 
             columnHeaders.add(rsch);
         }
-
         return columnHeaders;
     }
 

@@ -70,9 +70,12 @@ public final class ResultsetColumnHeaderData {
         if (this.columnCode == null) {
             if (isString()) {
                 displayType = "STRING";
+            } else if (isAnyInteger() && ( columnName.startsWith("signature_") || columnName.startsWith("image_") )) {
+                displayType = "IMAGE";
             } else if (isAnyInteger()) {
                 displayType = "INTEGER";
-            } else if (isDate()) {
+            }
+            else if (isDate()) {
                 displayType = "DATE";
             } else if (isDateTime()) {
                 displayType = "DATETIME";
