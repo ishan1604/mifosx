@@ -673,6 +673,7 @@ public final class Group extends AbstractPersistable<Long> {
         }
     }
 
+
     private void validateStatusNotEqualToActiveAndLogError(final List<ApiParameterError> dataValidationErrors) {
 
         if (isActive()) {
