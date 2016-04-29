@@ -41,13 +41,13 @@ public class DatatableCommandFromApiJsonDeserializer {
     private final Set<String> supportedParametersForCreate = new HashSet<>(Arrays.asList("datatableName", "apptableName", "multiRow",
             "columns", "category", "metaData","displayName"));
     private final Set<String> supportedParametersForCreateColumns = new HashSet<>(Arrays.asList("name", "type", "length",
-            "mandatory", "code", "labelName", "order"));
+            "mandatory", "code", "labelName", "order","displayCondition"));
     private final Set<String> supportedParametersForUpdate = new HashSet<>(Arrays.asList("apptableName", "changeColumns",
             "addColumns", "dropColumns", "category", "metaData","displayName"));
     private final Set<String> supportedParametersForAddColumns = new HashSet<>(Arrays.asList("name", "type", "length", "mandatory",
-            "after", "code", "labelName", "order"));
+            "after", "code", "labelName", "order","displayCondition"));
     private final Set<String> supportedParametersForChangeColumns = new HashSet<>(Arrays.asList("name", "newName", "length",
-            "mandatory", "after", "code", "newCode", "labelName", "order"));
+            "mandatory", "after", "code", "newCode", "labelName", "order","displayCondition"));
     private final Set<String> supportedParametersForDropColumns = new HashSet<>(Arrays.asList("name"));
     private final Object[] supportedColumnTypes = { "string", "number", "boolean", "decimal", "date", "datetime", "text", "dropdown","checkbox","signature","image"};
     private final Object[] supportedApptableNames = { "m_loan", "m_savings_account", "m_client", "m_group", "m_center", "m_office",
