@@ -1894,6 +1894,10 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String colType = grs.getColTypeOfColumnNamed(key);
             if (columnChanged(key, columnValue, colType, grs)) {
                 affectedAndChangedColumns.put(key, columnValue);
+            }else{
+
+                // put in the current value stored in the db
+              //  affectedAndChangedColumns.put(key, grs.getColTypeOfColumnNamed());
             }
         }
 
@@ -1951,8 +1955,10 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     if (notFound) {
                         columnHeaderUnderscored = this.genericDataService.replace(columnHeader.getColumnName(), space, underscore);
                         if (queryParamColumnUnderscored.equalsIgnoreCase(columnHeaderUnderscored)) {
-                            if(columnHeader.isIntegerDisplayType())
-                            {
+
+
+                            if(columnHeader.isIntegerDisplayType()) {
+
                                 Double dValue = new Double(queryParams.get(key).toString());
                                 pValue = String.valueOf(dValue.intValue());
                             }
@@ -1960,6 +1966,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                             {
                                 pValue = queryParams.get(key).toString();
                             }
+
                             pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
                             affectedColumns.put(columnHeader.getColumnName(), pValue);
                             notFound = false;
@@ -2163,7 +2170,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
 
         String labelName =  (column.has("labelName")) ? column.get("labelName").getAsString() : null;
-        if(labelName == null){
+        if (labelName == null){
             labelName = fieldName;
         }
         final String code = (column.has("code")) ? column.get("code").getAsString() : null;
