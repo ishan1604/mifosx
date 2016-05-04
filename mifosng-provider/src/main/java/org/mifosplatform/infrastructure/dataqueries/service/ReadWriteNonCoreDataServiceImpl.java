@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.sql.DataSource;
+
 import org.apache.commons.lang.BooleanUtils;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -122,6 +123,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     private final DataTableValidator dataTableValidator;
     private final RegisteredTableMetaDataRepository registeredTableMetaDataRepository;
     private final RegisteredTableRepository registeredTableRepository;
+    private final EvaluationContext expressionContext;
 
 
 
@@ -147,6 +149,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         this.dataTableValidator = dataTableValidator;
         this.registeredTableMetaDataRepository = registeredTableMetaDataRepository;
         this.registeredTableRepository = registeredTableRepository;
+        this.expressionContext = new StandardEvaluationContext();
         // this.configurationWriteService = configurationWriteService;
     }
 
@@ -1018,7 +1021,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
      *            Name of data table
      * @param column
      *            JSON encoded array of column properties
-     * @see       https://mifosforge.jira.com/browse/MIFOSX-1145
+     * @see        https://mifosforge.jira.com/browse/MIFOSX-1145
      **/
     private void removeNullValuesFromStringColumn(final String datatableName, final JsonObject column,
             final Map<String, ResultsetColumnHeaderData> mapColumnNameDefinition) {
@@ -1042,7 +1045,18 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         try {
             this.context.authenticatedUser();
-            this.fromApiJsonDeserializer.validateForUpdate(command.json());
+
+            // Validate the name first, to make sure we are still doing something useful:
+            validateDatatableName(datatableName);
+
+            // Grab the existing column headers used in the validation:
+            final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService.fillResultsetColumnHeaders(datatableName);
+            final Map<String, ResultsetColumnHeaderData> mapColumnNameDefinition = new HashMap<>();
+            for (final ResultsetColumnHeaderData columnHeader : columnHeaderData) {
+                mapColumnNameDefinition.put(columnHeader.getColumnName(), columnHeader);
+            }
+
+            this.fromApiJsonDeserializer.validateForUpdate(command.json(), mapColumnNameDefinition);
 
             final JsonElement element = this.fromJsonHelper.parse(command.json());
             final JsonArray changeColumns = this.fromJsonHelper.extractJsonArrayNamed("changeColumns", element);
@@ -1067,13 +1081,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 metaData = false;
             }
 
-            validateDatatableName(datatableName);
 
-            final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService.fillResultsetColumnHeaders(datatableName);
-            final Map<String, ResultsetColumnHeaderData> mapColumnNameDefinition = new HashMap<>();
-            for (final ResultsetColumnHeaderData columnHeader : columnHeaderData) {
-                mapColumnNameDefinition.put(columnHeader.getColumnName(), columnHeader);
-            }
+
+
 
             final boolean isConstraintApproach = this.configurationDomainService.isConstraintApproachEnabledForDatatables();
 
@@ -1941,7 +1951,15 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     if (notFound) {
                         columnHeaderUnderscored = this.genericDataService.replace(columnHeader.getColumnName(), space, underscore);
                         if (queryParamColumnUnderscored.equalsIgnoreCase(columnHeaderUnderscored)) {
-                            pValue = queryParams.get(key).toString();
+                            if(columnHeader.isIntegerDisplayType())
+                            {
+                                Double dValue = new Double(queryParams.get(key).toString());
+                                pValue = String.valueOf(dValue.intValue());
+                            }
+                            else
+                            {
+                                pValue = queryParams.get(key).toString();
+                            }
                             pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
                             affectedColumns.put(columnHeader.getColumnName(), pValue);
                             notFound = false;

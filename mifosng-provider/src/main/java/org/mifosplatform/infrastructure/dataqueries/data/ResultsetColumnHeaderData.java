@@ -21,6 +21,7 @@ public final class ResultsetColumnHeaderData {
     private final Long columnLength;
     private final String columnDisplayType;
     private final String columnDisplayExpression;
+    private final String columnFormulaExpression;
     private final boolean isColumnNullable;
     @SuppressWarnings("unused")
     private final boolean isColumnPrimaryKey;
@@ -41,20 +42,21 @@ public final class ResultsetColumnHeaderData {
         final String labelName = null;
         final Integer order  = null;
         final String columnDisplayExpression = null;
+        final String columnFormulaExpression = null;
         return new ResultsetColumnHeaderData(columnName, columnType, columnLength, columnNullable, columnIsPrimaryKey, columnValues,
-                columnCode,labelName,order, columnDisplayExpression);
+                columnCode,labelName,order, columnDisplayExpression, columnFormulaExpression);
     }
 
     public static ResultsetColumnHeaderData detailed(final String columnName, final String columnType, final Long columnLength,
             final boolean columnNullable, final boolean columnIsPrimaryKey, final List<ResultsetColumnValueData> columnValues,
             final String columnCode ) {
         return new ResultsetColumnHeaderData(columnName, columnType, columnLength, columnNullable, columnIsPrimaryKey, columnValues,
-                columnCode,null,null, null);
+                columnCode,null,null, null, null);
     }
 
     private ResultsetColumnHeaderData(final String columnName, final String columnType, final Long columnLength,
             final boolean columnNullable, final boolean columnIsPrimaryKey, final List<ResultsetColumnValueData> columnValues,
-            final String columnCode, final String labelName,final Integer order, final String columnDisplayExpression) {
+            final String columnCode, final String labelName,final Integer order, final String columnDisplayExpression, final String columnFormulaExpression) {
         this.columnName = columnName;
         this.columnType = columnType;
         this.columnLength = columnLength;
@@ -65,6 +67,7 @@ public final class ResultsetColumnHeaderData {
         this.labelName = labelName;
         this.order   = order;
         this.columnDisplayExpression = columnDisplayExpression;
+        this.columnFormulaExpression = columnFormulaExpression;
 
         String displayType = null;
         if (this.columnCode == null) {
@@ -285,5 +288,14 @@ public final class ResultsetColumnHeaderData {
 
     public Integer getOrder() {
         return this.order;
+    }
+
+
+    public String getColumnDisplayExpression() {
+        return columnDisplayExpression;
+    }
+
+    public String getColumnFormulaExpression() {
+        return columnFormulaExpression;
     }
 }

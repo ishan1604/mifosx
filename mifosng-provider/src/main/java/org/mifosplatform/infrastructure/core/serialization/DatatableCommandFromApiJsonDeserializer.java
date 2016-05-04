@@ -14,6 +14,7 @@ import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.InvalidJsonException;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.mifosplatform.infrastructure.dataqueries.data.ResultsetColumnHeaderData;
 import org.mifosplatform.portfolio.client.api.ClientApiConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.expression.EvaluationContext;
@@ -209,7 +210,7 @@ public class DatatableCommandFromApiJsonDeserializer {
 
 
 
-    public void validateForUpdate(final String json) {
+    public void validateForUpdate(final String json, final Map<String, ResultsetColumnHeaderData> allColumns) {
         if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
         // Because all parameters are optional, a check to see if at least one
         // parameter
@@ -235,6 +236,8 @@ public class DatatableCommandFromApiJsonDeserializer {
 
         final Boolean metaData = this.fromApiJsonHelper.extractBooleanNamed("metaData", element);
         baseDataValidator.reset().parameter("metaData").value(metaData).ignoreIfNull().notBlank().isOneOfTheseValues(true, false);
+
+        final List<String> affectedColumns = new ArrayList<>();
 
         if (changeColumns != null) {
             for (final JsonElement column : changeColumns) {
@@ -275,6 +278,12 @@ public class DatatableCommandFromApiJsonDeserializer {
 
                 final Boolean after = this.fromApiJsonHelper.extractBooleanNamed("after", column);
                 baseDataValidator.reset().parameter("after").value(after).ignoreIfNull().notBlank().isOneOfTheseValues(true, false);
+
+                // Add to list of affected columns so we can ignore them when fetching the original data:
+                affectedColumns.add(name);
+
+                final String type = allColumns.get(name).getColumnType();
+                this.expressionContext.setVariable(newName, sampleExpressionValues.get(type.toLowerCase()));
             }
         }
 
@@ -303,6 +312,10 @@ public class DatatableCommandFromApiJsonDeserializer {
                     final Integer order = this.fromApiJsonHelper.extractIntegerSansLocaleNamed("order",column);
                     baseDataValidator.reset().parameter("order").value(order).notNull().integerGreaterThanZero();
                 }
+
+                // Add to parser with sample values::
+                final String type = this.fromApiJsonHelper.extractStringNamed("type", column);
+                this.expressionContext.setVariable(name, sampleExpressionValues.get(type.toLowerCase()));
             }
         }
 
@@ -316,8 +329,38 @@ public class DatatableCommandFromApiJsonDeserializer {
                 final String name = this.fromApiJsonHelper.extractStringNamed("name", column);
                 baseDataValidator.reset().parameter("name").value(name).notBlank().isNotOneOfTheseValues("id", fkColumnName)
                         .matchesRegularExpression(DATATABLE_COLUMN_NAME_REGEX_PATTERN);
+
+                affectedColumns.add(name);
             }
         }
+
+        // Loop through the existing columns:
+        for(ResultsetColumnHeaderData column : allColumns.values())
+        {
+            if(!affectedColumns.contains(column.getColumnName()))
+            {
+                this.expressionContext.setVariable(column.getColumnName(), sampleExpressionValues.get(column.getColumnType().toLowerCase()));
+            }
+        }
+
+        // Loop through the columns again doing a find and replace stuff:
+        for(ResultsetColumnHeaderData column : allColumns.values())
+        {
+            // Find the displayCondition:
+            final String displayCondition = column.getColumnDisplayExpression();
+            if (displayCondition != null && !StringUtils.isWhitespace(displayCondition) && StringUtils.isNotBlank(displayCondition)) {
+                // Try the condition:
+                baseDataValidator.reset().parameter("displayCondition").value(displayCondition).validateBooleanExpression(this.expressionContext);
+            }
+
+            // Find the formulaExpressions:
+            final String formulaExpression =  column.getColumnFormulaExpression();
+            if (formulaExpression != null && !StringUtils.isWhitespace(formulaExpression) && StringUtils.isNotBlank(formulaExpression)) {
+                // Try the condition:
+                baseDataValidator.reset().parameter("formulaExpression").value(formulaExpression).validateObjectExpression(this.expressionContext);
+            }
+        }
+
 
         final String categoryIdParameterName = "category";
         if (this.fromApiJsonHelper.parameterExists(categoryIdParameterName, element)) {
