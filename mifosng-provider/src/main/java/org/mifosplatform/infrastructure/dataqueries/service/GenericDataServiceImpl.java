@@ -332,6 +332,7 @@ public class GenericDataServiceImpl implements GenericDataService {
             sql.append("xr.label_name as labelName, ");
             sql.append("xr.ordering as ordering, ");
             sql.append("xr.display_condition as displayCondition, ");
+            sql.append("xr.formula_expression as formulaExpression, ");
             sql.append("xr.system_defined as systemDefined ");
             sql.append("from x_registered_table_metadata xr ");
 
@@ -350,7 +351,8 @@ public class GenericDataServiceImpl implements GenericDataService {
             final String labelName = rs.getString("labelName");
             final String displayCondition = rs.getString("displayCondition");
             final boolean systemDefined = rs.getBoolean("systemDefined");
-            return MetaDataResultSet.createMetaDataResultSet(id,columnName,labelName,order,systemDefined, displayCondition);
+            final String formulaExpression = rs.getString("formulaExpression");
+            return MetaDataResultSet.createMetaDataResultSet(id,columnName,labelName,order,systemDefined, displayCondition, formulaExpression);
         }
     }
 }

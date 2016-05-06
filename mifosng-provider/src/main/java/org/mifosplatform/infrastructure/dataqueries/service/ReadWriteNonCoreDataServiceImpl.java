@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.sql.DataSource;
+
 import org.apache.commons.lang.BooleanUtils;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -122,6 +123,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     private final DataTableValidator dataTableValidator;
     private final RegisteredTableMetaDataRepository registeredTableMetaDataRepository;
     private final RegisteredTableRepository registeredTableRepository;
+    private final EvaluationContext expressionContext;
 
 
 
@@ -147,6 +149,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         this.dataTableValidator = dataTableValidator;
         this.registeredTableMetaDataRepository = registeredTableMetaDataRepository;
         this.registeredTableRepository = registeredTableRepository;
+        this.expressionContext = new StandardEvaluationContext();
         // this.configurationWriteService = configurationWriteService;
     }
 
@@ -422,8 +425,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final List<MetaDataResultSet> metaData = this.genericDataService.retrieveRegisteredTableMetaData(dataTableName);
 
 
-            final Type typeOfMap = new TypeToken<Map<String, String>>() {}.getType();
-            final Map<String, String> dataParams = this.fromJsonHelper.extractDataMap(typeOfMap, command.json());
+            final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+            final Map<String, Object> dataParams = this.fromJsonHelper.extractObjectMap(typeOfMap, command.json());
 
             final String sql = getAddSql(columnHeaders, dataTableName, getFKField(appTable), appTableId, dataParams, metaData);
 
@@ -508,7 +511,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName);
 
             final Type typeOfMap = new TypeToken<Map<String, String>>() {}.getType();
-            final Map<String, String> dataParams = this.fromJsonHelper.extractDataMap(typeOfMap, command.json());
+            final Map<String, Object> dataParams = this.fromJsonHelper.extractObjectMap(typeOfMap, command.json());
 
             final String sql = getAddSqlWithScore(columnHeaders, dataTableName, getFKField(appTable), appTableId, dataParams);
 
@@ -702,7 +705,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             StringBuilder sqlBuilder = new StringBuilder();
             final StringBuilder constrainBuilder = new StringBuilder();
             final Map<String, Long> codeMappings = new HashMap<>();
-			final List<Map<String,Object>> fieldNameAndOrder = new ArrayList<Map<String,Object>>();
+            List<Map<String,Object>> fieldNameAndOrder = new ArrayList<Map<String,Object>>();
 
             sqlBuilder = sqlBuilder.append("CREATE TABLE `" + datatableName + "` (");
 
@@ -746,6 +749,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
              */
 
             if(metaData){
+
+                fieldNameAndOrder = this.updateExpressionVariables(fieldNameAndOrder);
+
                 final RegisteredTable registeredTable = this.registeredTableRepository.findOneByRegisteredTableName(datatableName);
                 for(final Map<String,Object> map : fieldNameAndOrder){
                     this.registeredTableMetaDataRepository.save(RegisteredTableMetaData.createNewRegisterTableMetaData(registeredTable,datatableName,map));
@@ -771,6 +777,36 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
 
         return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withResourceIdAsString(datatableName).build();
+    }
+
+    private List<Map<String,Object>> updateExpressionVariables(List<Map<String,Object>> columnMetaData)
+    {
+
+        List<Map<String,Object>> columnsToUpdate = new ArrayList<>();
+
+        // Run through all columns and see if the original name equals the current name
+        for(Map<String,Object> column : columnMetaData )
+        {
+            if(!column.get("originalName").toString().isEmpty() && !column.get("originalName").toString().equals(column.get("fieldName").toString()))
+            {
+                columnsToUpdate.add(column);
+            }
+        }
+
+        for(int i = 0; i < columnMetaData.size(); i++ )
+        {
+            Map<String,Object> column = columnMetaData.get(i);
+
+            if(column.get("displayCondition") != null && !column.get("displayCondition").toString().isEmpty()) {
+                for (Map<String,Object> newValues : columnsToUpdate)
+                {
+                    column.put("displayCondition", column.get("displayCondition").toString().replace(newValues.get("originalName").toString(), newValues.get("fieldName").toString()));
+                    columnMetaData.set(i, column );
+                }
+            }
+        }
+
+        return columnMetaData;
     }
 
     private void parseDatatableColumnForUpdate(final JsonObject column,
@@ -985,7 +1021,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
      *            Name of data table
      * @param column
      *            JSON encoded array of column properties
-     * @see   https://mifosforge.jira.com/browse/MIFOSX-1145
+     * @see        https://mifosforge.jira.com/browse/MIFOSX-1145
      **/
     private void removeNullValuesFromStringColumn(final String datatableName, final JsonObject column,
             final Map<String, ResultsetColumnHeaderData> mapColumnNameDefinition) {
@@ -1009,7 +1045,18 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         try {
             this.context.authenticatedUser();
-            this.fromApiJsonDeserializer.validateForUpdate(command.json());
+
+            // Validate the name first, to make sure we are still doing something useful:
+            validateDatatableName(datatableName);
+
+            // Grab the existing column headers used in the validation:
+            final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService.fillResultsetColumnHeaders(datatableName);
+            final Map<String, ResultsetColumnHeaderData> mapColumnNameDefinition = new HashMap<>();
+            for (final ResultsetColumnHeaderData columnHeader : columnHeaderData) {
+                mapColumnNameDefinition.put(columnHeader.getColumnName(), columnHeader);
+            }
+
+            this.fromApiJsonDeserializer.validateForUpdate(command.json(), mapColumnNameDefinition);
 
             final JsonElement element = this.fromJsonHelper.parse(command.json());
             final JsonArray changeColumns = this.fromJsonHelper.extractJsonArrayNamed("changeColumns", element);
@@ -1034,13 +1081,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 metaData = false;
             }
 
-            validateDatatableName(datatableName);
 
-            final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService.fillResultsetColumnHeaders(datatableName);
-            final Map<String, ResultsetColumnHeaderData> mapColumnNameDefinition = new HashMap<>();
-            for (final ResultsetColumnHeaderData columnHeader : columnHeaderData) {
-                mapColumnNameDefinition.put(columnHeader.getColumnName(), columnHeader);
-            }
+
+
 
             final boolean isConstraintApproach = this.configurationDomainService.isConstraintApproachEnabledForDatatables();
 
@@ -1132,6 +1175,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                         fieldNameAndOrder.add(this.returnFieldNameAndOrder(column.getAsJsonObject(),isConstraintApproach));
                     }
                 }
+
 
                 // Remove the first comma, right after ALTER TABLE `datatable`
                 final int indexOfFirstComma = sqlBuilder.indexOf(",");
@@ -1336,14 +1380,14 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 "Application table: " + dataTableName + " Foreign key id: " + appTableId); }
 
         final Type typeOfMap = new TypeToken<Map<String, String>>() {}.getType();
-        final Map<String, String> dataParams = this.fromJsonHelper.extractDataMap(typeOfMap, command.json());
+        final Map<String, Object> dataParams = this.fromJsonHelper.extractObjectMap(typeOfMap, command.json());
 
         String pkName = "id"; // 1:M datatable
         if (datatableId == null) {
             pkName = getFKField(appTable);
         } // 1:1 datatable
 
-        final Map<String,String> changes = getAffectedAndChangedColumns(grs, dataParams, pkName);
+        final Map<String,Object> changes = getAffectedAndChangedColumns(grs, dataParams, pkName);
 
         if (!changes.isEmpty()) {
             Long pkValue = appTableId;
@@ -1363,7 +1407,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         final Map<String, Object> fChanges =  new HashMap<>();
 
-        for(Map.Entry<String, String> change : changes.entrySet()){
+        for(Map.Entry<String, Object> change : changes.entrySet()){
 
             fChanges.put(change.getKey(),change.getValue());
         }
@@ -1631,9 +1675,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
 
     private String getAddSql(final List<ResultsetColumnHeaderData> columnHeaders, final String datatable, final String fkName,
-            final Long appTableId, final Map<String, String> queryParams, final List<MetaDataResultSet> metaData) {
+            final Long appTableId, final Map<String, Object> queryParams, final List<MetaDataResultSet> metaData) {
 
-        final Map<String, String> affectedColumns = getAffectedColumns(columnHeaders, queryParams, fkName);
+        final Map<String, Object> affectedColumns = getAffectedColumns(columnHeaders, queryParams, fkName);
 
         String pValueWrite = "";
         String addSql = "";
@@ -1647,7 +1691,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
             final String key = pColumnHeader.getColumnName();
             if (affectedColumns.containsKey(key)) {
-                pValue = affectedColumns.get(key);
+                pValue = affectedColumns.get(key).toString();
                 if (StringUtils.isEmpty(pValue)) {
                     pValueWrite = "null";
                 } else {
@@ -1678,7 +1722,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     }
 
 
-    private void evaluateConditionalFields(Map<String, String> affectedColumns, final List<MetaDataResultSet> metaData, String key)
+    private void evaluateConditionalFields(Map<String, Object> affectedColumns, final List<MetaDataResultSet> metaData, String key)
     {
 
 
@@ -1706,7 +1750,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
     }
 
-    private boolean evaluateExpression(Map<String, String> affectedColumns, MetaDataResultSet d ){
+    private boolean evaluateExpression(Map<String, Object> affectedColumns, MetaDataResultSet d ){
         try{
 
 
@@ -1744,9 +1788,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
      * @return
      */
     public String getAddSqlWithScore(final List<ResultsetColumnHeaderData> columnHeaders, final String datatable, final String fkName,
-            final Long appTableId, final Map<String, String> queryParams) {
+            final Long appTableId, final Map<String, Object> queryParams) {
 
-        final Map<String, String> affectedColumns = getAffectedColumns(columnHeaders, queryParams, fkName);
+        final Map<String, Object> affectedColumns = getAffectedColumns(columnHeaders, queryParams, fkName);
 
         String pValueWrite = "";
         String scoresId = " ";
@@ -1757,7 +1801,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         String columnName = "";
         String pValue = null;
         for (final String key : affectedColumns.keySet()) {
-            pValue = affectedColumns.get(key);
+            pValue = affectedColumns.get(key).toString();
 
             if (StringUtils.isEmpty(pValue)) {
                 pValueWrite = "null";
@@ -1784,7 +1828,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     }
 
     private String getUpdateSql(List<ResultsetColumnHeaderData> columnHeaders, final String datatable, final String keyFieldName,
-            final Long keyFieldValue, final Map<String, String> changedColumns, final List<MetaDataResultSet> metaData) {
+            final Long keyFieldValue, final Map<String, Object> changedColumns, final List<MetaDataResultSet> metaData) {
 
         // just updating fields that have changed since pre-update read - though
         // its possible these values are different from the page the user was
@@ -1839,17 +1883,21 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         return sql;
     }
 
-    private Map<String, String> getAffectedAndChangedColumns(final GenericResultsetData grs, final Map<String, String> queryParams,
+    private Map<String, Object> getAffectedAndChangedColumns(final GenericResultsetData grs, final Map<String, Object> queryParams,
             final String fkName) {
 
-        final Map<String, String> affectedColumns = getAffectedColumns(grs.getColumnHeaders(), queryParams, fkName);
-        final Map<String, String> affectedAndChangedColumns = new HashMap<>();
+        final Map<String, Object> affectedColumns = getAffectedColumns(grs.getColumnHeaders(), queryParams, fkName);
+        final Map<String, Object> affectedAndChangedColumns = new HashMap<>();
 
         for (final String key : affectedColumns.keySet()) {
-            final String columnValue = affectedColumns.get(key);
+            final String columnValue = affectedColumns.get(key).toString();
             final String colType = grs.getColTypeOfColumnNamed(key);
             if (columnChanged(key, columnValue, colType, grs)) {
                 affectedAndChangedColumns.put(key, columnValue);
+            }else{
+
+                // put in the current value stored in the db
+              //  affectedAndChangedColumns.put(key, grs.getColTypeOfColumnNamed());
             }
         }
 
@@ -1874,14 +1922,14 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         throw new PlatformDataIntegrityException("error.msg.invalid.columnName", "Parameter Column Name: " + key + " not found");
     }
 
-    public Map<String, String> getAffectedColumns(final List<ResultsetColumnHeaderData> columnHeaders,
-            final Map<String, String> queryParams, final String keyFieldName) {
+    public Map<String, Object> getAffectedColumns(final List<ResultsetColumnHeaderData> columnHeaders,
+            final Map<String, Object> queryParams, final String keyFieldName) {
 
-        final String dateFormat = queryParams.get("dateFormat");
+        final String dateFormat = queryParams.get("dateFormat").toString();
         Locale clientApplicationLocale = null;
-        final String localeQueryParam = queryParams.get("locale");
+        final String localeQueryParam = queryParams.get("locale").toString();
         if (!(StringUtils.isBlank(localeQueryParam))) {
-            clientApplicationLocale = new Locale(queryParams.get("locale"));
+            clientApplicationLocale = new Locale(queryParams.get("locale").toString());
         }
 
         final String underscore = "_";
@@ -1891,7 +1939,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         String columnHeaderUnderscored;
         boolean notFound;
 
-        final Map<String, String> affectedColumns = new HashMap<>();
+        final Map<String, Object> affectedColumns = new HashMap<>();
         final Set<String> keys = queryParams.keySet();
         for (final String key : keys) {
             // ignores id and foreign key fields
@@ -1907,7 +1955,18 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     if (notFound) {
                         columnHeaderUnderscored = this.genericDataService.replace(columnHeader.getColumnName(), space, underscore);
                         if (queryParamColumnUnderscored.equalsIgnoreCase(columnHeaderUnderscored)) {
-                            pValue = queryParams.get(key);
+
+
+                            if(columnHeader.isIntegerDisplayType()) {
+
+                                Double dValue = new Double(queryParams.get(key).toString());
+                                pValue = String.valueOf(dValue.intValue());
+                            }
+                            else
+                            {
+                                pValue = queryParams.get(key).toString();
+                            }
+
                             pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
                             affectedColumns.put(columnHeader.getColumnName(), pValue);
                             notFound = false;
@@ -2107,14 +2166,19 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         if(fieldName == null){
             fieldName =(column.has("name")) ? column.get("name").getAsString() : null;
         }
+        fieldNameAndOrder.put("originalName", fieldName);
+
+
         String labelName =  (column.has("labelName")) ? column.get("labelName").getAsString() : null;
-        if(labelName == null){
+        if (labelName == null){
             labelName = fieldName;
         }
         final String code = (column.has("code")) ? column.get("code").getAsString() : null;
         final Integer order =(column.has("order")) ? column.get("order").getAsInt() : 0;
         final String type = (column.has("type")) ? column.get("type").getAsString().toLowerCase() : null;
-        final String displayCondition = (column.has("displayCondition")) ? column.get("displayCondition").getAsString() : null;
+        String displayCondition = (column.has("displayCondition")) ? column.get("displayCondition").getAsString() : null;
+        String formulaExpression = (column.has("formulaExpression")) ? column.get("formulaExpression").getAsString() : null;
+
 
         if (StringUtils.isNotBlank(code)) {
             if (isConstraintApproach) {
@@ -2128,6 +2192,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         fieldNameAndOrder.put("labelName",labelName);
         fieldNameAndOrder.put("order",order);
         fieldNameAndOrder.put("displayCondition", displayCondition);
+        fieldNameAndOrder.put("formulaExpression", formulaExpression);
+
+
 
         return fieldNameAndOrder;
     }

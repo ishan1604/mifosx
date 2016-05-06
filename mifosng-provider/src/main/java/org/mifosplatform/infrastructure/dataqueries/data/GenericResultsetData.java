@@ -34,6 +34,7 @@ public final class GenericResultsetData {
         for (final ResultsetColumnHeaderData columnHeader : this.columnHeaders) {
             if (columnHeader.isNamed(columnName)) {
                 colType = columnHeader.getColumnType();
+
             }
         }
 

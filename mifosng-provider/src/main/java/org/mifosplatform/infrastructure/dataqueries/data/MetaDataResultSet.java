@@ -13,18 +13,20 @@ public class MetaDataResultSet {
     private Long order;
     private boolean systemDefined;
     private String displayCondition;
+    private String formulaExpression;
 
 
-    public static MetaDataResultSet createMetaDataResultSet(final Long id,final String columnName,final String labelName, final Long order,final boolean systemDefined, final String displayCondition){
-        return new MetaDataResultSet(id,columnName,labelName,order,systemDefined, displayCondition);
+    public static MetaDataResultSet createMetaDataResultSet(final Long id,final String columnName,final String labelName, final Long order,final boolean systemDefined, final String displayCondition, final String formulaExpression){
+        return new MetaDataResultSet(id,columnName,labelName,order,systemDefined, displayCondition, formulaExpression);
     }
-    private MetaDataResultSet(final Long id,final String columnName, final String labelName, final Long order,final boolean systemDefined, final String displayCondition) {
+    private MetaDataResultSet(final Long id,final String columnName, final String labelName, final Long order,final boolean systemDefined, final String displayCondition, final String formulaExpression) {
         this.id = id;
         this.columnName = columnName;
         this.labelName = labelName;
         this.order = order;
         this.systemDefined = systemDefined;
         this.displayCondition = displayCondition;
+        this.formulaExpression = formulaExpression;
     }
 
     public String getColumnName() {
@@ -46,4 +48,6 @@ public class MetaDataResultSet {
     public boolean isSystemDefined() {return this.systemDefined;}
 
     public String getDisplayCondition() { return displayCondition; }
+
+    public String getFormulaExpression() { return formulaExpression; }
 }

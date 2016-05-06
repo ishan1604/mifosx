@@ -42,6 +42,9 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
     @Column(name="display_condition")
     private String displayCondition;
 
+    @Column(name="formula_expression")
+    private String formulaExpression;
+
     public RegisteredTableMetaData() {
     }
 
@@ -50,16 +53,18 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
         final String labelName =  mapObject.get("labelName").toString();
         final Integer order    = (Integer) mapObject.get("order");
         final String displayCondition = java.util.Objects.toString(mapObject.get("displayCondition"),null);
-        return new RegisteredTableMetaData(registeredTable,tableName,fieldName,labelName,order, displayCondition);
+        final String formulaExpression = java.util.Objects.toString(mapObject.get("formulaExpression"),null);
+        return new RegisteredTableMetaData(registeredTable,tableName,fieldName,labelName,order, displayCondition, formulaExpression);
     }
 
-    private RegisteredTableMetaData(final RegisteredTable registeredTable,final String tableName, final String fieldName, final String labelName, final Integer order, final String displayCondition) {
+    private RegisteredTableMetaData(final RegisteredTable registeredTable,final String tableName, final String fieldName, final String labelName, final Integer order, final String displayCondition, final String formulaExpression) {
         this.registeredTable = registeredTable;
         this.tableName = tableName;
         this.fieldName = fieldName;
         this.labelName = labelName;
         this.order = order;
         this.displayCondition = displayCondition;
+        this.formulaExpression = formulaExpression;
     }
 
     public Map<String, Object> update(final JsonCommand command) {
@@ -93,6 +98,12 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
             }
         }
 
+        if(command.parameterExists("formulaExpression"))  {
+            if (command.isChangeInStringParameterNamed("formulaExpression", this.formulaExpression)) {
+                final String newValue = command.stringValueOfParameterNamed("formulaExpression");
+                actualChanges.put("formulaExpression", newValue);
+            }
+        }
         return actualChanges;
     }
 
@@ -129,4 +140,6 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
     public void updateIsSystemDefined(final boolean systemDefined) { this.systemDefined = systemDefined;}
 
     public String getDisplayCondition() { return this.displayCondition; }
+
+    public String getFormulaExpression() { return this.formulaExpression; }
 }
