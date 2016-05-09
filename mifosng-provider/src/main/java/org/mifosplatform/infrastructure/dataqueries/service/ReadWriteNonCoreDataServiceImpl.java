@@ -1021,7 +1021,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
      *            Name of data table
      * @param column
      *            JSON encoded array of column properties
-     * @see        https://mifosforge.jira.com/browse/MIFOSX-1145
+     * @see       https://mifosforge.jira.com/browse/MIFOSX-1145
      **/
     private void removeNullValuesFromStringColumn(final String datatableName, final JsonObject column,
             final Map<String, ResultsetColumnHeaderData> mapColumnNameDefinition) {
@@ -1690,13 +1690,20 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
             final String key = pColumnHeader.getColumnName();
-            if (affectedColumns.containsKey(key)) {
+            if(pColumnHeader.getColumnFormulaExpression() != null && !pColumnHeader.getColumnFormulaExpression().isEmpty()) {
+                // If this field has a column Expression the we parse that instead of the value
+                pValueWrite = this.getFormulaExpressionValue(affectedColumns, metaData, pColumnHeader.getColumnFormulaExpression());
+                columnName = "`" + key + "`";
+                insertColumns += ", " + columnName;
+                selectColumns += "," + pValueWrite + " as " + columnName;
+            }
+            else if (affectedColumns.containsKey(key)) {
                 pValue = affectedColumns.get(key).toString();
                 if (StringUtils.isEmpty(pValue)) {
                     pValueWrite = "null";
                 } else {
 
-                    this.evaluateConditionalFields(affectedColumns,metaData,key);
+                    this.evaluateConditionalFields(affectedColumns, metaData, key);
 
 
                     if ("bit".equalsIgnoreCase(pColumnHeader.getColumnType())) {
@@ -1721,6 +1728,30 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         return addSql;
     }
 
+    private String getFormulaExpressionValue(Map<String, Object> affectedColumns, final List<MetaDataResultSet> metaData, String expression)
+    {
+
+        try{
+            // Initiate expression parser:
+            ExpressionParser parser = new SpelExpressionParser();
+            EvaluationContext context = new StandardEvaluationContext();
+
+            for(final String col : affectedColumns.keySet())
+            {
+                context.setVariable(col, affectedColumns.get(col));
+            }
+
+            Expression exp = parser.parseExpression(expression);
+            Object result = exp.getValue(context);
+
+            return result.toString();
+
+        } catch (Exception e){
+
+            throw new PlatformDataIntegrityException("error.msg.invalid.expression", "Invalid expression result: " + expression, "name");
+        }
+    }
+
 
     private void evaluateConditionalFields(Map<String, Object> affectedColumns, final List<MetaDataResultSet> metaData, String key)
     {
@@ -1731,7 +1762,6 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 if(d.getColumnName() != null && d.getColumnName().equals(key)) {
                     if(d.getDisplayCondition() != null)
                     {
-
 
                         final boolean result = evaluateExpression(affectedColumns, d);
 
@@ -1935,6 +1965,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         final String underscore = "_";
         final String space = " ";
         String pValue = null;
+        Object pObjectValue;
         String queryParamColumnUnderscored;
         String columnHeaderUnderscored;
         boolean notFound;
@@ -1956,19 +1987,23 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                         columnHeaderUnderscored = this.genericDataService.replace(columnHeader.getColumnName(), space, underscore);
                         if (queryParamColumnUnderscored.equalsIgnoreCase(columnHeaderUnderscored)) {
 
+                            pObjectValue = queryParams.get(key);
 
                             if(columnHeader.isIntegerDisplayType()) {
 
                                 Double dValue = new Double(queryParams.get(key).toString());
                                 pValue = String.valueOf(dValue.intValue());
+                                pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
+                                affectedColumns.put(columnHeader.getColumnName(), pObjectValue);
                             }
                             else
                             {
                                 pValue = queryParams.get(key).toString();
+                                pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
+                                affectedColumns.put(columnHeader.getColumnName(), pValue);
+
                             }
 
-                            pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
-                            affectedColumns.put(columnHeader.getColumnName(), pValue);
                             notFound = false;
                         }
                     }
