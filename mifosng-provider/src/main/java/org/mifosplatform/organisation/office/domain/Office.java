@@ -164,6 +164,11 @@ public class Office extends AbstractPersistable<Long> {
 
         this.parent = newParent;
         generateHierarchy();
+        if (this.children.size() > 0){
+            for (Office child : children){
+                child.update(this);
+            }
+        }
     }
 
     public boolean identifiedBy(final Long id) {
