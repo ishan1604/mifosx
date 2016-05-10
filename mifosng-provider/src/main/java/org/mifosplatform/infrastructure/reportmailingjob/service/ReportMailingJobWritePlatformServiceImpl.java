@@ -179,8 +179,14 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
             if (changes.containsKey(ReportMailingJobConstants.START_DATE_TIME_PARAM_NAME)) {
                 final DateTime startDateTime = reportMailingJob.getStartDateTime();
                 
-                // get the next recurring DateTime
-                final DateTime nextRecurringDateTime = this.createNextRecurringDateTime(recurrence, startDateTime);
+                // initially set the next recurring date time to the new start date time
+                DateTime nextRecurringDateTime = startDateTime;
+                
+                // ensure that the recurrence pattern string is not empty
+                if (StringUtils.isNotBlank(recurrence)) {
+                    // get the next recurring DateTime
+                    nextRecurringDateTime = this.createNextRecurringDateTime(recurrence, startDateTime);
+                }
                 
                 // update the next run time property
                 reportMailingJob.updateNextRunDateTime(nextRecurringDateTime);
@@ -336,7 +342,8 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
     private DateTime createNextRecurringDateTime(final String recurrencePattern, final DateTime startDateTime) {
         DateTime nextRecurringDateTime = null;
         
-        if (recurrencePattern != null && startDateTime != null) {
+        // the recurrence pattern/rule cannot be empty
+        if (StringUtils.isNotBlank(recurrencePattern) && startDateTime != null) {
             final LocalDate nextDayLocalDate = startDateTime.plus(1).toLocalDate();
             final LocalDate nextRecurringLocalDate = CalendarUtils.getNextRecurringDate(recurrencePattern, startDateTime.toLocalDate(), 
                     nextDayLocalDate);
