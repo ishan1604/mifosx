@@ -6,6 +6,7 @@
 package org.mifosplatform.infrastructure.dataqueries.data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Immutable data object for generic resultset data.
@@ -28,6 +29,7 @@ public final class GenericResultsetData {
         return this.data;
     }
 
+
     public String getColTypeOfColumnNamed(final String columnName) {
 
         String colType = null;
@@ -39,6 +41,22 @@ public final class GenericResultsetData {
         }
 
         return colType;
+    }
+
+    public String getValueForColumnNamed(final String columnName) {
+
+        String value = null;
+        for (final ResultsetRowData row : this.data) {
+
+            final Map<String, String> rowWithColumnNames = row.getRowWithColumnName();
+
+            for(Map.Entry<String, String> entry  : rowWithColumnNames.entrySet() ){
+
+                if(entry.getKey().equals(columnName)) value = entry.getValue();
+            }
+        }
+
+      return value;
     }
 
     public boolean hasNoEntries() {
