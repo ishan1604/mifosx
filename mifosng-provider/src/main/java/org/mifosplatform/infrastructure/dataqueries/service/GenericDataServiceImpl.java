@@ -18,6 +18,7 @@ import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.infrastructure.dataqueries.data.*;
 import org.mifosplatform.infrastructure.dataqueries.exception.DatatableNotFoundException;
+import org.pentaho.reporting.libraries.docbundle.ODFMetaAttributeNames;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -192,6 +193,7 @@ public class GenericDataServiceImpl implements GenericDataService {
 
         columnDefinitions.beforeFirst();
         while (columnDefinitions.next()) {
+
             final String columnName = columnDefinitions.getString("COLUMN_NAME");
             final String isNullable = columnDefinitions.getString("IS_NULLABLE");
             final String isPrimaryKey = columnDefinitions.getString("COLUMN_KEY");
@@ -240,8 +242,18 @@ public class GenericDataServiceImpl implements GenericDataService {
 
             }
 
+            String displayExpression = null;
+            String formulaExpression  = null;
+
+            final List<MetaDataResultSet> columnData = this.retrieveColumnMetaData(datatable, columnName);
+            if(columnData.size() > 0)
+            {
+                displayExpression = columnData.get(0).getDisplayCondition();
+                formulaExpression = columnData.get(0).getFormulaExpression();
+            }
+
             final ResultsetColumnHeaderData rsch = ResultsetColumnHeaderData.detailed(columnName, columnType, columnLength, columnNullable,
-                    columnIsPrimaryKey, columnValues, codeName );
+                    columnIsPrimaryKey, columnValues, codeName, displayExpression, formulaExpression );
 
             columnHeaders.add(rsch);
         }
@@ -320,6 +332,11 @@ public class GenericDataServiceImpl implements GenericDataService {
         return this.jdbcTemplate.query(sql, this.metaDataResultSetMapper, new Object[] {tableToSearchFor});
     }
 
+    public List<MetaDataResultSet> retrieveColumnMetaData(String xRegisteredTableName, String columnName) {
+        final String sql = "select " + this.metaDataResultSetMapper.schema() + "where xr.table_name = ? and xr.field_name = ? order by xr.ordering";
+
+        return this.jdbcTemplate.query(sql, this.metaDataResultSetMapper, new Object[] {xRegisteredTableName, columnName});
+    }
 
     private static final class MetaDataResultSetMapper implements RowMapper<MetaDataResultSet> {
         final String schema;

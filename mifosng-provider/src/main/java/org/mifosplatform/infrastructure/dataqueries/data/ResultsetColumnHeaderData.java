@@ -49,9 +49,9 @@ public final class ResultsetColumnHeaderData {
 
     public static ResultsetColumnHeaderData detailed(final String columnName, final String columnType, final Long columnLength,
             final boolean columnNullable, final boolean columnIsPrimaryKey, final List<ResultsetColumnValueData> columnValues,
-            final String columnCode ) {
+            final String columnCode, final String columnDisplayExpression, final String columnFormulaExpression  ) {
         return new ResultsetColumnHeaderData(columnName, columnType, columnLength, columnNullable, columnIsPrimaryKey, columnValues,
-                columnCode,null,null, null, null);
+                columnCode,null,null, columnDisplayExpression, columnFormulaExpression);
     }
 
     private ResultsetColumnHeaderData(final String columnName, final String columnType, final Long columnLength,
