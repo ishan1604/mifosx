@@ -7,6 +7,7 @@ package org.mifosplatform.accounting.producttoaccountmapping.domain;
 
 import java.util.List;
 
+import org.mifosplatform.accounting.glaccount.domain.GLAccount;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -39,6 +40,9 @@ public interface ProductToGLAccountMappingRepository extends JpaRepository<Produ
     @Query("from ProductToGLAccountMapping mapping where mapping.productId =:productId and mapping.productType =:productType and mapping.financialAccountType=5 and mapping.charge is not NULL")
     List<ProductToGLAccountMapping> findAllPenaltyToIncomeAccountMappings(@Param("productId") Long productId,
             @Param("productType") int productType);
+
+    @Query("from ProductToGLAccountMapping mapping where mapping.glAccount =:glAccount")
+    List<ProductToGLAccountMapping> findAllProductsToGLAccountMappings(@Param("glAccount") GLAccount glAccount);
 
     List<ProductToGLAccountMapping> findByProductIdAndProductType(Long productId, int productType);
 }
