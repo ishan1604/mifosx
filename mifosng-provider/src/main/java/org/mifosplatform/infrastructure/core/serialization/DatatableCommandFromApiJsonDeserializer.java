@@ -14,6 +14,7 @@ import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.InvalidJsonException;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.mifosplatform.infrastructure.dataqueries.data.MetaDataResultSet;
 import org.mifosplatform.infrastructure.dataqueries.data.ResultsetColumnHeaderData;
 import org.mifosplatform.portfolio.client.api.ClientApiConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -279,6 +280,12 @@ public class DatatableCommandFromApiJsonDeserializer {
                 final Boolean after = this.fromApiJsonHelper.extractBooleanNamed("after", column);
                 baseDataValidator.reset().parameter("after").value(after).ignoreIfNull().notBlank().isOneOfTheseValues(true, false);
 
+                final String displayCondition = this.fromApiJsonHelper.extractStringNamed("displayCondition", column);
+                baseDataValidator.reset().parameter("displayCondition").value(displayCondition).ignoreIfNull().notBlank();
+
+                final String formulaExpression = this.fromApiJsonHelper.extractStringNamed("formulaExpression", column);
+                baseDataValidator.reset().parameter("formulaExpression").value(formulaExpression).ignoreIfNull().notBlank();
+
                 // Add to list of affected columns so we can ignore them when fetching the original data:
                 affectedColumns.add(name);
 
@@ -343,21 +350,46 @@ public class DatatableCommandFromApiJsonDeserializer {
             }
         }
 
+
+
+        // IF this column is affected either ignore (for deleted), or grab the correct values (for new or edit):
+        if (changeColumns != null) {
+            for (JsonElement changedColumn : changeColumns) {
+                final String displayCondition = this.fromApiJsonHelper.extractStringNamed("displayCondition", changedColumn);
+                if (displayCondition != null) {
+                    baseDataValidator.reset().parameter("displayCondition").value(displayCondition).validateBooleanExpression(this.expressionContext);
+                }
+            }
+        }
+
+        if (addColumns != null) {
+            for (JsonElement addedColumn : addColumns) {
+                final String displayCondition = this.fromApiJsonHelper.extractStringNamed("displayCondition", addedColumn);
+                if (displayCondition != null) {
+                    baseDataValidator.reset().parameter("displayCondition").value(displayCondition).validateBooleanExpression(this.expressionContext);
+                }
+            }
+        }
+
         // Loop through the columns again doing a find and replace stuff:
         for(ResultsetColumnHeaderData column : allColumns.values())
         {
-            // Find the displayCondition:
-            final String displayCondition = column.getColumnDisplayExpression();
-            if (displayCondition != null && !StringUtils.isWhitespace(displayCondition) && StringUtils.isNotBlank(displayCondition)) {
-                // Try the condition:
-                baseDataValidator.reset().parameter("displayCondition").value(displayCondition).validateBooleanExpression(this.expressionContext);
-            }
 
-            // Find the formulaExpressions:
-            final String formulaExpression =  column.getColumnFormulaExpression();
-            if (formulaExpression != null && !StringUtils.isWhitespace(formulaExpression) && StringUtils.isNotBlank(formulaExpression)) {
-                // Try the condition:
-                baseDataValidator.reset().parameter("formulaExpression").value(formulaExpression).validateObjectExpression(this.expressionContext);
+            if(!affectedColumns.contains(column.getColumnName()))
+            {
+                // Find the displayCondition:
+                final String displayCondition = column.getColumnDisplayExpression();
+                if (displayCondition != null && !StringUtils.isWhitespace(displayCondition) && StringUtils.isNotBlank(displayCondition)) {
+                    // Try the condition:
+                    baseDataValidator.reset().parameter("displayCondition").value(displayCondition).validateBooleanExpression(this.expressionContext);
+                }
+
+                // Find the formulaExpressions:
+                final String formulaExpression = column.getColumnFormulaExpression();
+                if (formulaExpression != null && !StringUtils.isWhitespace(formulaExpression) && StringUtils.isNotBlank(formulaExpression)) {
+                    // Try the condition:
+                    baseDataValidator.reset().parameter("formulaExpression").value(formulaExpression).validateObjectExpression(this.expressionContext);
+                }
             }
         }
 
