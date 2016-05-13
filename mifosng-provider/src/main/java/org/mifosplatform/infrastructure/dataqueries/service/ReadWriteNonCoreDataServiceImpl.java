@@ -1639,13 +1639,15 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         while (rs.next()) {
             final List<String> columnValues = new ArrayList<>();
+            final Map<String,String> columnNameAndValue = new HashMap<>();;
             for (int i = 0; i < rsmd.getColumnCount(); i++) {
                 final String columnName = rsmd.getColumnName(i + 1);
                 final String columnValue = rs.getString(columnName);
+                columnNameAndValue.put(columnName,columnValue);
                 columnValues.add(columnValue);
             }
 
-            final ResultsetRowData resultsetDataRow = ResultsetRowData.create(columnValues);
+            final ResultsetRowData resultsetDataRow = ResultsetRowData.createWithColumnName(columnValues,columnNameAndValue);
             resultsetDataRows.add(resultsetDataRow);
         }
 
@@ -1780,6 +1782,30 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
     }
 
+    private boolean evaluateConditionalFieldsForUpdate(Map<String, Object> affectedColumns, final List<MetaDataResultSet> metaData, String key)
+    {
+
+
+        // Get MetaData:
+        for(MetaDataResultSet d : metaData){
+            if(d.getColumnName() != null && d.getColumnName().equals(key)) {
+                if(d.getDisplayCondition() != null)
+                {
+
+
+                    final boolean result = evaluateExpression(affectedColumns, d);
+
+
+                    logger.info("Found expression: " + d.getDisplayCondition() + "Result: " + result );
+
+                    return result;
+                }
+            }
+        }
+
+        return true;
+    }
+
     private boolean evaluateExpression(Map<String, Object> affectedColumns, MetaDataResultSet d ){
         try{
 
@@ -1880,7 +1906,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
             final String key = pColumnHeader.getColumnName();
 
-            this.evaluateConditionalFields(changedColumns,metaData,key);
+            this.evaluateConditionalFieldsForUpdate(changedColumns, metaData, key);
 
             if (changedColumns.containsKey(key)) {
                 if (firstColumn) {
@@ -1891,7 +1917,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 }
 
                 pValue = (String) changedColumns.get(key);
-                if (StringUtils.isEmpty(pValue)) {
+
+                if(!this.evaluateConditionalFieldsForUpdate(changedColumns, metaData, key)){
+
+                    pValueWrite = "null";
+
+                }
+                else if (StringUtils.isEmpty(pValue)) {
                     pValueWrite = "null";
                 } else {
 
@@ -1918,6 +1950,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         final Map<String, Object> affectedColumns = getAffectedColumns(grs.getColumnHeaders(), queryParams, fkName);
         final Map<String, Object> affectedAndChangedColumns = new HashMap<>();
+        //final Map<String, String> originalColumnValue = grs.getData().get
 
         for (final String key : affectedColumns.keySet()) {
             final String columnValue = affectedColumns.get(key).toString();
@@ -1926,8 +1959,10 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 affectedAndChangedColumns.put(key, columnValue);
             }else{
 
+
                 // put in the current value stored in the db
               //  affectedAndChangedColumns.put(key, grs.getColTypeOfColumnNamed());
+                affectedAndChangedColumns.put(key,grs.getValueForColumnNamed(key));
             }
         }
 
