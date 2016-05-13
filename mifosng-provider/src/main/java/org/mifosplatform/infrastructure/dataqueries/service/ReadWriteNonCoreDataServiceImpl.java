@@ -1224,11 +1224,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                             final JsonObject columnName = column.getAsJsonObject();
                             final String name = (columnName.has("name")) ? columnName.get("name").getAsString() : null;
                             final String labelName = (columnName.has("labelName")) ? columnName.get("labelName").getAsString() : null;
+                            final String displayCondition = (columnName.has("displayCondition")) ? columnName.get("displayCondition").getAsString() : null;
                             final Integer order =(columnName.has("order")) ? columnName.get("order").getAsInt() : 0;
                             final  RegisteredTableMetaData registeredTableMetaData = this.registeredTableMetaDataRepository.findOneByTableNameAndFieldName(datatableName,name);
                             if(registeredTableMetaData != null){
                                 registeredTableMetaData.updateLabelName(labelName);
                                 registeredTableMetaData.updateOrder(order);
+                                registeredTableMetaData.updateDisplayCondition(displayCondition);
                                 this.registeredTableMetaDataRepository.saveAndFlush(registeredTableMetaData);
                             }else{
                                 //if column does not exist save the column

@@ -130,6 +130,9 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
     public void updateOrder(final Integer order){
         this.order = order;
     }
+    public void updateDisplayCondition(final String displayCondition){
+        this.displayCondition = displayCondition;
+    }
 
     public void updateLabelName(final String labelName){
           this.labelName = labelName;
