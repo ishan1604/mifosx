@@ -1989,7 +1989,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
                             pObjectValue = queryParams.get(key);
 
-                            if(columnHeader.isIntegerDisplayType()) {
+                            if(columnHeader.isIntegerDisplayType() || columnHeader.isDecimalDisplayType()) {
 
                                 Double dValue = new Double(queryParams.get(key).toString());
                                 pValue = String.valueOf(dValue.intValue());
