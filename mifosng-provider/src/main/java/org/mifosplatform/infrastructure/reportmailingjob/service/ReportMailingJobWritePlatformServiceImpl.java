@@ -131,6 +131,12 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
             
             final Map<String, Object> changes = reportMailingJob.update(jsonCommand);
             
+            // get the recurrence rule string
+            final String recurrence = reportMailingJob.getRecurrence();
+            
+            // get the next run DateTime from the ReportMailingJob entity
+            DateTime nextRunDateTime = reportMailingJob.getNextRunDateTime();
+            
             // check if the stretchy report id was updated
             if (changes.containsKey(ReportMailingJobConstants.STRETCHY_REPORT_ID_PARAM_NAME)) {
                 final Long stretchyReportId = (Long) changes.get(ReportMailingJobConstants.STRETCHY_REPORT_ID_PARAM_NAME);
@@ -142,37 +148,48 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
             
             // check if the recurrence was updated
             if (changes.containsKey(ReportMailingJobConstants.RECURRENCE_PARAM_NAME)) {
-                // get the next run DateTime from the ReportMailingJob entity
-                final DateTime nextRunDateTime = reportMailingJob.getNextRunDateTime();
                 
-                // get the recurrence rule string
-                final String recurrence = reportMailingJob.getRecurrence();
-                
-                // the next run DateTime only needs to be updated if empty
-                if (nextRunDateTime == null && (recurrence != null)) {
+                // go ahead if the recurrence is not null
+                if (StringUtils.isNotBlank(recurrence)) {
+                    // set the start DateTime to the current tenant date time
+                    DateTime startDateTime = DateUtils.getLocalDateTimeOfTenant().toDateTime();
+                    
                     // check if the start DateTime was updated
                     if (changes.containsKey(ReportMailingJobConstants.START_DATE_TIME_PARAM_NAME)) {
-                        // get the new start DateTime
-                        final DateTime startDateTime = reportMailingJob.getStartDateTime();
-                        
-                        // set the next run time to the new start DateTime
-                        reportMailingJob.updateNextRunDateTime(startDateTime);
+                        // get the updated start DateTime
+                        startDateTime = reportMailingJob.getStartDateTime();
                     }
                     
-                    else {
-                        // get the current tenant DateTime
-                        final DateTime localDateTimeOftenant = DateUtils.getLocalDateTimeOfTenant().toDateTime();
-                        
-                        // set the next run DateTime to the current tenant DateTime
-                        reportMailingJob.updateNextRunDateTime(localDateTimeOftenant);
-                    }
+                    startDateTime = reportMailingJob.getStartDateTime();
+                    
+                    // get the next recurring DateTime
+                    final DateTime nextRecurringDateTime = this.createNextRecurringDateTime(recurrence, startDateTime);
+                    
+                    // update the next run time property
+                    reportMailingJob.updateNextRunDateTime(nextRecurringDateTime);
                 }
                 
                 // check if the next run DateTime is not empty and the recurrence is empty
-                else if (recurrence == null && (nextRunDateTime != null)) {
+                else if (StringUtils.isBlank(recurrence) && (nextRunDateTime != null)) {
                     // the next run DateTime should be set to null
                     reportMailingJob.updateNextRunDateTime(null);
                 }
+            }
+            
+            if (changes.containsKey(ReportMailingJobConstants.START_DATE_TIME_PARAM_NAME)) {
+                final DateTime startDateTime = reportMailingJob.getStartDateTime();
+                
+                // initially set the next recurring date time to the new start date time
+                DateTime nextRecurringDateTime = startDateTime;
+                
+                // ensure that the recurrence pattern string is not empty
+                if (StringUtils.isNotBlank(recurrence)) {
+                    // get the next recurring DateTime
+                    nextRecurringDateTime = this.createNextRecurringDateTime(recurrence, startDateTime);
+                }
+                
+                // update the next run time property
+                reportMailingJob.updateNextRunDateTime(nextRecurringDateTime);
             }
             
             if (!changes.isEmpty()) {
@@ -250,8 +267,7 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
                                         value = ReportMailingJobStretchyReportDateHelper.getDateAsString(enumOption);
                                     }
                                 }
-                                System.out.println("key: " + key);
-                                System.out.println("value: " + value);
+                                
                                 reportParams.put(key, value);
                             }
                         }
@@ -281,7 +297,9 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
         final DateTime nextRunDateTime = reportMailingJob.getNextRunDateTime();
         ReportMailingJobPreviousRunStatus reportMailingJobPreviousRunStatus = ReportMailingJobPreviousRunStatus.SUCCESS;
         
-        if (errorLog.length() > 0) {
+        reportMailingJob.updatePreviousRunErrorLog(null);
+        
+        if (errorLog != null && errorLog.length() > 0) {
             reportMailingJobPreviousRunStatus = ReportMailingJobPreviousRunStatus.ERROR;
             reportMailingJob.updatePreviousRunErrorLog(errorLog.toString());
         }
@@ -289,7 +307,6 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
         reportMailingJob.increaseNumberOfRunsByOne();
         reportMailingJob.updatePreviousRunStatus(reportMailingJobPreviousRunStatus.getValue());
         reportMailingJob.updatePreviousRunDateTime(reportMailingJob.getNextRunDateTime());
-        reportMailingJob.updatePreviousRunErrorLog(null);
         
         // check if the job has a recurrence pattern, if not deactivate the job. The job will only run once
         if (StringUtils.isEmpty(recurrence)) {
@@ -301,17 +318,10 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
         }
         
         else if (nextRunDateTime != null) {
-            final LocalDate nextDayLocalDate = nextRunDateTime.plus(1).toLocalDate();
-            final LocalDate nextRunLocalDate = CalendarUtils.getNextRecurringDate(recurrence, nextRunDateTime.toLocalDate(), 
-                    nextDayLocalDate);
-            final DateTime startDateTime = reportMailingJob.getStartDateTime();
-            final String nextRunDateTimeString = nextRunLocalDate + " " + startDateTime.getHourOfDay() + ":" + startDateTime.getMinuteOfHour() 
-                    + ":" + startDateTime.getSecondOfMinute();
-            final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(DATETIME_FORMAT);
-            final DateTime newNextRunDateTime = DateTime.parse(nextRunDateTimeString, dateTimeFormatter);
+            final DateTime nextRecurringDateTime = this.createNextRecurringDateTime(recurrence, nextRunDateTime);
             
             // finally update the next run date time property
-            reportMailingJob.updateNextRunDateTime(newNextRunDateTime);
+            reportMailingJob.updateNextRunDateTime(nextRecurringDateTime);
         }
         
         // save the ReportMailingJob entity
@@ -320,6 +330,31 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
         // create a new report mailing job run history entity
         this.createReportMailingJobRunHistroryAfterJobExecution(reportMailingJob, errorLog, jobStartDateTime, 
                 reportMailingJobPreviousRunStatus.getValue());
+    }
+    
+    /**
+     * create the next recurring DateTime from recurrence pattern, start DateTime and current DateTime
+     * 
+     * @param recurrencePattern
+     * @param startDateTime
+     * @return DateTime object
+     */
+    private DateTime createNextRecurringDateTime(final String recurrencePattern, final DateTime startDateTime) {
+        DateTime nextRecurringDateTime = null;
+        
+        // the recurrence pattern/rule cannot be empty
+        if (StringUtils.isNotBlank(recurrencePattern) && startDateTime != null) {
+            final LocalDate nextDayLocalDate = startDateTime.plus(1).toLocalDate();
+            final LocalDate nextRecurringLocalDate = CalendarUtils.getNextRecurringDate(recurrencePattern, startDateTime.toLocalDate(), 
+                    nextDayLocalDate);
+            final String nextDateTimeString = nextRecurringLocalDate + " " + startDateTime.getHourOfDay() + ":" + startDateTime.getMinuteOfHour() 
+                    + ":" + startDateTime.getSecondOfMinute();
+            final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(DATETIME_FORMAT);
+            
+            nextRecurringDateTime = DateTime.parse(nextDateTimeString, dateTimeFormatter);
+        }
+        
+        return nextRecurringDateTime;
     }
     
     /** 
@@ -334,8 +369,9 @@ public class ReportMailingJobWritePlatformServiceImpl implements ReportMailingJo
     private void createReportMailingJobRunHistroryAfterJobExecution(final ReportMailingJob reportMailingJob, final StringBuilder errorLog, 
             final DateTime jobStartDateTime, final String jobRunStatus) {
         final DateTime jobEndDateTime = DateUtils.getLocalDateTimeOfTenant().toDateTime();
+        final String errorLogToString = (errorLog != null) ? errorLog.toString() : null;
         final ReportMailingJobRunHistory reportMailingJobRunHistory = ReportMailingJobRunHistory.instance(reportMailingJob, jobStartDateTime, 
-                jobEndDateTime, jobRunStatus, null, errorLog.toString());
+                jobEndDateTime, jobRunStatus, null, errorLogToString);
         
         this.reportMailingJobRunHistoryRepository.save(reportMailingJobRunHistory);
     }
