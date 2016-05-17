@@ -1764,8 +1764,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             // Get MetaData:
             for(MetaDataResultSet d : metaData){
                 if(d.getColumnName() != null && d.getColumnName().equals(key)) {
-                    if(d.getDisplayCondition() != null)
-                    {
+                    if(d.getDisplayCondition() != null && !d.getDisplayCondition().isEmpty())
+                    {g
 
                         final boolean result = evaluateExpression(affectedColumns, d);
 
@@ -2028,7 +2028,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
                             if(columnHeader.isIntegerDisplayType() || columnHeader.isDecimalDisplayType()) {
 
-                                Double dValue = new Double(queryParams.get(key).toString());
+                                Double dValue = new Double("0");
+                                if(!queryParams.get(key).toString().isEmpty())
+                                {
+                                    dValue = new Double(queryParams.get(key).toString());
+                                }
+
+
                                 pValue = String.valueOf(dValue.intValue());
                                 pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
                                 affectedColumns.put(columnHeader.getColumnName(), pObjectValue);
@@ -2248,8 +2254,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         final String code = (column.has("code")) ? column.get("code").getAsString() : null;
         final Integer order =(column.has("order")) ? column.get("order").getAsInt() : 0;
         final String type = (column.has("type")) ? column.get("type").getAsString().toLowerCase() : null;
-        String displayCondition = (column.has("displayCondition")) ? column.get("displayCondition").getAsString() : null;
-        String formulaExpression = (column.has("formulaExpression")) ? column.get("formulaExpression").getAsString() : null;
+        String displayCondition = (column.has("displayCondition") && !column.get("displayCondition").getAsString().isEmpty()) ? column.get("displayCondition").getAsString() : null;
+        String formulaExpression = (column.has("formulaExpression") && !column.get("formulaExpression").getAsString().isEmpty()) ? column.get("formulaExpression").getAsString() : null;
 
 
         if (StringUtils.isNotBlank(code)) {
