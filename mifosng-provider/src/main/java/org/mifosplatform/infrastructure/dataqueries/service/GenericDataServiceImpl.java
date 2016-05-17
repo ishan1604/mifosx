@@ -147,6 +147,9 @@ public class GenericDataServiceImpl implements GenericDataService {
                 currVal = row.get(j);
                 if (currVal != null && currColType != null) {
                     if (currColType.equals("DECIMAL") || currColType.equals("INTEGER")) {
+                        // the line below will ensure that all trailing zeros after the decimal number (2000.67000) are removed (2000.67)
+                        currVal = currVal.indexOf(".") < 0 ? currVal : currVal.replaceAll("0*$", "").replaceAll("\\.$", "");
+                        
                         writer.append(currVal);
                     } else {
                         if (currColType.equals("DATE")) {
