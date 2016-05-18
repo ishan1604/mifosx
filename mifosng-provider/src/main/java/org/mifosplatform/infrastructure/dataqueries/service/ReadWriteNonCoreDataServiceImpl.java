@@ -1765,7 +1765,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             for(MetaDataResultSet d : metaData){
                 if(d.getColumnName() != null && d.getColumnName().equals(key)) {
                     if(d.getDisplayCondition() != null && !d.getDisplayCondition().isEmpty())
-                    {g
+                    {
 
                         final boolean result = evaluateExpression(affectedColumns, d);
 
@@ -1992,9 +1992,22 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     public Map<String, Object> getAffectedColumns(final List<ResultsetColumnHeaderData> columnHeaders,
             final Map<String, Object> queryParams, final String keyFieldName) {
 
-        final String dateFormat = queryParams.get("dateFormat").toString();
+        String dateFormat = "";
+
+        if(queryParams.get("dateFormat") != null && !queryParams.get("dateFormat").toString().isEmpty())
+        {
+            dateFormat = queryParams.get("dateFormat").toString();
+        }
+
         Locale clientApplicationLocale = null;
-        final String localeQueryParam = queryParams.get("locale").toString();
+
+        String localeQueryParam = "";
+
+        if(queryParams.get("dateFormat") != null && !queryParams.get("localeQueryParam").toString().isEmpty())
+        {
+            localeQueryParam = queryParams.get("localeQueryParam").toString();
+        }
+
         if (!(StringUtils.isBlank(localeQueryParam))) {
             clientApplicationLocale = new Locale(queryParams.get("locale").toString());
         }
@@ -2041,7 +2054,10 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                             }
                             else
                             {
-                                pValue = queryParams.get(key).toString();
+                                pValue = "";
+                                if(!queryParams.get(key).toString().isEmpty()) {
+                                    pValue = queryParams.get(key).toString();
+                                }
                                 pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
                                 affectedColumns.put(columnHeader.getColumnName(), pValue);
 
