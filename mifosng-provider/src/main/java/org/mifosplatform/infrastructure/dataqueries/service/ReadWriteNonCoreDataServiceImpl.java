@@ -2003,7 +2003,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         String localeQueryParam = "";
 
-        if(queryParams.get("dateFormat") != null && !queryParams.get("localeQueryParam").toString().isEmpty())
+        if(queryParams.get("localeQueryParam") != null && !queryParams.get("localeQueryParam").toString().isEmpty())
         {
             localeQueryParam = queryParams.get("localeQueryParam").toString();
         }
