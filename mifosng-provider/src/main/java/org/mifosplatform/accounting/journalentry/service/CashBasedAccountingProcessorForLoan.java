@@ -5,11 +5,6 @@
  */
 package org.mifosplatform.accounting.journalentry.service;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import org.mifosplatform.accounting.closure.domain.GLClosure;
 import org.mifosplatform.accounting.common.AccountingConstants.CASH_ACCOUNTS_FOR_LOAN;
 import org.mifosplatform.accounting.common.AccountingConstants.FINANCIAL_ACTIVITY;
@@ -19,6 +14,11 @@ import org.mifosplatform.accounting.journalentry.data.LoanTransactionDTO;
 import org.mifosplatform.organisation.office.domain.Office;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 @Component
 public class CashBasedAccountingProcessorForLoan implements AccountingProcessorForLoan {
@@ -288,15 +288,18 @@ public class CashBasedAccountingProcessorForLoan implements AccountingProcessorF
         final BigDecimal principalAmount = loanTransactionDTO.getPrincipal();
         final boolean isReversal = loanTransactionDTO.isReversed();
         // final Long paymentTypeId = loanTransactionDTO.getPaymentTypeId();
-
+        /**
+         * By Andrew change CASH_ACCOUNTS_FOR_LOAN.TRANSFERS_SUSPENSE.getValue()
+         * to use same as account Transfer GL Account FINANCIAL_ACTIVITY.ASSET_TRANSFER.getValue(),
+         */
         if (loanTransactionDTO.getTransactionType().isInitiateTransfer()) {
             this.helper.createCashBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
-                    CASH_ACCOUNTS_FOR_LOAN.TRANSFERS_SUSPENSE.getValue(), CASH_ACCOUNTS_FOR_LOAN.LOAN_PORTFOLIO.getValue(), loanProductId,
+                    FINANCIAL_ACTIVITY.ASSET_TRANSFER.getValue(), CASH_ACCOUNTS_FOR_LOAN.LOAN_PORTFOLIO.getValue(), loanProductId,
                     null, loanId, transactionId, transactionDate, principalAmount, isReversal);
         } else if (loanTransactionDTO.getTransactionType().isApproveTransfer()
                 || loanTransactionDTO.getTransactionType().isWithdrawTransfer()) {
             this.helper.createCashBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
-                    CASH_ACCOUNTS_FOR_LOAN.LOAN_PORTFOLIO.getValue(), CASH_ACCOUNTS_FOR_LOAN.TRANSFERS_SUSPENSE.getValue(), loanProductId,
+                    CASH_ACCOUNTS_FOR_LOAN.LOAN_PORTFOLIO.getValue(),FINANCIAL_ACTIVITY.ASSET_TRANSFER.getValue(), loanProductId,
                     null, loanId, transactionId, transactionDate, principalAmount, isReversal);
         }
     }
