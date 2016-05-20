@@ -25,6 +25,8 @@ import org.mifosplatform.accounting.glaccount.exception.InvalidParentGLAccountHe
 import org.mifosplatform.accounting.glaccount.serialization.GLAccountCommandFromApiJsonDeserializer;
 import org.mifosplatform.accounting.journalentry.domain.JournalEntry;
 import org.mifosplatform.accounting.journalentry.domain.JournalEntryRepository;
+import org.mifosplatform.accounting.producttoaccountmapping.domain.ProductToGLAccountMapping;
+import org.mifosplatform.accounting.producttoaccountmapping.domain.ProductToGLAccountMappingRepository;
 import org.mifosplatform.infrastructure.codes.domain.CodeValue;
 import org.mifosplatform.infrastructure.codes.domain.CodeValueRepositoryWrapper;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
@@ -47,15 +49,17 @@ public class GLAccountWritePlatformServiceJpaRepositoryImpl implements GLAccount
     private final JournalEntryRepository glJournalEntryRepository;
     private final GLAccountCommandFromApiJsonDeserializer fromApiJsonDeserializer;
     private final CodeValueRepositoryWrapper codeValueRepositoryWrapper;
+    private final ProductToGLAccountMappingRepository productToGLAccountMappingRepository;
 
     @Autowired
     public GLAccountWritePlatformServiceJpaRepositoryImpl(final GLAccountRepository glAccountRepository,
             final JournalEntryRepository glJournalEntryRepository, final GLAccountCommandFromApiJsonDeserializer fromApiJsonDeserializer,
-            final CodeValueRepositoryWrapper codeValueRepositoryWrapper) {
+            final CodeValueRepositoryWrapper codeValueRepositoryWrapper, final ProductToGLAccountMappingRepository productToGLAccountMappingRepository) {
         this.glAccountRepository = glAccountRepository;
         this.glJournalEntryRepository = glJournalEntryRepository;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.codeValueRepositoryWrapper = codeValueRepositoryWrapper;
+        this.productToGLAccountMappingRepository = productToGLAccountMappingRepository;
     }
 
     @Transactional
@@ -167,6 +171,11 @@ public class GLAccountWritePlatformServiceJpaRepositoryImpl implements GLAccount
         final List<JournalEntry> journalEntriesForAccount = this.glJournalEntryRepository.findFirstJournalEntryForAccount(glAccountId);
         if (journalEntriesForAccount.size() > 0) { throw new GLAccountInvalidDeleteException(
                 GL_ACCOUNT_INVALID_DELETE_REASON.TRANSANCTIONS_LOGGED, glAccountId); }
+
+        // is this account used for any nonclosed products
+        final List<ProductToGLAccountMapping> productToAccountMappings = this.productToGLAccountMappingRepository.findAllProductsToGLAccountMappings(glAccount);
+        if(productToAccountMappings.size() > 0){throw new GLAccountInvalidDeleteException(
+                GL_ACCOUNT_INVALID_DELETE_REASON.HAS_PRODUCTS, glAccountId);}
         this.glAccountRepository.delete(glAccount);
 
         return new CommandProcessingResultBuilder().withEntityId(glAccountId).build();
