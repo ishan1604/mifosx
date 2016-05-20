@@ -5,10 +5,6 @@
  */
 package org.mifosplatform.accounting.journalentry.service;
 
-import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
-
 import org.mifosplatform.accounting.closure.domain.GLClosure;
 import org.mifosplatform.accounting.common.AccountingConstants.CASH_ACCOUNTS_FOR_SAVINGS;
 import org.mifosplatform.accounting.common.AccountingConstants.FINANCIAL_ACTIVITY;
@@ -18,6 +14,10 @@ import org.mifosplatform.accounting.journalentry.data.SavingsTransactionDTO;
 import org.mifosplatform.organisation.office.domain.Office;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.List;
 
 @Component
 public class CashBasedAccountingProcessorForSavings implements AccountingProcessorForSavings {
@@ -197,11 +197,11 @@ public class CashBasedAccountingProcessorForSavings implements AccountingProcess
                     }
                 }
             }
-
+            /** change by Andrew requested by cameron change  CASH_ACCOUNTS_FOR_SAVINGS.TRANSFERS_SUSPENSE.getValue() to FINANCIAL_ACTIVITY.ASSET_TRANSFER.getValue()  **/
             /** Handle Transfers proposal **/
             else if (savingsTransactionDTO.getTransactionType().isInitiateTransfer()) {
                 this.helper.createCashBasedJournalEntriesAndReversalsForSavings(office, currencyCode,
-                        CASH_ACCOUNTS_FOR_SAVINGS.SAVINGS_CONTROL.getValue(), CASH_ACCOUNTS_FOR_SAVINGS.TRANSFERS_SUSPENSE.getValue(),
+                        CASH_ACCOUNTS_FOR_SAVINGS.SAVINGS_CONTROL.getValue(),  FINANCIAL_ACTIVITY.ASSET_TRANSFER.getValue(),
                         savingsProductId, paymentTypeId, savingsId, transactionId, transactionDate, amount, isReversal);
             }
 
@@ -209,7 +209,7 @@ public class CashBasedAccountingProcessorForSavings implements AccountingProcess
             else if (savingsTransactionDTO.getTransactionType().isWithdrawTransfer()
                     || savingsTransactionDTO.getTransactionType().isApproveTransfer()) {
                 this.helper.createCashBasedJournalEntriesAndReversalsForSavings(office, currencyCode,
-                        CASH_ACCOUNTS_FOR_SAVINGS.TRANSFERS_SUSPENSE.getValue(), CASH_ACCOUNTS_FOR_SAVINGS.SAVINGS_CONTROL.getValue(),
+                        FINANCIAL_ACTIVITY.ASSET_TRANSFER.getValue(), CASH_ACCOUNTS_FOR_SAVINGS.SAVINGS_CONTROL.getValue(),
                         savingsProductId, paymentTypeId, savingsId, transactionId, transactionDate, amount, isReversal);
             }
 
