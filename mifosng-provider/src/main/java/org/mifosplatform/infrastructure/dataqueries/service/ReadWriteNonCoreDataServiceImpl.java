@@ -2033,7 +2033,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
                             pObjectValue = queryParams.get(key);
 
-                            if(columnHeader.isIntegerDisplayType() || columnHeader.isDecimalDisplayType()) {
+                            if(columnHeader.isIntegerDisplayType() ) {
+                                final int intValue = this.helper.convertToInteger(pObjectValue.toString(), columnHeader.getColumnName(), clientApplicationLocale);
+                                affectedColumns.put(columnHeader.getColumnName(), intValue);
+
+                            }
+                            else if( columnHeader.isDecimalDisplayType())
+                            {
 
                                 Double dValue = new Double("0");
                                 if(!queryParams.get(key).toString().isEmpty())
@@ -2044,7 +2050,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
                                 pValue = String.valueOf(dValue.intValue());
                                 pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
-                                affectedColumns.put(columnHeader.getColumnName(), pObjectValue);
+                                affectedColumns.put(columnHeader.getColumnName(), dValue);
                             }
                             else
                             {
@@ -2111,15 +2117,6 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                                     dataValidationErrors);
                         }
 
-//                        if (columnHeader.isColumnValueNotAllowed(val)) {
-//                            final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-//                            final ApiParameterError error = ApiParameterError.parameterError("error.msg.invalid.columnValue",
-//                                    "Value not found in Allowed Value list", columnHeader.getColumnName(), val);
-//                            dataValidationErrors.add(error);
-//                            throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
-//                                    dataValidationErrors);
-//
-//                        }
 
                     }
 
@@ -2141,7 +2138,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     return paramValue;
                 } else if (columnHeader.isCodeLookupDisplayType()) {
 
-                    final Integer codeLookup = Integer.valueOf(paramValue);
+                    final Integer codeLookup = this.helper.convertToInteger(paramValue, columnHeader.getColumnName(), clientApplicationLocale);
+
                     if (columnHeader.isColumnCodeNotAllowed(codeLookup)) {
                         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
                         final ApiParameterError error = ApiParameterError.parameterError("error.msg.invalid.columnValue",
