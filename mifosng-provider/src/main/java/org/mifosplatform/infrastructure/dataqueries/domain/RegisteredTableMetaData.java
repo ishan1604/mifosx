@@ -134,6 +134,10 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
         this.displayCondition = displayCondition;
     }
 
+    public void updateFormulaExpression(final String formulaExpression){
+        this.formulaExpression = formulaExpression;
+    }
+
     public void updateLabelName(final String labelName){
           this.labelName = labelName;
     }
