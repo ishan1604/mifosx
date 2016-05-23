@@ -2034,7 +2034,12 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                             pObjectValue = queryParams.get(key);
 
                             if(columnHeader.isIntegerDisplayType() ) {
-                                final int intValue = this.helper.convertToInteger(pObjectValue.toString(), columnHeader.getColumnName(), clientApplicationLocale);
+                                Integer intValue = new Integer(0);
+                                if(!queryParams.get(key).toString().isEmpty())
+                                {
+                                    intValue = this.helper.convertToInteger(pObjectValue.toString(), columnHeader.getColumnName(), clientApplicationLocale);
+                                }
+
                                 affectedColumns.put(columnHeader.getColumnName(), intValue);
 
                             }
