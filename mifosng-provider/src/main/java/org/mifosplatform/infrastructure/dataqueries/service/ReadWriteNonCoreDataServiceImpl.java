@@ -804,6 +804,14 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     columnMetaData.set(i, column );
                 }
             }
+
+            if(column.get("formulaExpression") != null && !column.get("formulaExpression").toString().isEmpty()) {
+                for (Map<String,Object> newValues : columnsToUpdate)
+                {
+                    column.put("formulaExpression", column.get("formulaExpression").toString().replace(newValues.get("originalName").toString(), newValues.get("fieldName").toString()));
+                    columnMetaData.set(i, column );
+                }
+            }
         }
 
         return columnMetaData;
