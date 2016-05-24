@@ -53,7 +53,7 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
         final String labelName =  mapObject.get("labelName").toString();
         final Integer order    = (Integer) mapObject.get("order");
         final String displayCondition = java.util.Objects.toString(mapObject.get("displayCondition"),null);
-        final String formulaExpression = java.util.Objects.toString(mapObject.get("formulaExpression"),null);
+        final String formulaExpression = (!java.util.Objects.toString(mapObject.get("formulaExpression"),null).isEmpty())? java.util.Objects.toString(mapObject.get("formulaExpression"),null) : null ;
         return new RegisteredTableMetaData(registeredTable,tableName,fieldName,labelName,order, displayCondition, formulaExpression);
     }
 

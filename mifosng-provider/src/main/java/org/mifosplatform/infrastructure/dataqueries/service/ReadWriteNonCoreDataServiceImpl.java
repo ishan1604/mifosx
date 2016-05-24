@@ -1233,7 +1233,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                             final String name = (columnName.has("name")) ? columnName.get("name").getAsString() : null;
                             final String labelName = (columnName.has("labelName")) ? columnName.get("labelName").getAsString() : null;
                             final String displayCondition = (columnName.has("displayCondition")) ? columnName.get("displayCondition").getAsString() : null;
-                            final String formulaExpression = (columnName.has("formulaExpression")) ? columnName.get("formulaExpression").getAsString() : null;
+                            final String formulaExpression = (columnName.has("formulaExpression") && !columnName.get("formulaExpression").getAsString().isEmpty() ) ? columnName.get("formulaExpression").getAsString() : null;
 
                             final Integer order =(columnName.has("order")) ? columnName.get("order").getAsInt() : 0;
                             final  RegisteredTableMetaData registeredTableMetaData = this.registeredTableMetaDataRepository.findOneByTableNameAndFieldName(datatableName,name);
