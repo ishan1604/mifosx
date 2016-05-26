@@ -1714,12 +1714,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             }
             else if (affectedColumns.containsKey(key)) {
                 pValue = affectedColumns.get(key).toString();
-                if (StringUtils.isEmpty(pValue)) {
+                if (StringUtils.isEmpty(pValue) || !this.evaluateConditionalFields(affectedColumns, metaData, key)) {
                     pValueWrite = "null";
                 } else {
-
-                    this.evaluateConditionalFields(affectedColumns, metaData, key);
-
 
                     if ("bit".equalsIgnoreCase(pColumnHeader.getColumnType())) {
                         pValueWrite = BooleanUtils.toString(BooleanUtils.toBooleanObject(pValue), "1", "0", "null");
@@ -1768,7 +1765,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     }
 
 
-    private void evaluateConditionalFields(Map<String, Object> affectedColumns, final List<MetaDataResultSet> metaData, String key)
+    private boolean evaluateConditionalFields(Map<String, Object> affectedColumns, final List<MetaDataResultSet> metaData, String key)
     {
 
 
@@ -1779,44 +1776,14 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     {
 
                         final boolean result = evaluateExpression(affectedColumns, d);
-
-
                         logger.info("Found expression: " + d.getDisplayCondition() + "Result: " + result );
 
-                        if(!result)
-                        {
-                            throw new PlatformDataIntegrityException("error.msg.invalid.column.specified", "Invalid column provided: " + key, "name",
-                                    key);
-                        }
+                        return result;
                     }
                 }
             }
 
-
-    }
-
-    private boolean evaluateConditionalFieldsForUpdate(Map<String, Object> affectedColumns, final List<MetaDataResultSet> metaData, String key)
-    {
-
-
-        // Get MetaData:
-        for(MetaDataResultSet d : metaData){
-            if(d.getColumnName() != null && d.getColumnName().equals(key)) {
-                if(d.getDisplayCondition() != null)
-                {
-
-
-                    final boolean result = evaluateExpression(affectedColumns, d);
-
-
-                    logger.info("Found expression: " + d.getDisplayCondition() + "Result: " + result );
-
-                    return result;
-                }
-            }
-        }
-
-        return true;
+        return false;
     }
 
     private boolean evaluateExpression(Map<String, Object> affectedColumns, MetaDataResultSet d ){
@@ -1919,7 +1886,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
             final String key = pColumnHeader.getColumnName();
 
-            this.evaluateConditionalFieldsForUpdate(changedColumns, metaData, key);
+            this.evaluateConditionalFields(changedColumns, metaData, key);
 
             if (changedColumns.containsKey(key)) {
                 if (firstColumn) {
@@ -1931,7 +1898,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
                 pValue = (String) changedColumns.get(key);
 
-                if(!this.evaluateConditionalFieldsForUpdate(changedColumns, metaData, key)){
+                if(!this.evaluateConditionalFields(changedColumns, metaData, key)){
 
                     pValueWrite = "null";
 
@@ -2067,6 +2034,17 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                                 pValue = String.valueOf(dValue.intValue());
                                 pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
                                 affectedColumns.put(columnHeader.getColumnName(), dValue);
+                            }
+                            else if( columnHeader.isCodeLookupDisplayType())
+                            {
+                                Integer dValue = null;
+
+                                if(!queryParams.get(key).toString().isEmpty())
+                                {
+                                    dValue = new Integer(queryParams.get(key).toString());
+                                }
+                                pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
+                                affectedColumns.put(columnHeader.getColumnName(), pValue);
                             }
                             else
                             {
