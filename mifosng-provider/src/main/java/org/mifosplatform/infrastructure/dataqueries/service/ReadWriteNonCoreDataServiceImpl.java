@@ -1716,17 +1716,18 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 pValue = affectedColumns.get(key).toString();
                 if (StringUtils.isEmpty(pValue)) {
                     pValueWrite = "null";
-                }
-                else if (pColumnHeader.getColumnDisplayExpression() != null && !pColumnHeader.getColumnDisplayExpression().isEmpty() && !this.evaluateConditionalFields(affectedColumns, metaData, key))
-                {
-                    pValueWrite = "null";
                 } else {
 
-                    if ("bit".equalsIgnoreCase(pColumnHeader.getColumnType())) {
-                        pValueWrite = BooleanUtils.toString(BooleanUtils.toBooleanObject(pValue), "1", "0", "null");
-                    } else {
-                        pValueWrite = singleQuote + this.genericDataService.replace(pValue, singleQuote, singleQuote + singleQuote)
-                                + singleQuote;
+                    pValueWrite = "null";
+
+                    if (pColumnHeader.getColumnDisplayExpression() == null || pColumnHeader.getColumnDisplayExpression().isEmpty() || this.evaluateConditionalFields(affectedColumns, metaData, key))
+                    {
+                        if ("bit".equalsIgnoreCase(pColumnHeader.getColumnType())) {
+                            pValueWrite = BooleanUtils.toString(BooleanUtils.toBooleanObject(pValue), "1", "0", "null");
+                        } else {
+                            pValueWrite = singleQuote + this.genericDataService.replace(pValue, singleQuote, singleQuote + singleQuote)
+                                    + singleQuote;
+                        }
                     }
 
                 }
@@ -1890,8 +1891,6 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
             final String key = pColumnHeader.getColumnName();
 
-            this.evaluateConditionalFields(changedColumns, metaData, key);
-
             if (changedColumns.containsKey(key)) {
                 if (firstColumn) {
                     sql += " set ";
@@ -1902,22 +1901,18 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
                 pValue = (String) changedColumns.get(key);
 
-                if(!this.evaluateConditionalFields(changedColumns, metaData, key)){
-
-                    pValueWrite = "null";
-
-                }
-                else if (StringUtils.isEmpty(pValue)) {
+                if (StringUtils.isEmpty(pValue)) {
                     pValueWrite = "null";
                 } else {
+                    pValueWrite = "null";
+                    if (pColumnHeader.getColumnDisplayExpression() == null || pColumnHeader.getColumnDisplayExpression().isEmpty() || this.evaluateConditionalFields(changedColumns, metaData, key)) {
 
-                    
-
-                    if ("bit".equalsIgnoreCase(pColumnHeader.getColumnType())) {
-                        pValueWrite = BooleanUtils.toString(BooleanUtils.toBooleanObject(pValue), "1", "0", "null");
-                    } else {
-                        pValueWrite = singleQuote + this.genericDataService.replace(pValue, singleQuote, singleQuote + singleQuote)
-                                + singleQuote;
+                        if ("bit".equalsIgnoreCase(pColumnHeader.getColumnType())) {
+                            pValueWrite = BooleanUtils.toString(BooleanUtils.toBooleanObject(pValue), "1", "0", "null");
+                        } else {
+                            pValueWrite = singleQuote + this.genericDataService.replace(pValue, singleQuote, singleQuote + singleQuote)
+                                    + singleQuote;
+                        }
                     }
                 }
                 sql += "`" + key + "` = " + pValueWrite;
@@ -2015,39 +2010,41 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
                             pObjectValue = queryParams.get(key);
 
-                            if(columnHeader.isIntegerDisplayType() ) {
-                                Integer intValue = new Integer(0);
-                                if(queryParams.get(key) != null && !queryParams.get(key).toString().isEmpty())
-                                {
-                                    intValue = this.helper.convertToInteger(pObjectValue.toString(), columnHeader.getColumnName(), clientApplicationLocale);
+                            if(queryParams.get(key) != null) {
+                                if (columnHeader.isIntegerDisplayType()) {
+                                    Integer intValue = new Integer(0);
+                                    if (!queryParams.get(key).toString().isEmpty()) {
+                                        intValue = this.helper.convertToInteger(pObjectValue.toString(), columnHeader.getColumnName(), clientApplicationLocale);
+                                    }
+
+                                    affectedColumns.put(columnHeader.getColumnName(), intValue);
+
+                                } else if (columnHeader.isDecimalDisplayType()) {
+
+                                    Double dValue = new Double("0");
+                                    if (!queryParams.get(key).toString().isEmpty()) {
+                                        dValue = new Double(queryParams.get(key).toString());
+                                    }
+
+
+                                    pValue = String.valueOf(dValue.intValue());
+                                    pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
+                                    affectedColumns.put(columnHeader.getColumnName(), dValue);
+                                } else if (columnHeader.isCodeLookupDisplayType()) {
+
+                                    pValue = validateColumn(columnHeader, pObjectValue.toString(), dateFormat, clientApplicationLocale);
+
+                                    final Integer codeLookup = this.helper.convertToInteger(pObjectValue.toString(), columnHeader.getColumnName(), clientApplicationLocale);
+                                    affectedColumns.put(columnHeader.getColumnName(), codeLookup);
+                                } else {
+                                    pValue = "";
+                                    if (!queryParams.get(key).toString().isEmpty()) {
+                                        pValue = queryParams.get(key).toString();
+                                    }
+                                    pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
+                                    affectedColumns.put(columnHeader.getColumnName(), pValue);
+
                                 }
-
-                                affectedColumns.put(columnHeader.getColumnName(), intValue);
-
-                            }
-                            else if( columnHeader.isDecimalDisplayType())
-                            {
-
-                                Double dValue = new Double("0");
-                                if(!queryParams.get(key).toString().isEmpty())
-                                {
-                                    dValue = new Double(queryParams.get(key).toString());
-                                }
-
-
-                                pValue = String.valueOf(dValue.intValue());
-                                pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
-                                affectedColumns.put(columnHeader.getColumnName(), dValue);
-                            }
-                            else
-                            {
-                                pValue = "";
-                                if(!queryParams.get(key).toString().isEmpty()) {
-                                    pValue = queryParams.get(key).toString();
-                                }
-                                pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
-                                affectedColumns.put(columnHeader.getColumnName(), pValue);
-
                             }
 
                             notFound = false;
