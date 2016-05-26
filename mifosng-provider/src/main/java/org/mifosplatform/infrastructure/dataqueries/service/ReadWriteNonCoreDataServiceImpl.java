@@ -1714,7 +1714,11 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             }
             else if (affectedColumns.containsKey(key)) {
                 pValue = affectedColumns.get(key).toString();
-                if (StringUtils.isEmpty(pValue) || !this.evaluateConditionalFields(affectedColumns, metaData, key)) {
+                if (StringUtils.isEmpty(pValue)) {
+                    pValueWrite = "null";
+                }
+                else if (pColumnHeader.getColumnDisplayExpression() != null && !pColumnHeader.getColumnDisplayExpression().isEmpty() && !this.evaluateConditionalFields(affectedColumns, metaData, key))
+                {
                     pValueWrite = "null";
                 } else {
 
@@ -2034,17 +2038,6 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                                 pValue = String.valueOf(dValue.intValue());
                                 pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
                                 affectedColumns.put(columnHeader.getColumnName(), dValue);
-                            }
-                            else if( columnHeader.isCodeLookupDisplayType())
-                            {
-                                Integer dValue = null;
-
-                                if(!queryParams.get(key).toString().isEmpty())
-                                {
-                                    dValue = new Integer(queryParams.get(key).toString());
-                                }
-                                pValue = validateColumn(columnHeader, pValue, dateFormat, clientApplicationLocale);
-                                affectedColumns.put(columnHeader.getColumnName(), pValue);
                             }
                             else
                             {
