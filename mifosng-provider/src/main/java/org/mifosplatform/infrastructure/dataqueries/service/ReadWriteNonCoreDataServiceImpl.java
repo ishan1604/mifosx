@@ -1899,7 +1899,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     sql += ", ";
                 }
 
-                pValue = (String) changedColumns.get(key);
+                pValue =  changedColumns.get(key).toString();
 
                 if (StringUtils.isEmpty(pValue)) {
                     pValueWrite = "null";
@@ -1955,11 +1955,35 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
             if (!affectedAndChangedColumns.containsKey(key)) {
 
-                affectedAndChangedColumns.put(key,grs.getValueForColumnNamed(key));
+                final String sValue = grs.getValueForColumnNamed(key);
+                final Locale clientApplicationLocale = Locale.ENGLISH;
 
+
+                if (grs.getColumnHeaders().get(i).isIntegerDisplayType()) {
+
+                    Integer intValue = new Integer(0);
+
+                    intValue = this.helper.convertToInteger(sValue,key, clientApplicationLocale);
+                    affectedAndChangedColumns.put(key,intValue);
+
+
+                } else if (grs.getColumnHeaders().get(i).isDecimalDisplayType()) {
+
+                    Double dValue = new Double("0");
+
+                    dValue = new Double(sValue);
+                    affectedAndChangedColumns.put(key,dValue);
+
+                } else if (grs.getColumnHeaders().get(i).isCodeLookupDisplayType()) {
+
+                    final Integer codeLookup = this.helper.convertToInteger(sValue,key, clientApplicationLocale);
+                    affectedAndChangedColumns.put(key,codeLookup);
+                } else {
+                    affectedAndChangedColumns.put(key,grs.getValueForColumnNamed(key));
+
+                }
             }
         }
-
 
 
 
@@ -2075,6 +2099,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
         return affectedColumns;
     }
+
 
     private String validateColumn(final ResultsetColumnHeaderData columnHeader, final String pValue, final String dateFormat,
             final Locale clientApplicationLocale) {
