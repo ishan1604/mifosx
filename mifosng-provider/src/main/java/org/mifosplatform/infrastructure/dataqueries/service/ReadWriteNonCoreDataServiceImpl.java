@@ -1931,6 +1931,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         final Map<String, Object> affectedAndChangedColumns = new HashMap<>();
         //final Map<String, String> originalColumnValue = grs.getData().get
 
+
+
         for (final String key : affectedColumns.keySet()) {
             final String columnValue = affectedColumns.get(key).toString();
             final String colType = grs.getColTypeOfColumnNamed(key);
@@ -1940,10 +1942,26 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
 
                 // put in the current value stored in the db
-              //  affectedAndChangedColumns.put(key, grs.getColTypeOfColumnNamed());
+                //  affectedAndChangedColumns.put(key, grs.getColTypeOfColumnNamed());
                 affectedAndChangedColumns.put(key,grs.getValueForColumnNamed(key));
             }
         }
+
+        // add the value of the column that were not submitted
+        // we need this for the conditional expression check
+        for (int i = 0; i < grs.getColumnHeaders().size(); i++) {
+
+            final String key = grs.getColumnHeaders().get(i).getColumnName();
+
+            if (!affectedAndChangedColumns.containsKey(key)) {
+
+                affectedAndChangedColumns.put(key,grs.getValueForColumnNamed(key));
+
+            }
+        }
+
+
+
 
         return affectedAndChangedColumns;
     }

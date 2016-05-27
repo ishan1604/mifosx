@@ -59,6 +59,8 @@ public final class GenericResultsetData {
       return value;
     }
 
+
+
     public boolean hasNoEntries() {
         return this.data.isEmpty();
     }
