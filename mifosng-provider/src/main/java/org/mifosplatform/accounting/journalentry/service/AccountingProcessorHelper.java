@@ -261,11 +261,11 @@ public class AccountingProcessorHelper {
      * @param accountTypeToBeCredited
      *            Enum of the placeholder of the GLAccount to be credited
      * @param loanProductId
-     * @param paymentTypeId
+     * @param currencyCode
      * @param loanId
      * @param transactionId
      * @param transactionDate
-     * @param amount
+     * @param totalAmount
      * @param isReversal
      */
     public void createAccrualBasedJournalEntriesAndReversalsForLoanCharges(final Office office, final String currencyCode,
@@ -507,7 +507,7 @@ public class AccountingProcessorHelper {
      * @param loanId
      * @param transactionId
      * @param transactionDate
-     * @param amount
+     * @param totalAmount
      * @param isReversal
      */
     public void createCashBasedJournalEntriesAndReversalsForSavingsCharges(final Office office, final String currencyCode,
