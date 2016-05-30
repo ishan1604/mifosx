@@ -451,7 +451,7 @@ public class JsonParserHelper {
                 final double parsedNumberDouble = parsedNumber.doubleValue();
                 final int parsedNumberInteger = parsedNumber.intValue();
 
-                if (source.contains(Character.toString(symbols.getDecimalSeparator()))) { throw new ParseException(source, 0); }
+                // if (parsedNumber.contains(Character.toString(symbols.getDecimalSeparator()))) { throw new ParseException(source, 0); }
 
                 if (!Double.valueOf(parsedNumberDouble).equals(Double.valueOf(Integer.valueOf(parsedNumberInteger)))) { throw new ParseException(
                         source, 0); }

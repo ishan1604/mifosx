@@ -11,6 +11,10 @@ import net.fortuna.ical4j.model.property.RRule;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
 import org.quartz.CronExpression;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.util.ObjectUtils;
 
 import java.math.BigDecimal;
@@ -891,5 +895,55 @@ public class DataValidatorBuilder {
         }
         return this;
     }
+
+
+    public DataValidatorBuilder validateBooleanExpression(final EvaluationContext expressionContext){
+        try{
+            if (this.value == null && this.ignoreNullValue) { return this; }
+
+            ExpressionParser expressionParser = new SpelExpressionParser();
+            Expression exp = expressionParser.parseExpression(this.value.toString());
+            boolean result = exp.getValue(expressionContext, Boolean.class);
+
+        } catch (Exception e){
+
+            final StringBuilder validationErrorCode = new StringBuilder("validation.msg.").append(this.resource).append(".")
+                    .append(this.parameter).append(".invalid");
+            final StringBuilder defaultEnglishMessage = new StringBuilder("The displayCondition ").append(this.value).append(
+                    " is not a valid expression");
+            final ApiParameterError error = ApiParameterError.parameterError(validationErrorCode.toString(),
+                    defaultEnglishMessage.toString(), this.parameter, this.value);
+            this.dataValidationErrors.add(error);
+
+        }
+
+        return this;
+
+    }
+
+    public DataValidatorBuilder validateObjectExpression(final EvaluationContext expressionContext){
+        try{
+            if (this.value == null && this.ignoreNullValue) { return this; }
+
+            ExpressionParser expressionParser = new SpelExpressionParser();
+            Expression exp = expressionParser.parseExpression(this.value.toString());
+            Object result = exp.getValue(expressionContext);
+
+        } catch (Exception e){
+
+            final StringBuilder validationErrorCode = new StringBuilder("validation.msg.").append(this.resource).append(".")
+                    .append(this.parameter).append(".invalid");
+            final StringBuilder defaultEnglishMessage = new StringBuilder("The displayCondition ").append(this.value).append(
+                    " is not a valid expression");
+            final ApiParameterError error = ApiParameterError.parameterError(validationErrorCode.toString(),
+                    defaultEnglishMessage.toString(), this.parameter, this.value);
+            this.dataValidationErrors.add(error);
+
+        }
+
+        return this;
+
+    }
+
 
 }

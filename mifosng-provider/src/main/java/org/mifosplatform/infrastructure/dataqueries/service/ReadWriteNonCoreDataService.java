@@ -51,9 +51,6 @@ public interface ReadWriteNonCoreDataService {
 
     CommandProcessingResult  updateDatatableEntryOneAndMany(String datatable, Long appTableId, Long datatableId, JsonCommand command);
 
-
-
-
     CommandProcessingResult deleteDatatableEntries(String datatable, Long appTableId);
 
     CommandProcessingResult deleteDatatableEntry(String datatable, Long appTableId, Long datatableId);
