@@ -564,7 +564,7 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
                         final Collection<Long> existingTransactionsIds = loan.findExistingTransactionIds();
                         final Collection<Long> existingReversedTransactionIds = loan.findExistingReversedTransactionIds();
                         transaction.reverse();
-                        this.postJournalEntries(loan,(List)existingTransactionsIds,(List)existingReversedTransactionIds);
+                        this.postJournalEntries(loan,(List<Long>)existingTransactionsIds,(List<Long>)existingReversedTransactionIds);
                     }
                 }
 

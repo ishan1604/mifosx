@@ -81,6 +81,7 @@ public class AccountTransferDetails extends AbstractPersistable<Long> {
     @OneToOne(mappedBy = "accountTransferDetails", cascade = CascadeType.ALL, optional = true, orphanRemoval = true, fetch = FetchType.LAZY)
     private AccountTransferStandingInstruction accountTransferStandingInstruction;
 
+
     public static AccountTransferDetails savingsToSavingsTransfer(final Office fromOffice, final Client fromClient,
             final SavingsAccount fromSavingsAccount, final Office toOffice, final Client toClient, final SavingsAccount toSavingsAccount,
             Integer transferType) {
@@ -123,6 +124,18 @@ public class AccountTransferDetails extends AbstractPersistable<Long> {
                                                                Integer transferType,final Group fromGroup,final Group toGroup) {
         return new AccountTransferDetails(fromOffice, fromClient, null, fromLoanAccount, toOffice, toClient, toSavingsAccount, null,
                 transferType, null,fromGroup,toGroup);
+    }
+
+    public static AccountTransferDetails loanToLoanTransfer(final Office fromOffice, final Client fromClient, final Loan fromLoanAccount,
+            final Office toOffice, final Client toClient, final Loan toLoanAccount, final Integer transferType, final Group fromGroup, final Group toGroup) {
+        return new AccountTransferDetails(fromOffice, fromClient, null, fromLoanAccount, toOffice, toClient, null, toLoanAccount,
+                transferType, null, fromGroup, toGroup);
+    }
+
+    public static AccountTransferDetails loanToLoanTransfer(final Office fromOffice, final Client fromClient, final Loan fromLoanAccount,
+                                                            final Office toOffice, final Client toClient, final Loan toLoanAccount, final Integer transferType) {
+        return new AccountTransferDetails(fromOffice, fromClient, null, fromLoanAccount, toOffice, toClient, null, toLoanAccount,
+                transferType, null);
     }
 
     protected AccountTransferDetails() {

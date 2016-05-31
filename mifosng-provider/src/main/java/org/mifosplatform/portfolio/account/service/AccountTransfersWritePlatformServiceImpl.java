@@ -177,6 +177,29 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             this.accountTransferDetailRepository.saveAndFlush(accountTransferDetails);
             transferDetailId = accountTransferDetails.getId();
 
+        } else if (isLoanToLoanAccountTransfer(fromAccountType, toAccountType)) {
+            // FIXME - kw - ADD overpaid loan to loan account transfer
+            // support.
+
+            fromLoanAccountId = command.longValueOfParameterNamed(fromAccountIdParamName);
+            final Loan fromLoanAccount = this.loanAccountAssembler.assembleFrom(fromLoanAccountId);
+
+            final LoanTransaction loanRefundTransaction = this.loanAccountDomainService.makeRefund(fromLoanAccountId,
+                    new CommandProcessingResultBuilder(), transactionDate, transactionAmount, paymentDetail, null, null);
+
+            final Long toLoanAccountId = command.longValueOfParameterNamed(toAccountIdParamName);
+            final Loan toLoanAccount = this.loanAccountAssembler.assembleFrom(toLoanAccountId);
+
+            final boolean isRecoveryRepayment = false;
+            final LoanTransaction loanRepaymentTransaction = this.loanAccountDomainService.makeRepayment(toLoanAccount,
+                    new CommandProcessingResultBuilder(), transactionDate, transactionAmount, paymentDetail, null, null,
+                    isRecoveryRepayment, isAccountTransfer);
+
+            final AccountTransferDetails accountTransferDetails = this.accountTransferAssembler.assembleLoanToLoanTransfer(command,
+                    fromLoanAccount, toLoanAccount, loanRefundTransaction, loanRepaymentTransaction);
+            this.accountTransferDetailRepository.saveAndFlush(accountTransferDetails);
+            transferDetailId = accountTransferDetails.getId();
+
         } else {
             /**  throw an exception here for loan to loan transfer not supported */
             fromLoanAccountId = command.longValueOfParameterNamed(fromAccountIdParamName);
@@ -240,7 +263,8 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
         for (final AccountTransferTransaction accountTransfer : acccountTransfers) {
             if (accountTransfer.getFromLoanTransaction() != null) {
                 this.loanAccountDomainService.reverseTransfer(accountTransfer.getFromLoanTransaction());
-            } else if (accountTransfer.getToLoanTransaction() != null) {
+            }
+            if (accountTransfer.getToLoanTransaction() != null) {
                 this.loanAccountDomainService.reverseTransfer(accountTransfer.getToLoanTransaction());
             }
             if (accountTransfer.getFromTransaction() != null) {
@@ -361,6 +385,7 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
 
             Loan fromLoanAccount = null;
             SavingsAccount toSavingsAccount = null;
+
             if (accountTransferDetails == null) {
                 if (accountTransferDTO.getLoan() == null) {
                     fromLoanAccount = this.loanAccountAssembler.assembleFrom(accountTransferDTO.getFromAccountId());
@@ -375,7 +400,9 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
                 toSavingsAccount = accountTransferDetails.toSavingsAccount();
                 this.savingsAccountAssembler.setHelpers(toSavingsAccount);
             }
+
             LoanTransaction loanTransaction = null;
+
             if (LoanTransactionType.DISBURSEMENT.getValue().equals(accountTransferDTO.getFromTransferType())) {
                 loanTransaction = this.loanAccountDomainService.makeDisburseTransaction(accountTransferDTO.getFromAccountId(),
                         accountTransferDTO.getTransactionDate(), accountTransferDTO.getTransactionAmount(),
@@ -390,10 +417,70 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(toSavingsAccount,
                     accountTransferDTO.getFmt(), accountTransferDTO.getTransactionDate(), accountTransferDTO.getTransactionAmount(),
                     accountTransferDTO.getPaymentDetail(), isAccountTransfer, isRegularTransaction);
+
             accountTransferDetails = this.accountTransferAssembler.assembleLoanToSavingsTransfer(accountTransferDTO, fromLoanAccount,
                     toSavingsAccount, deposit, loanTransaction);
+
             this.accountTransferDetailRepository.saveAndFlush(accountTransferDetails);
             transferTransactionId = accountTransferDetails.getId();
+
+        } else if (isLoanToLoanAccountTransfer(accountTransferDTO.getFromAccountType(), accountTransferDTO.getToAccountType())){
+
+            Loan fromLoanAccount = null;
+            Loan toLoanAccount = null;
+
+            if (accountTransferDetails == null) {
+                if (accountTransferDTO.getLoan() == null) {
+                    fromLoanAccount = this.loanAccountAssembler.assembleFrom(accountTransferDTO.getFromAccountId());
+                } else {
+                    fromLoanAccount = accountTransferDTO.getLoan();
+                    this.loanAccountAssembler.setHelpers(fromLoanAccount);
+                }
+                if (accountTransferDTO.getLoan() == null) {
+                    toLoanAccount = this.loanAccountAssembler.assembleFrom(accountTransferDTO.getToAccountId());
+                } else {
+                    toLoanAccount = accountTransferDTO.getLoan();
+                    this.loanAccountAssembler.setHelpers(toLoanAccount);
+                }
+            } else {
+                fromLoanAccount = accountTransferDetails.fromLoanAccount();
+                this.loanAccountAssembler.setHelpers(fromLoanAccount);
+                toLoanAccount = accountTransferDetails.toLoanAccount();
+                this.loanAccountAssembler.setHelpers(toLoanAccount);
+            }
+
+            LoanTransaction loanRefundTransaction = null;
+            LoanTransaction loanRepaymentTransaction = null;
+
+            if (LoanTransactionType.DISBURSEMENT.getValue().equals(accountTransferDTO.getFromTransferType())) {
+                loanRefundTransaction = this.loanAccountDomainService.makeDisburseTransaction(accountTransferDTO.getFromAccountId(),
+                        accountTransferDTO.getTransactionDate(), accountTransferDTO.getTransactionAmount(),
+                        accountTransferDTO.getPaymentDetail(), accountTransferDTO.getNoteText(), accountTransferDTO.getTxnExternalId());
+            } else {
+                loanRefundTransaction = this.loanAccountDomainService.makeRefund(accountTransferDTO.getFromAccountId(),
+                        new CommandProcessingResultBuilder(), accountTransferDTO.getTransactionDate(),
+                        accountTransferDTO.getTransactionAmount(), accountTransferDTO.getPaymentDetail(), accountTransferDTO.getNoteText(),
+                        accountTransferDTO.getTxnExternalId());
+            }
+
+            if (AccountTransferType.fromInt(accountTransferDTO.getTransferType()).isChargePayment()) {
+                loanRepaymentTransaction = this.loanAccountDomainService.makeChargePayment(toLoanAccount, accountTransferDTO.getChargeId(),
+                        accountTransferDTO.getTransactionDate(), accountTransferDTO.getTransactionAmount(),
+                        accountTransferDTO.getPaymentDetail(), null, null, accountTransferDTO.getToTransferType(),
+                        accountTransferDTO.getLoanInstallmentNumber());
+
+            } else {
+                final boolean isRecoveryRepayment = false;
+                loanRepaymentTransaction = this.loanAccountDomainService.makeRepayment(toLoanAccount, new CommandProcessingResultBuilder(),
+                        accountTransferDTO.getTransactionDate(), accountTransferDTO.getTransactionAmount(),
+                        accountTransferDTO.getPaymentDetail(), null, null, isRecoveryRepayment, isAccountTransfer);
+            }
+
+            accountTransferDetails = this.accountTransferAssembler.assembleLoanToLoanTransfer(accountTransferDTO, fromLoanAccount,
+                    toLoanAccount, loanRefundTransaction, loanRepaymentTransaction);
+            this.accountTransferDetailRepository.saveAndFlush(accountTransferDetails);
+            transferTransactionId = accountTransferDetails.getId();
+
         }
 
         return transferTransactionId;
@@ -411,6 +498,10 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
 
     private boolean isLoanToSavingsAccountTransfer(final PortfolioAccountType fromAccountType, final PortfolioAccountType toAccountType) {
         return fromAccountType.isLoanAccount() && toAccountType.isSavingsAccount();
+    }
+
+    private boolean isLoanToLoanAccountTransfer(final PortfolioAccountType fromAccountType, final PortfolioAccountType toAccountType) {
+        return fromAccountType.isLoanAccount() && toAccountType.isLoanAccount();
     }
 
     private boolean isSavingsToLoanAccountTransfer(final PortfolioAccountType fromAccountType, final PortfolioAccountType toAccountType) {

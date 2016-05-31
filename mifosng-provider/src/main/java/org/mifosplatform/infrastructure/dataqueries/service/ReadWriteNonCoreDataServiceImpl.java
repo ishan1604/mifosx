@@ -1708,6 +1708,10 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             if(pColumnHeader.getColumnFormulaExpression() != null && !pColumnHeader.getColumnFormulaExpression().isEmpty()) {
                 // If this field has a column Expression the we parse that instead of the value
                 pValueWrite = this.getFormulaExpressionValue(affectedColumns, metaData, pColumnHeader.getColumnFormulaExpression());
+
+                // Write back the new value so it can be used in other fields:
+                affectedColumns.put(key, pValueWrite);
+
                 columnName = "`" + key + "`";
                 insertColumns += ", " + columnName;
                 selectColumns += "," + pValueWrite + " as " + columnName;
