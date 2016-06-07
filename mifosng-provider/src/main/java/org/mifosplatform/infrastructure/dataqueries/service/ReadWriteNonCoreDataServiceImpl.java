@@ -1400,7 +1400,14 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             pkName = getFKField(appTable);
         } // 1:1 datatable
 
-        final Map<String,Object> changes = getAffectedAndChangedColumns(grs, dataParams, pkName);
+        Locale clientApplicationLocale = null;
+
+        if(dataParams.get("locale") != null && !dataParams.get("locale").toString().isEmpty())
+        {
+            clientApplicationLocale = new Locale(dataParams.get("locale").toString());
+        }
+
+        final Map<String,Object> changes = getAffectedAndChangedColumns(grs, dataParams, pkName, clientApplicationLocale);
 
         if (!changes.isEmpty()) {
             Long pkValue = appTableId;
@@ -1929,25 +1936,27 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     }
 
     private Map<String, Object> getAffectedAndChangedColumns(final GenericResultsetData grs, final Map<String, Object> queryParams,
-            final String fkName) {
+            final String fkName, final Locale locale) {
 
         final Map<String, Object> affectedColumns = getAffectedColumns(grs.getColumnHeaders(), queryParams, fkName);
         final Map<String, Object> affectedAndChangedColumns = new HashMap<>();
         //final Map<String, String> originalColumnValue = grs.getData().get
 
-
-
         for (final String key : affectedColumns.keySet()) {
             final String columnValue = affectedColumns.get(key).toString();
-            final String colType = grs.getColTypeOfColumnNamed(key);
+            final ResultsetColumnHeaderData colHeader = grs.getColumnHeaderOfColumnNamed(key);
+            final String colType = colHeader.getColumnDisplayType();
+
             if (columnChanged(key, columnValue, colType, grs)) {
-                affectedAndChangedColumns.put(key, columnValue);
+
+                affectedAndChangedColumns.put(key, getObjectValueforColumn(colHeader, columnValue, locale));
+
             }else{
 
 
                 // put in the current value stored in the db
                 //  affectedAndChangedColumns.put(key, grs.getColTypeOfColumnNamed());
-                affectedAndChangedColumns.put(key,grs.getValueForColumnNamed(key));
+                affectedAndChangedColumns.put(key,getObjectValueforColumn(colHeader, grs.getValueForColumnNamed(key), locale));
             }
         }
 
@@ -1958,38 +1967,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String key = grs.getColumnHeaders().get(i).getColumnName();
 
             if (!affectedAndChangedColumns.containsKey(key)) {
-
-                final String sValue = grs.getValueForColumnNamed(key);
-                final Locale clientApplicationLocale = Locale.ENGLISH;
-
-
-                if (grs.getColumnHeaders().get(i).isIntegerDisplayType()) {
-
-                    Integer intValue = new Integer(0);
-
-                    intValue = this.helper.convertToInteger(sValue,key, clientApplicationLocale);
-                    affectedAndChangedColumns.put(key,intValue);
-
-
-                } else if (grs.getColumnHeaders().get(i).isDecimalDisplayType()) {
-
-                    Double dValue = new Double("0");
-
-                    dValue = new Double(sValue);
-                    affectedAndChangedColumns.put(key,dValue);
-
-                } else if (grs.getColumnHeaders().get(i).isCodeLookupDisplayType()) {
-
-                    final Integer codeLookup = this.helper.convertToInteger(sValue,key, clientApplicationLocale);
-                    affectedAndChangedColumns.put(key,codeLookup);
-                } else {
-                    affectedAndChangedColumns.put(key,grs.getValueForColumnNamed(key));
-
-                }
+                    affectedAndChangedColumns.put(key,getObjectValueforColumn(grs.getColumnHeaders().get(i), grs.getValueForColumnNamed(key), locale));
             }
         }
-
-
 
         return affectedAndChangedColumns;
     }
@@ -2387,6 +2367,39 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         return listOfCategoryData;
 
+    }
+
+    private Object getObjectValueforColumn(final ResultsetColumnHeaderData colHeader, final String columnValue, final Locale locale )
+    {
+
+        final String key = colHeader.getColumnName();
+
+        if (colHeader.isIntegerDisplayType()) {
+
+            Integer intValue = new Integer(0);
+
+            intValue = this.helper.convertToInteger(columnValue, key, locale);
+
+            return intValue;
+
+        } else if (colHeader.isDecimalDisplayType()) {
+
+            Double dValue = new Double("0");
+
+            dValue = new Double(columnValue);
+
+            return dValue;
+
+        } else if (colHeader.isCodeLookupDisplayType()) {
+
+            final Integer codeLookup = this.helper.convertToInteger(columnValue,key, locale);
+
+            return codeLookup;
+
+        } else {
+
+            return columnValue;
+        }
     }
 
 

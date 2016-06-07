@@ -43,6 +43,32 @@ public final class GenericResultsetData {
         return colType;
     }
 
+    public String getDisplayTypeOfColumnNamed(final String columnName) {
+
+        String colType = null;
+        for (final ResultsetColumnHeaderData columnHeader : this.columnHeaders) {
+            if (columnHeader.isNamed(columnName)) {
+                colType = columnHeader.getColumnDisplayType();
+
+            }
+        }
+
+        return colType;
+    }
+
+    public ResultsetColumnHeaderData getColumnHeaderOfColumnNamed(final String columnName) {
+
+        for (final ResultsetColumnHeaderData columnHeader : this.columnHeaders) {
+            if (columnHeader.isNamed(columnName)) {
+                return columnHeader;
+            }
+        }
+
+        return null;
+    }
+
+
+
     public String getValueForColumnNamed(final String columnName) {
 
         String value = null;
@@ -58,8 +84,6 @@ public final class GenericResultsetData {
 
       return value;
     }
-
-
 
     public boolean hasNoEntries() {
         return this.data.isEmpty();
