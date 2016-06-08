@@ -21,6 +21,7 @@ import org.mifosplatform.accounting.closure.exception.GLClosureInvalidException;
 import org.mifosplatform.accounting.closure.exception.GLClosureInvalidException.GL_CLOSURE_INVALID_REASON;
 import org.mifosplatform.accounting.closure.exception.GLClosureNotFoundException;
 import org.mifosplatform.accounting.closure.serialization.GLClosureCommandFromApiJsonDeserializer;
+import org.mifosplatform.accounting.closure.storeglaccountbalance.service.GLClosureJournalEntryBalanceWritePlatformService;
 import org.mifosplatform.accounting.glaccount.domain.GLAccount;
 import org.mifosplatform.accounting.glaccount.domain.GLAccountRepository;
 import org.mifosplatform.accounting.glaccount.exception.GLAccountNotFoundException;
@@ -61,32 +62,31 @@ public class GLClosureWritePlatformServiceJpaRepositoryImpl implements GLClosure
     private final OfficeRepository officeRepository;
     private final GLClosureCommandFromApiJsonDeserializer fromApiJsonDeserializer;
     private final GLAccountRepository glAccountRepository;
-    private final GLClosureReadPlatformService glClosureReadPlatformService;
     private final JournalEntryWritePlatformService journalEntryWritePlatformService;
     private final IncomeAndExpenseBookingRepository incomeAndExpenseBookingRepository;
     private final FromJsonHelper fromApiJsonHelper;
     private final IncomeAndExpenseReadPlatformService incomeAndExpenseReadPlatformService;
     private final OfficeReadPlatformService officeReadPlatformService;
-
-
+    private final GLClosureJournalEntryBalanceWritePlatformService glClosureJournalEntryBalanceWritePlatformService;
 
     @Autowired
     public GLClosureWritePlatformServiceJpaRepositoryImpl(final GLClosureRepository glClosureRepository,
             final OfficeRepository officeRepository, final GLClosureCommandFromApiJsonDeserializer fromApiJsonDeserializer,
-            final GLAccountRepository glAccountRepository,final GLClosureReadPlatformService glClosureReadPlatformService,
+            final GLAccountRepository glAccountRepository,
             final JournalEntryWritePlatformService journalEntryWritePlatformService, final IncomeAndExpenseBookingRepository incomeAndExpenseBookingRepository,
             final FromJsonHelper fromApiJsonHelper,final IncomeAndExpenseReadPlatformService incomeAndExpenseReadPlatformService,
-            final OfficeReadPlatformService officeReadPlatformService) {
+            final OfficeReadPlatformService officeReadPlatformService, 
+            final GLClosureJournalEntryBalanceWritePlatformService glClosureJournalEntryBalanceWritePlatformService) {
         this.glClosureRepository = glClosureRepository;
         this.officeRepository = officeRepository;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.glAccountRepository  = glAccountRepository;
-        this.glClosureReadPlatformService = glClosureReadPlatformService;
         this.journalEntryWritePlatformService = journalEntryWritePlatformService;
         this.incomeAndExpenseBookingRepository = incomeAndExpenseBookingRepository;
         this.fromApiJsonHelper = fromApiJsonHelper;
         this.incomeAndExpenseReadPlatformService = incomeAndExpenseReadPlatformService;
         this.officeReadPlatformService = officeReadPlatformService;
+        this.glClosureJournalEntryBalanceWritePlatformService = glClosureJournalEntryBalanceWritePlatformService;
     }
 
     @Transactional
@@ -160,27 +160,54 @@ public class GLClosureWritePlatformServiceJpaRepositoryImpl implements GLClosure
                         IncomeAndExpenseBooking incomeAndExpenseBooking = null;
                         if(transactionId !=null){incomeAndExpenseBooking = IncomeAndExpenseBooking.createNew(officeGlClosure.get(childOffice),transactionId,hierarchyOffice,false);}
                         this.glClosureRepository.saveAndFlush(officeGlClosure.get(childOffice));
+                        
+                        // store the running balance of the journal entry with entry_date equal to the closure closing
+                        // date per GL account for this new GLClosure entity
+                        this.glClosureJournalEntryBalanceWritePlatformService.storeJournalEntryRunningBalance(
+                                officeGlClosure.get(childOffice), incomeAndExpenseBooking);
+                        
                         if(incomeAndExpenseBooking != null){ this.incomeAndExpenseBookingRepository.saveAndFlush(incomeAndExpenseBooking);}
                     }
                 }else{
                     final List<IncomeAndExpenseJournalEntryData> incomeAndExpenseJournalEntryDataList = this.incomeAndExpenseReadPlatformService.retrieveAllIncomeAndExpenseJournalEntryData(officeId, incomeAndExpenseBookOffDate,closureCommand.getCurrencyCode());
                     String transactionId = this.bookOffIncomeAndExpense(incomeAndExpenseJournalEntryDataList,closureCommand,glAccount,office);
                     this.glClosureRepository.saveAndFlush(glClosure);
+                    
+                    IncomeAndExpenseBooking incomeAndExpenseBooking = null;
+                    
                     if(transactionId != null){
-                        final IncomeAndExpenseBooking incomeAndExpenseBooking = IncomeAndExpenseBooking.createNew(glClosure,transactionId,office,false);
+                        incomeAndExpenseBooking = IncomeAndExpenseBooking.createNew(glClosure,transactionId,office,false);
                         this.incomeAndExpenseBookingRepository.saveAndFlush(incomeAndExpenseBooking);
                     }
+                    
+                    // store the running balance of the journal entry with entry_date equal to the closure closing
+                    // date per GL account for this new GLClosure entity
+                    this.glClosureJournalEntryBalanceWritePlatformService.storeJournalEntryRunningBalance(
+                            glClosure, incomeAndExpenseBooking);
 
                 }
 
             }else{
-                this.glClosureRepository.saveAndFlush(glClosure);
                 /* save subBranches closure if parameter is passed and is true*/
                 if(closureCommand.getSubBranches() && childOfficesByHierarchy.size() > 0){
                     for(final Long childOffice : childOfficesByHierarchy){
                         final GLClosure subBranchesGlClosure = GLClosure.fromJson(this.officeRepository.findOne(childOffice), command);
                         this.glClosureRepository.saveAndFlush(subBranchesGlClosure);
+                        
+                        // store the running balance of the journal entry with entry_date equal to the closure closing
+                        // date per GL account for this new GLClosure entity
+                        this.glClosureJournalEntryBalanceWritePlatformService.storeJournalEntryRunningBalance(
+                                subBranchesGlClosure, null);
                     }
+                }
+                
+                else {
+                    this.glClosureRepository.saveAndFlush(glClosure);
+                    
+                    // store the running balance of the journal entry with entry_date equal to the closure closing
+                    // date per GL account for this new GLClosure entity
+                    this.glClosureJournalEntryBalanceWritePlatformService.storeJournalEntryRunningBalance(
+                            glClosure, null);
                 }
             }
 
@@ -240,6 +267,9 @@ public class GLClosureWritePlatformServiceJpaRepositoryImpl implements GLClosure
         }
 
         glClosure.updateDeleted(true);
+        
+        // delete all GL Closure account balances (if any) that were created for this closure
+        this.glClosureJournalEntryBalanceWritePlatformService.deleteJournalEntryRunningBalances(glClosure);
 
         return new CommandProcessingResultBuilder().withOfficeId(glClosure.getOffice().getId()).withEntityId(glClosure.getId()).build();
     }
