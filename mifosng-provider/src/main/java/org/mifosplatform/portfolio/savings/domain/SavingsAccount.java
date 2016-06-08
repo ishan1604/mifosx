@@ -452,7 +452,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
 
                     if(interestEarnedToBePosted.isGreaterThan(Money.zero(this.currency))) {
                         final SavingsAccountTransaction newPostingTransaction = SavingsAccountTransaction.interestPosting(this, office(),
-                                (isManualPosting ? interestPostingUpToDate : interestPostingTransactionDate), interestEarnedToBePosted);
+                                (isManualPosting && interestPostingTransactionDate.isAfter(interestPostingUpToDate) ? interestPostingUpToDate : interestPostingTransactionDate), interestEarnedToBePosted);
                         this.transactions.add(newPostingTransaction);
                         recalucateDailyBalanceDetails = true;
                     }
