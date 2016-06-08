@@ -19,15 +19,11 @@ import java.util.Collection;
  */
 public class GLClosureData {
 
-    @SuppressWarnings("unused")
     private final Long id;
-    @SuppressWarnings("unused")
     private final Long officeId;
     @SuppressWarnings("unused")
     private final String officeName;
-    @SuppressWarnings("unused")
     private final LocalDate closingDate;
-    @SuppressWarnings("unused")
     private final boolean deleted;
     @SuppressWarnings("unused")
     private final LocalDate createdDate;
@@ -68,6 +64,13 @@ public class GLClosureData {
         this.incomeAndExpenseBookingTransactionId = incomeAndExpenseBookingTransactionId;
     }
 
+    /**
+     * @return the id
+     */
+    public Long getId() {
+        return id;
+    }
+
     public final Collection<OfficeData> getAllowedOffices() {
         return this.allowedOffices;
     }
@@ -76,4 +79,24 @@ public class GLClosureData {
         this.allowedOffices = allowedOffices;
     }
 
+    /**
+     * @return the officeId
+     */
+    public Long getOfficeId() {
+        return officeId;
+    }
+
+    /**
+     * @return the closingDate
+     */
+    public LocalDate getClosingDate() {
+        return closingDate;
+    }
+
+    /**
+     * @return deleted
+     */
+    public boolean isDeleted() {
+        return this.deleted;
+    }
 }

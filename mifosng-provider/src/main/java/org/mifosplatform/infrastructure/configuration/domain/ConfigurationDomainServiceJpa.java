@@ -201,4 +201,10 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
         return property.isEnabled();
     }
 
+    @Override
+    public boolean storeJournalEntryBalanceAtPeriodClosure() {
+        final String propertyName = "store-journal-entry-balance-at-period-closure";
+        final GlobalConfigurationProperty property = this.globalConfigurationRepository.findOneByNameWithNotFoundDetection(propertyName);
+        return property.isEnabled();
+    }
 }
