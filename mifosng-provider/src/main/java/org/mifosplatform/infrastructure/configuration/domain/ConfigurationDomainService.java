@@ -46,4 +46,6 @@ public interface ConfigurationDomainService {
     boolean isMeetingMandatoryForJLGLoans();
 
     boolean isBackdatePenalties();
+    
+    boolean storeJournalEntryBalanceAtPeriodClosure();
 }
