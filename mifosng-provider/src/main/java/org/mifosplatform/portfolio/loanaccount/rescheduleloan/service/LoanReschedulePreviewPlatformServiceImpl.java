@@ -5,13 +5,6 @@
  */
 package org.mifosplatform.portfolio.loanaccount.rescheduleloan.service;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 import org.mifosplatform.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.mifosplatform.organisation.holiday.domain.Holiday;
 import org.mifosplatform.organisation.holiday.domain.HolidayRepository;
@@ -43,6 +36,13 @@ import org.mifosplatform.portfolio.loanproduct.domain.LoanProductMinimumRepaymen
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 @Service
 public class LoanReschedulePreviewPlatformServiceImpl implements LoanReschedulePreviewPlatformService {
@@ -90,7 +90,7 @@ public class LoanReschedulePreviewPlatformServiceImpl implements LoanRescheduleP
                 final ChargePaymentMode chargePaymentMode = ChargePaymentMode.fromInt(loanProductCharge.getChargePaymentMode());
                 
                 LoanCharge loanCharge = new LoanCharge(loan, loanProductCharge, loanPrincipal, chargeAmount, 
-                        chargeTimeType, chargeCalculationType, loanRescheduleRequest.getRescheduleFromDate(), chargePaymentMode, null, BigDecimal.ZERO);
+                        chargeTimeType, chargeCalculationType, loanRescheduleRequest.getRescheduleFromDate(), chargePaymentMode, null, BigDecimal.ZERO,null);
                 
                 loanChargeList.add(loanCharge);
             }

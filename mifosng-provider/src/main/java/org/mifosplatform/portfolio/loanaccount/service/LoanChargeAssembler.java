@@ -5,11 +5,9 @@
  */
 package org.mifosplatform.portfolio.loanaccount.service;
 
-import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
-
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.mifosplatform.portfolio.charge.domain.Charge;
@@ -21,12 +19,15 @@ import org.mifosplatform.portfolio.charge.exception.LoanChargeCannotBeAddedExcep
 import org.mifosplatform.portfolio.charge.exception.LoanChargeNotFoundException;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanCharge;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanChargeRepository;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
 @Service
 public class LoanChargeAssembler {
@@ -34,13 +35,15 @@ public class LoanChargeAssembler {
     private final FromJsonHelper fromApiJsonHelper;
     private final ChargeRepositoryWrapper chargeRepository;
     private final LoanChargeRepository loanChargeRepository;
+    private final LoanProductRepository loanProductRepository;
 
     @Autowired
     public LoanChargeAssembler(final FromJsonHelper fromApiJsonHelper, final ChargeRepositoryWrapper chargeRepository,
-            final LoanChargeRepository loanChargeRepository) {
+            final LoanChargeRepository loanChargeRepository,final LoanProductRepository loanProductRepository) {
         this.fromApiJsonHelper = fromApiJsonHelper;
         this.chargeRepository = chargeRepository;
         this.loanChargeRepository = loanChargeRepository;
+        this.loanProductRepository = loanProductRepository;
     }
 
     public Set<LoanCharge> fromParsedJson(final JsonElement element) {
@@ -49,6 +52,8 @@ public class LoanChargeAssembler {
 
         final BigDecimal principal = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed("principal", element);
         final Integer numberOfRepayments = this.fromApiJsonHelper.extractIntegerWithLocaleNamed("numberOfRepayments", element);
+
+        final Long productId = this.fromApiJsonHelper.extractLongNamed("productId",element);
 
         if (element.isJsonObject()) {
             final JsonObject topLevelJsonElement = element.getAsJsonObject();
@@ -97,8 +102,13 @@ public class LoanChargeAssembler {
                         if (chargePaymentMode != null) {
                             chargePaymentModeEnum = ChargePaymentMode.fromInt(chargePaymentMode);
                         }
+                        LoanProduct loanProduct = null;
+                        if(productId != null){
+                            loanProduct = this.loanProductRepository.findOne(productId);
+                        }
+
                         final LoanCharge loanCharge = LoanCharge.createNewWithoutLoan(chargeDefinition, principal, amount, chargeTime,
-                                chargeCalculation, dueDate, chargePaymentModeEnum, numberOfRepayments);
+                                chargeCalculation, dueDate, chargePaymentModeEnum, numberOfRepayments,loanProduct);
                         loanCharges.add(loanCharge);
                     } else {
                         final Long loanChargeId = id;

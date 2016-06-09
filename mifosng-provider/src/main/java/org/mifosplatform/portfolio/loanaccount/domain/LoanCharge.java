@@ -44,6 +44,7 @@ import org.mifosplatform.portfolio.charge.domain.ChargeTimeType;
 import org.mifosplatform.portfolio.charge.exception.LoanChargeWithoutMandatoryFieldException;
 import org.mifosplatform.portfolio.loanaccount.command.LoanChargeCommand;
 import org.mifosplatform.portfolio.loanaccount.data.LoanChargePaidDetail;
+import org.mifosplatform.portfolio.loanproduct.domain.LoanProduct;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 
 @Entity
@@ -183,7 +184,7 @@ public class LoanCharge extends AbstractPersistable<Long> {
         }
 
         return new LoanCharge(loan, chargeDefinition, amountPercentageAppliedTo, amount, chargeTime, chargeCalculation, dueDate,
-                chargePaymentMode, null, loanCharge);
+                chargePaymentMode, null, loanCharge,null);
     }
 
     /*
@@ -191,9 +192,9 @@ public class LoanCharge extends AbstractPersistable<Long> {
      */
     public static LoanCharge createNewWithoutLoan(final Charge chargeDefinition, final BigDecimal loanPrincipal, final BigDecimal amount,
             final ChargeTimeType chargeTime, final ChargeCalculationType chargeCalculation, final LocalDate dueDate,
-            final ChargePaymentMode chargePaymentMode, final Integer numberOfRepayments) {
+            final ChargePaymentMode chargePaymentMode, final Integer numberOfRepayments,final LoanProduct loanProduct) {
         return new LoanCharge(null, chargeDefinition, loanPrincipal, amount, chargeTime, chargeCalculation, dueDate, chargePaymentMode,
-                numberOfRepayments, BigDecimal.ZERO);
+                numberOfRepayments, BigDecimal.ZERO,loanProduct);
     }
 
     protected LoanCharge() {
@@ -202,7 +203,8 @@ public class LoanCharge extends AbstractPersistable<Long> {
 
     public LoanCharge(final Loan loan, final Charge chargeDefinition, final BigDecimal loanPrincipal, final BigDecimal amount,
             final ChargeTimeType chargeTime, final ChargeCalculationType chargeCalculation, final LocalDate dueDate,
-            final ChargePaymentMode chargePaymentMode, final Integer numberOfRepayments, final BigDecimal loanCharge) {
+            final ChargePaymentMode chargePaymentMode, final Integer numberOfRepayments, final BigDecimal loanCharge,
+            final LoanProduct loanProduct) {
         this.loan = loan;
         this.charge = chargeDefinition;
         this.penaltyCharge = chargeDefinition.isPenalty();
@@ -237,6 +239,14 @@ public class LoanCharge extends AbstractPersistable<Long> {
         BigDecimal chargeAmount = chargeDefinition.getAmount();
         if (amount != null) {
             chargeAmount = amount;
+        }
+        if(loan !=null) {
+            //round charge amount using the curr
+            Money roundAmount = Money.of(loan.getCurrency(), chargeAmount);
+            chargeAmount = roundAmount.getAmount();
+        }else if(loanProduct !=null){
+            Money roundAmount  = Money.of(loanProduct.getCurrency(),chargeAmount);
+            chargeAmount = roundAmount.getAmount();
         }
 
         this.chargePaymentMode = chargeDefinition.getChargePaymentMode();
