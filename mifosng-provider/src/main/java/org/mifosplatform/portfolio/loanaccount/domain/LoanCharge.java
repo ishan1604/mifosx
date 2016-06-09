@@ -178,7 +178,6 @@ public class LoanCharge extends AbstractPersistable<Long> {
             if (percentage == null) {
                 percentage = chargeDefinition.getAmount();
             }
-
             loanCharge = loan.calculatePerInstallmentChargeAmount(ChargeCalculationType.fromInt(chargeDefinition.getChargeCalculation()),
                     percentage);
         }
@@ -239,9 +238,6 @@ public class LoanCharge extends AbstractPersistable<Long> {
         if (amount != null) {
             chargeAmount = amount;
         }
-        //round charge amount using the curr
-        Money roundAmount  = Money.of(loan.getCurrency(),chargeAmount);
-        chargeAmount = roundAmount.getAmount();
 
         this.chargePaymentMode = chargeDefinition.getChargePaymentMode();
         if (chargePaymentMode != null) {
