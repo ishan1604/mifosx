@@ -623,7 +623,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                 final ChargePaymentMode chargePaymentMode = ChargePaymentMode.fromInt(loanProductCharge.getChargePaymentMode());
                 
                 LoanCharge loanCharge = new LoanCharge(loan, loanProductCharge, loanPrincipal, chargeAmount, 
-                        chargeTimeType, chargeCalculationType, instalmentDueDate, chargePaymentMode, numberOfRepayments, BigDecimal.ZERO);
+                        chargeTimeType, chargeCalculationType, instalmentDueDate, chargePaymentMode, numberOfRepayments, BigDecimal.ZERO,null);
                 
                 // add the loan charge to the loan
                 this.loanWritePlatformService.addLoanCharge(loan, loanProductCharge, loanCharge);
