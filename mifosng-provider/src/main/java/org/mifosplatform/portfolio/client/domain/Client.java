@@ -107,6 +107,9 @@ public final class Client extends AbstractPersistable<Long> {
     @Column(name = "mobile_no", length = 50, nullable = false, unique = true)
     private String mobileNo;
 
+    @Column(name = "email_address", length = 50, unique = true)
+    private String emailAddress;
+
     @Column(name = "external_id", length = 100, nullable = true, unique = true)
     private String externalId;
 
@@ -696,6 +699,14 @@ public final class Client extends AbstractPersistable<Long> {
 
     public void setMobileNo(final String mobileNo) {
         this.mobileNo = mobileNo;
+    }
+
+    public String emailAddress() {
+        return this.emailAddress;
+    }
+
+    public void setEmailAddress(final String emailAddress) {
+        this.emailAddress = emailAddress;
     }
 
     public String getDisplayName() {
