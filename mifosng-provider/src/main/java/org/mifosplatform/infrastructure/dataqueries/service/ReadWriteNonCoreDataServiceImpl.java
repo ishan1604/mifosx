@@ -2112,9 +2112,13 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
                 if(columnHeader.isCheckboxColumnType()){
 
-                    final String[] codeValuesParams = paramValue.split(",");
+                    String[] codeValueParams = {paramValue};
 
-                    for (final String val : codeValuesParams ){
+                    if(paramValue.contains(",")) {
+                        String[] codeValuesParams = paramValue.split(",");
+                    }
+
+                    for (final String val : codeValueParams ){
 
                         final Integer codeLookup = Integer.valueOf(val);
 
