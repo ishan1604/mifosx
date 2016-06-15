@@ -74,6 +74,7 @@ public class CommandStrategyProvider {
     private void init() {
         this.commandStrategies.put(CommandContext.resource("clients").method("POST").build(), "createClientCommandStrategy");
         this.commandStrategies.put(CommandContext.resource("clients\\/\\d+").method("PUT").build(), "updateClientCommandStrategy");
+        this.commandStrategies.put(CommandContext.resource("clients\\/\\d+\\/identifiers").method("POST").build(), "createClientIdentifierCommandStrategy");
         this.commandStrategies.put(CommandContext.resource("loans").method("POST").build(), "applyLoanCommandStrategy");
         this.commandStrategies.put(CommandContext.resource("savingsaccounts").method("POST").build(), "applySavingsCommandStrategy");
         this.commandStrategies.put(CommandContext.resource("loans\\/\\d+\\/charges").method("POST").build(), "createChargeCommandStrategy");
@@ -85,6 +86,8 @@ public class CommandStrategyProvider {
                 "approveLoanCommandStrategy");
         this.commandStrategies.put(CommandContext.resource("loans\\/\\d+\\?command=disburse").method("POST").build(),
                 "disburseLoanCommandStrategy");
+        this.commandStrategies.put(CommandContext.resource("datatables\\/\\w+\\/\\d+").method("POST").build(), "createDatatableEntryCommandStrategy");
+
     }
 
 }
