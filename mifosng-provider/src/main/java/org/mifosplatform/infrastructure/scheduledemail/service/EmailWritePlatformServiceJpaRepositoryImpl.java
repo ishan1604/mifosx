@@ -44,7 +44,7 @@ public class EmailWritePlatformServiceJpaRepositoryImpl implements EmailWritePla
     public CommandProcessingResult create(final JsonCommand command) {
 
         try {
-            this.validator.validateForCreate(command.json());
+            this.validator.validateCreateRequest(command);
 
             final EmailMessage message = this.assembler.assembleFromJson(command);
 
@@ -70,7 +70,7 @@ public class EmailWritePlatformServiceJpaRepositoryImpl implements EmailWritePla
     public CommandProcessingResult update(final Long resourceId, final JsonCommand command) {
 
         try {
-            this.validator.validateForUpdate(command.json());
+            this.validator.validateUpdateRequest(command);
 
             final EmailMessage message = this.assembler.assembleFromResourceId(resourceId);
             final Map<String, Object> changes = message.update(command);

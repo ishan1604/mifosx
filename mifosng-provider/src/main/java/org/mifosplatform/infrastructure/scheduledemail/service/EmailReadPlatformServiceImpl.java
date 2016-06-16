@@ -48,18 +48,19 @@ public class EmailReadPlatformServiceImpl implements EmailReadPlatformService {
 
         public EmailMapper() {
             final StringBuilder sql = new StringBuilder(300);
-            sql.append(" smo.id as id, ");
-            sql.append("smo.external_id as externalId, ");
-            sql.append("smo.group_id as groupId, ");
-            sql.append("smo.client_id as clientId, ");
-            sql.append("smo.staff_id as staffId, ");
-            sql.append("smo.campaign_name as campaignName, ");
-            sql.append("smo.status_enum as statusId, ");
-            sql.append("smo.source_address as sourceAddress, ");
-            sql.append("smo.email_address as emailAddress, ");
-            sql.append("smo.submittedon_date as sentDate, ");
-            sql.append("smo.message as message ");
-            sql.append("from " + tableName() + " smo");
+            sql.append(" emo.id as id, ");
+            sql.append("emo.external_id as externalId, ");
+            sql.append("emo.group_id as groupId, ");
+            sql.append("emo.client_id as clientId, ");
+            sql.append("emo.staff_id as staffId, ");
+            sql.append("emo.campaign_name as campaignName, ");
+            sql.append("emo.status_enum as statusId, ");
+            sql.append("emo.source_address as sourceAddress, ");
+            sql.append("emo.email_address as emailAddress, ");
+            sql.append("emo.submittedon_date as sentDate, ");
+            sql.append("emo.email_subject as emailSubject, ");
+            sql.append("emo.message as message ");
+            sql.append("from " + tableName() + " emo");
 
             this.schema = sql.toString();
         }
@@ -83,6 +84,7 @@ public class EmailReadPlatformServiceImpl implements EmailReadPlatformService {
 
             final String sourceAddress = rs.getString("sourceAddress");
             final String emailAddress = rs.getString("emailAddress");
+            final String emailSubject = rs.getString("emailSubject");
             final String message = rs.getString("message");
             final String campaignName = rs.getString("campaignName");
 
@@ -91,7 +93,8 @@ public class EmailReadPlatformServiceImpl implements EmailReadPlatformService {
 
             final EnumOptionData status = EmailMessageEnumerations.status(statusId);
 
-            return EmailData.instance(id, externalId, groupId, clientId, staffId, status, sourceAddress, emailAddress, message,campaignName,sentDate);
+            return EmailData.instance(id, externalId, groupId, clientId, staffId, status, sourceAddress, emailAddress, emailSubject,
+                    message,null,null,null,null,null,campaignName,sentDate);
         }
     }
 
@@ -106,7 +109,7 @@ public class EmailReadPlatformServiceImpl implements EmailReadPlatformService {
     @Override
     public EmailData retrieveOne(final Long resourceId) {
         try {
-            final String sql = "select " + this.emailRowMapper.schema() + " where smo.id = ?";
+            final String sql = "select " + this.emailRowMapper.schema() + " where emo.id = ?";
 
             return this.jdbcTemplate.queryForObject(sql, this.emailRowMapper, resourceId);
         } catch (final EmptyResultDataAccessException e) {
@@ -117,7 +120,7 @@ public class EmailReadPlatformServiceImpl implements EmailReadPlatformService {
     @Override
 	public Collection<EmailData> retrieveAllPending(final Integer limit) {
     	final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : "";
-    	final String sql = "select " + this.emailRowMapper.schema() + " where smo.status_enum = "
+    	final String sql = "select " + this.emailRowMapper.schema() + " where emo.status_enum = "
     			+ EmailMessageStatusType.PENDING.getValue() + sqlPlusLimit;
 
         return this.jdbcTemplate.query(sql, this.emailRowMapper, new Object[] {});
@@ -126,7 +129,7 @@ public class EmailReadPlatformServiceImpl implements EmailReadPlatformService {
 	@Override
 	public Collection<EmailData> retrieveAllSent(final Integer limit) {
 		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : "";
-    	final String sql = "select " + this.emailRowMapper.schema() + " where smo.status_enum = "
+    	final String sql = "select " + this.emailRowMapper.schema() + " where emo.status_enum = "
     			+ EmailMessageStatusType.SENT.getValue() + sqlPlusLimit;
 
         return this.jdbcTemplate.query(sql, this.emailRowMapper, new Object[] {});
@@ -144,7 +147,7 @@ public class EmailReadPlatformServiceImpl implements EmailReadPlatformService {
     @Override
     public Collection<EmailData> retrieveAllDelivered(final Integer limit) {
         final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : "";
-        final String sql = "select " + this.emailRowMapper.schema() + " where smo.status_enum = "
+        final String sql = "select " + this.emailRowMapper.schema() + " where emo.status_enum = "
                 + EmailMessageStatusType.DELIVERED.getValue() + sqlPlusLimit;
 
         return this.jdbcTemplate.query(sql, this.emailRowMapper, new Object[] {});
@@ -153,7 +156,7 @@ public class EmailReadPlatformServiceImpl implements EmailReadPlatformService {
 	@Override
 	public Collection<EmailData> retrieveAllFailed(final Integer limit) {
 		final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : "";
-        final String sql = "select " + this.emailRowMapper.schema() + " where smo.status_enum = "
+        final String sql = "select " + this.emailRowMapper.schema() + " where emo.status_enum = "
                 + EmailMessageStatusType.FAILED.getValue() + sqlPlusLimit;
 
         return this.jdbcTemplate.query(sql, this.emailRowMapper, new Object[] {});
@@ -165,7 +168,7 @@ public class EmailReadPlatformServiceImpl implements EmailReadPlatformService {
         sqlBuilder.append("select SQL_CALC_FOUND_ROWS ");
         sqlBuilder.append(this.emailRowMapper.schema());
         if(status !=null){
-            sqlBuilder.append(" where smo.status_enum= ? ");
+            sqlBuilder.append(" where emo.status_enum= ? ");
         }
         String fromDateString = null;
         String toDateString = null;
@@ -173,7 +176,7 @@ public class EmailReadPlatformServiceImpl implements EmailReadPlatformService {
             final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
             fromDateString = df.format(dateFrom);
             toDateString  = df.format(dateTo);
-            sqlBuilder.append(" and smo.submittedon_date >= ? and smo.submittedon_date <= ? ");
+            sqlBuilder.append(" and emo.submittedon_date >= ? and emo.submittedon_date <= ? ");
         }
         final String sqlPlusLimit = (limit > 0) ? " limit 0, " + limit : "";
         if(!sqlPlusLimit.isEmpty()){

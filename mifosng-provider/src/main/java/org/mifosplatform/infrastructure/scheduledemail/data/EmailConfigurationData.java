@@ -32,11 +32,23 @@ public class EmailConfigurationData {
 		this.value = value;
 	}
 
+	/**
+	 * @return the id
+	 */
+	public Long getId() {
+		return id;
+	}
+
 	public String getName() {
 		return name;
 	}
 
 	public String getValue() {
 		return value;
+	}
+
+	@Override
+	public String toString() {
+		return "EmailConfigurationData [id=" + id + ", name=" + name + ", value=" + value + "]";
 	}
 }

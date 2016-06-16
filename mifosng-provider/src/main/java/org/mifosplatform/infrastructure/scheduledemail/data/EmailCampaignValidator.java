@@ -29,9 +29,11 @@ public class EmailCampaignValidator {
     public static final String RESOURCE_NAME = "scheduledemail";
     public static final String campaignName  = "campaignName";
     public static final String campaignType = "campaignType";
-    public static final String runReportId = "runReportId";
+    public static final String businessRuleId = "businessRuleId";
+    public static final String reportId = "reportId";
     public static final String paramValue = "paramValue";
-    public static final String message   = "message";
+    public static final String emailSubject = "emailSubject";
+    public static final String emailMessage   = "emailMessage";
     public static final String activationDateParamName = "activationDate";
     public static final String recurrenceStartDate = "recurrenceStartDate";
     public static final String submittedOnDateParamName = "submittedOnDate";
@@ -47,10 +49,10 @@ public class EmailCampaignValidator {
 
 
     public static final Set<String> supportedParams = new HashSet<String>(Arrays.asList(campaignName, campaignType,localeParamName,dateFormatParamName,
-            runReportId,paramValue,message,recurrenceStartDate,activationDateParamName,submittedOnDateParamName,closureDateParamName,recurrenceParamName));
+            businessRuleId,paramValue,emailMessage,recurrenceStartDate,activationDateParamName,submittedOnDateParamName,closureDateParamName,recurrenceParamName));
 
     public static final Set<String> supportedParamsForUpdate = new HashSet<>(Arrays.asList(campaignName, campaignType,localeParamName,dateFormatParamName,
-            runReportId,paramValue,message,recurrenceStartDate,activationDateParamName,recurrenceParamName));
+            businessRuleId,paramValue,emailMessage,recurrenceStartDate,activationDateParamName,recurrenceParamName));
 
     public static final Set<String> ACTIVATION_REQUEST_DATA_PARAMETERS = new HashSet<String>(Arrays.asList(localeParamName,
             dateFormatParamName, activationDateParamName));
@@ -58,7 +60,7 @@ public class EmailCampaignValidator {
     public static final Set<String> CLOSE_REQUEST_DATA_PARAMETERS = new HashSet<String>(Arrays.asList(localeParamName,
             dateFormatParamName, closureDateParamName));
 
-    public static final Set<String> PREVIEW_REQUEST_DATA_PARAMETERS= new HashSet<String>(Arrays.asList(paramValue,message));
+    public static final Set<String> PREVIEW_REQUEST_DATA_PARAMETERS= new HashSet<String>(Arrays.asList(paramValue,emailMessage));
 
     @Autowired
     public EmailCampaignValidator(FromJsonHelper fromApiJsonHelper) {
@@ -94,11 +96,11 @@ public class EmailCampaignValidator {
             baseDataValidator.reset().parameter(EmailCampaignValidator.recurrenceStartDate).value(recurrenceStartDate).notBlank();
         }
 
-        final Long runReportId = this.fromApiJsonHelper.extractLongNamed(EmailCampaignValidator.runReportId,element);
-        baseDataValidator.reset().parameter(EmailCampaignValidator.runReportId).value(runReportId).notNull().integerGreaterThanZero();
+        final Long runReportId = this.fromApiJsonHelper.extractLongNamed(EmailCampaignValidator.businessRuleId,element);
+        baseDataValidator.reset().parameter(EmailCampaignValidator.businessRuleId).value(runReportId).notNull().integerGreaterThanZero();
 
-        final String message = this.fromApiJsonHelper.extractStringNamed(EmailCampaignValidator.message, element);
-        baseDataValidator.reset().parameter(EmailCampaignValidator.message).value(message).notBlank().notExceedingLengthOf(480);
+        final String message = this.fromApiJsonHelper.extractStringNamed(EmailCampaignValidator.emailMessage, element);
+        baseDataValidator.reset().parameter(EmailCampaignValidator.emailMessage).value(message).notBlank().notExceedingLengthOf(480);
 
         final String paramValue = this.fromApiJsonHelper.extractStringNamed(EmailCampaignValidator.paramValue, element);
         baseDataValidator.reset().parameter(EmailCampaignValidator.paramValue).value(paramValue).notBlank();
@@ -143,11 +145,11 @@ public class EmailCampaignValidator {
             baseDataValidator.reset().parameter(EmailCampaignValidator.recurrenceStartDate).value(recurrenceStartDate).notBlank();
         }
 
-        final Long runReportId = this.fromApiJsonHelper.extractLongNamed(EmailCampaignValidator.runReportId,element);
-        baseDataValidator.reset().parameter(EmailCampaignValidator.runReportId).value(runReportId).notNull().integerGreaterThanZero();
+        final Long runReportId = this.fromApiJsonHelper.extractLongNamed(EmailCampaignValidator.businessRuleId,element);
+        baseDataValidator.reset().parameter(EmailCampaignValidator.businessRuleId).value(runReportId).notNull().integerGreaterThanZero();
 
-        final String message = this.fromApiJsonHelper.extractStringNamed(EmailCampaignValidator.message, element);
-        baseDataValidator.reset().parameter(EmailCampaignValidator.message).value(message).notBlank().notExceedingLengthOf(480);
+        final String message = this.fromApiJsonHelper.extractStringNamed(EmailCampaignValidator.emailMessage, element);
+        baseDataValidator.reset().parameter(EmailCampaignValidator.emailMessage).value(message).notBlank().notExceedingLengthOf(480);
 
         final String paramValue = this.fromApiJsonHelper.extractStringNamed(EmailCampaignValidator.paramValue, element);
         baseDataValidator.reset().parameter(EmailCampaignValidator.paramValue).value(paramValue).notBlank();
@@ -171,8 +173,8 @@ public class EmailCampaignValidator {
         final String paramValue = this.fromApiJsonHelper.extractStringNamed(EmailCampaignValidator.paramValue, element);
         baseDataValidator.reset().parameter(EmailCampaignValidator.paramValue).value(paramValue).notBlank();
 
-        final String message = this.fromApiJsonHelper.extractStringNamed(EmailCampaignValidator.message, element);
-        baseDataValidator.reset().parameter(EmailCampaignValidator.message).value(message).notBlank().notExceedingLengthOf(480);
+        final String message = this.fromApiJsonHelper.extractStringNamed(EmailCampaignValidator.emailMessage, element);
+        baseDataValidator.reset().parameter(EmailCampaignValidator.emailMessage).value(message).notBlank().notExceedingLengthOf(480);
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
 

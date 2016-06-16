@@ -66,8 +66,9 @@ public class EmailMessageAssembler {
         }
 
         final String message = this.fromApiJsonHelper.extractStringNamed(EmailApiConstants.messageParamName, element);
+        final String emailSubject = this.fromApiJsonHelper.extractStringNamed(EmailApiConstants.subjectParamName, element);
 
-        return EmailMessage.pendingEmail(null, group, client, staff, message, null, emailAddress,null);
+        return EmailMessage.pendingEmail(null, group, client, staff, emailSubject, message, null, emailAddress,null);
     }
 
     public EmailMessage assembleFromResourceId(final Long resourceId) {

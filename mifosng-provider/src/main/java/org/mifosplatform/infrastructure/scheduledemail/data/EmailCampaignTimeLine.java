@@ -10,11 +10,8 @@ import org.joda.time.LocalDate;
 public class EmailCampaignTimeLine {
     private final LocalDate submittedOnDate;
     private final String submittedByUsername;
-
     private final LocalDate activatedOnDate;
     private final String activatedByUsername;
-
-
     private final LocalDate closedOnDate;
     private final String closedByUsername;
 

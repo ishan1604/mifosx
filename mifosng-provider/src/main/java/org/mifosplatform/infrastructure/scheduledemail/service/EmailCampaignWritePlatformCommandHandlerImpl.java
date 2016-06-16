@@ -115,14 +115,21 @@ public class EmailCampaignWritePlatformCommandHandlerImpl implements EmailCampai
 
         this.emailCampaignValidator.validateCreate(command.json());
 
-        final Long runReportId = command.longValueOfParameterNamed(EmailCampaignValidator.runReportId);
+        final Long businessRuleId = command.longValueOfParameterNamed(EmailCampaignValidator.businessRuleId);
 
-        final Report report  = this.reportRepository.findOne(runReportId);
-        if(report == null){
-            throw new ReportNotFoundException(runReportId);
+        final Report businessRule  = this.reportRepository.findOne(businessRuleId);
+        if(businessRule == null){
+            throw new ReportNotFoundException(businessRuleId);
         }
 
-        EmailCampaign emailCampaign = EmailCampaign.instance(currentUser,report,command);
+        final Long reportId = command.longValueOfParameterNamed(EmailCampaignValidator.reportId);
+
+        final Report report  = this.reportRepository.findOne(reportId);
+        if(report == null){
+            throw new ReportNotFoundException(reportId);
+        }
+
+        EmailCampaign emailCampaign = EmailCampaign.instance(currentUser,businessRule,report,command);
 
         this.emailCampaignRepository.save(emailCampaign);
 
@@ -144,8 +151,8 @@ public class EmailCampaignWritePlatformCommandHandlerImpl implements EmailCampai
             if(emailCampaign.isActive()){ throw new EmailCampaignMustBeClosedToEditException(emailCampaign.getId());}
             final Map<String, Object> changes = emailCampaign.update(command);
 
-            if(changes.containsKey(EmailCampaignValidator.runReportId)){
-                final Long newValue = command.longValueOfParameterNamed(EmailCampaignValidator.runReportId);
+            if(changes.containsKey(EmailCampaignValidator.businessRuleId)){
+                final Long newValue = command.longValueOfParameterNamed(EmailCampaignValidator.businessRuleId);
                 final Report reportId = this.reportRepository.findOne(newValue);
                 if(reportId == null){ throw new ReportNotFoundException(newValue);}
                 emailCampaign.updateBusinessRuleId(reportId);
@@ -189,7 +196,7 @@ public class EmailCampaignWritePlatformCommandHandlerImpl implements EmailCampai
 
 
     private void insertDirectCampaignIntoEmailOutboundTable(final String emailParams,
-                                                          final String textMessageTemplate,final String campaignName){
+                                                          final String messageTemplate,final String campaignName){
         try{
             HashMap<String,String> campaignParams = new ObjectMapper().readValue(emailParams, new TypeReference<HashMap<String,String>>(){});
 
@@ -199,13 +206,14 @@ public class EmailCampaignWritePlatformCommandHandlerImpl implements EmailCampai
 
             if(runReportObject !=null){
                 for(HashMap<String,Object> entry : runReportObject){
-                    String textMessage = this.compileEmailTemplate(textMessageTemplate, campaignName, entry);
+                    String message = this.compileEmailTemplate(messageTemplate, campaignName, entry);
                     Integer clientId = (Integer)entry.get("id");
                     Object emailAddress = entry.get("emailAddress");
+                    String emailSubject = (String)entry.get("emailSubject");
 
                     Client client =  this.clientRepository.findOne(clientId.longValue());
                     if(emailAddress !=null) {
-                        EmailMessage emailMessage = EmailMessage.pendingEmail(null,null,client,null,textMessage,null,emailAddress.toString(),campaignName);
+                        EmailMessage emailMessage = EmailMessage.pendingEmail(null,null,client,null,emailSubject,message,null,emailAddress.toString(),campaignName);
                         this.emailMessageRepository.save(emailMessage);
                     }
                 }
@@ -284,7 +292,7 @@ public class EmailCampaignWritePlatformCommandHandlerImpl implements EmailCampai
         this.emailCampaignRepository.saveAndFlush(emailCampaign);
 
         if(emailCampaign.isDirect()){
-            insertDirectCampaignIntoEmailOutboundTable(emailCampaign.getParamValue(),emailCampaign.getMessage(),emailCampaign.getCampaignName());
+            insertDirectCampaignIntoEmailOutboundTable(emailCampaign.getParamValue(),emailCampaign.getEmailMessage(),emailCampaign.getCampaignName());
         }else {
             if (emailCampaign.isSchedule()) {
 

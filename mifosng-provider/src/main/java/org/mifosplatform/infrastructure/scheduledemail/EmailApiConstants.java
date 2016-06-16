@@ -22,7 +22,8 @@ public class EmailApiConstants {
     public static final String groupIdParamName = "groupId";
     public static final String clientIdParamName = "clientId";
     public static final String staffIdParamName = "staffId";
-    public static final String messageParamName = "message";
+    public static final String subjectParamName = "emailSubject";
+    public static final String messageParamName = "emailMessage";
 
     // response parameters
     public static final String statusParamName = "status";

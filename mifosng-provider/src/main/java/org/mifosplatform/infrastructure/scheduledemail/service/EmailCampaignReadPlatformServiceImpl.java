@@ -10,6 +10,8 @@ import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
 import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
+import org.mifosplatform.infrastructure.dataqueries.data.ReportData;
+import org.mifosplatform.infrastructure.scheduledemail.data.ScheduledEmailEnumerations;
 import org.mifosplatform.infrastructure.scheduledemail.exception.EmailBusinessRuleNotFound;
 import org.mifosplatform.infrastructure.scheduledemail.exception.EmailCampaignNotFound;
 import org.mifosplatform.infrastructure.scheduledemail.data.EmailBusinessRulesData;
@@ -54,27 +56,35 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
 
         private EmailCampaignMapper() {
             final StringBuilder sql = new StringBuilder(400);
-            sql.append("sc.id as id, ");
-            sql.append("sc.campaign_name as campaignName, ");
-            sql.append("sc.campaign_type as campaignType, ");
-            sql.append("sc.runReport_id as runReportId, ");
-            sql.append("sc.message as message, ");
-            sql.append("sc.param_value as paramValue, ");
-            sql.append("sc.status_enum as status, ");
-            sql.append("sc.recurrence as recurrence, ");
-            sql.append("sc.recurrence_start_date as recurrenceStartDate, ");
-            sql.append("sc.next_trigger_date as nextTriggerDate, ");
-            sql.append("sc.last_trigger_date as lastTriggerDate, ");
-            sql.append("sc.submittedon_date as submittedOnDate, ");
+            sql.append("ec.id as id, ");
+            sql.append("ec.campaign_name as campaignName, ");
+            sql.append("ec.campaign_type as campaignType, ");
+            sql.append("ec.businessReportId_id as businessReportId, ");
+            sql.append("ec.email_subject as emailSubject, ");
+            sql.append("ec.email_message as emailMessage, ");
+            sql.append("ec.email_attachment_file_format as emailAttachmentFileFormat, ");
+            sql.append("sr.id as stretchyReportId, ");
+            sql.append("sr.report_name as reportName, sr.report_type as reportType, sr.report_subtype as reportSubType, ");
+            sql.append("sr.report_category as reportCategory, sr.report_sql as reportSql, sr.description as reportDescription, ");
+            sql.append("sr.core_report as coreReport, sr.use_report as useReport ");
+            sql.append("ec.stretchy_report_param_map as stretchyReportParamMap, ");
+            sql.append("ec.param_value as paramValue, ");
+            sql.append("ec.status_enum as status, ");
+            sql.append("ec.recurrence as recurrence, ");
+            sql.append("ec.recurrence_start_date as recurrenceStartDate, ");
+            sql.append("ec.next_trigger_date as nextTriggerDate, ");
+            sql.append("ec.last_trigger_date as lastTriggerDate, ");
+            sql.append("ec.submittedon_date as submittedOnDate, ");
             sql.append("sbu.username as submittedByUsername, ");
-            sql.append("sc.closedon_date as closedOnDate, ");
+            sql.append("ec.closedon_date as closedOnDate, ");
             sql.append("clu.username as closedByUsername, ");
             sql.append("acu.username as activatedByUsername, ");
-            sql.append("sc.approvedon_date as activatedOnDate ");
-            sql.append("from email_campaign sc ");
-            sql.append("left join m_appuser sbu on sbu.id = sc.submittedon_userid ");
-            sql.append("left join m_appuser acu on acu.id = sc.approvedon_userid ");
-            sql.append("left join m_appuser clu on clu.id = sc.closedon_userid ");
+            sql.append("ec.approvedon_date as activatedOnDate ");
+            sql.append("from email_campaign ec ");
+            sql.append("left join m_appuser sbu on sbu.id = ec.submittedon_userid ");
+            sql.append("left join m_appuser acu on acu.id = ec.approvedon_userid ");
+            sql.append("left join m_appuser clu on clu.id = ec.closedon_userid ");
+            sql.append("left join stretchy_report sr on ec.stretchy_report_id = sr.id");
 
             this.schema = sql.toString();
         }
@@ -87,9 +97,28 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
             final Long id = JdbcSupport.getLong(rs, "id");
             final String campaignName = rs.getString("campaignName");
             final Integer campaignType = JdbcSupport.getInteger(rs, "campaignType");
-            final Long runReportId = JdbcSupport.getLong(rs, "runReportId");
+            final Long businessRuleId = JdbcSupport.getLong(rs, "businessRuleId");
             final String paramValue = rs.getString("paramValue");
-            final String message  = rs.getString("message");
+            final String emailSubject = rs.getString("emailSubject");
+            final String emailMessage = rs.getString("emailMessage");
+            final String emailAttachmentFileFormatString = rs.getString("emailAttachmentFileFormat");
+            final String stretchyReportParamMap = rs.getString("stretchyReportParamMap");
+            EnumOptionData emailAttachmentFileFormat = null;
+            if (emailAttachmentFileFormatString != null) {
+                emailAttachmentFileFormat = ScheduledEmailEnumerations.emailAttachementFileFormat(emailAttachmentFileFormatString);
+            }
+            final Long reportId = JdbcSupport.getLong(rs, "stretchyReportId");
+            final String reportName = rs.getString("reportName");
+            final String reportType = rs.getString("reportType");
+            final String reportSubType = rs.getString("reportSubType");
+            final String reportCategory = rs.getString("reportCategory");
+            final String reportSql = rs.getString("reportSql");
+            final String reportDescription = rs.getString("reportDescription");
+            final boolean coreReport = rs.getBoolean("coreReport");
+            final boolean useReport = rs.getBoolean("useReport");
+
+            final ReportData stretchyReport = new ReportData(reportId, reportName, reportType, reportSubType, reportCategory,
+                    reportDescription, reportSql, coreReport, useReport, null);
 
             final Integer statusId = JdbcSupport.getInteger(rs, "status");
             final EnumOptionData status = EmailCampaignStatusEnumerations.status(statusId);
@@ -113,7 +142,8 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
 
 
 
-            return EmailCampaignData.instance(id,campaignName,campaignType,runReportId,paramValue,status,message,nextTriggerDate,lastTriggerDate,emailCampaignTimeLine,
+            return EmailCampaignData.instance(id,campaignName,campaignType,businessRuleId,paramValue,status,emailSubject,emailMessage,
+                    emailAttachmentFileFormatString,reportId,stretchyReportParamMap,nextTriggerDate,lastTriggerDate,emailCampaignTimeLine,
                     recurrenceStartDate,recurrence);
         }
     }

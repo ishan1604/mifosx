@@ -16,6 +16,7 @@ import org.mifosplatform.infrastructure.core.data.ApiParameterError;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.infrastructure.dataqueries.domain.Report;
+import org.mifosplatform.infrastructure.scheduledemail.ScheduledEmailConstants;
 import org.mifosplatform.infrastructure.scheduledemail.data.EmailCampaignValidator;
 import org.mifosplatform.portfolio.client.api.ClientApiConstants;
 import org.mifosplatform.useradministration.domain.AppUser;
@@ -35,7 +36,7 @@ public class EmailCampaign extends AbstractPersistable<Long> {
     private Integer campaignType;
 
     @ManyToOne
-    @JoinColumn(name = "runreport_id", nullable = false)
+    @JoinColumn(name = "businessRule_id", nullable = false)
     private Report businessRuleId ;
 
     @Column(name = "param_value")
@@ -44,8 +45,21 @@ public class EmailCampaign extends AbstractPersistable<Long> {
     @Column(name = "status_enum", nullable = false)
     private Integer status;
 
-    @Column(name ="message", nullable =false)
-    private String message;
+    @Column(name = "email_subject", nullable = false)
+    private String emailSubject;
+
+    @Column(name = "email_message", nullable = false)
+    private String emailMessage;
+
+    @Column(name = "email_attachment_file_format", nullable = false)
+    private String emailAttachmentFileFormat;
+
+    @ManyToOne
+    @JoinColumn(name = "stretchy_report_id", nullable = false)
+    private Report stretchyReport;
+
+    @Column(name = "stretchy_report_param_map", nullable = true)
+    private String stretchyReportParamMap;
 
     @Column(name = "closedon_date", nullable = true)
     @Temporal(TemporalType.DATE)
@@ -89,19 +103,32 @@ public class EmailCampaign extends AbstractPersistable<Long> {
     @Column(name="is_visible",nullable = true)
     private boolean isVisible;
 
+    @Column(name = "previous_run_status", nullable = true)
+    private String previousRunStatus;
+
+    @Column(name = "previous_run_error_log", nullable = true)
+    private String previousRunErrorLog;
+
+    @Column(name = "previous_run_error_message", nullable = true)
+    private String previousRunErrorMessage;
+
     public EmailCampaign() {
     }
 
-    private EmailCampaign(final String campaignName, final Integer campaignType,
-                        final Report businessRuleId, final String paramValue,
-                        final String message,final LocalDate submittedOnDate,
-                        final AppUser submittedBy,final String recurrence,final LocalDateTime localDateTime) {
+    private EmailCampaign(final String campaignName, final Integer campaignType, final Report businessRuleId, final String paramValue,
+                        final String emailSubject, final String emailMessage,final LocalDate submittedOnDate, final AppUser submittedBy,
+                          final Report stretchyReport, final String stretchyReportParamMap, final ScheduledEmailAttachmentFileFormat emailAttachmentFileFormat,
+                          final String recurrence, final LocalDateTime localDateTime) {
         this.campaignName = campaignName;
         this.campaignType = EmailCampaignType.fromInt(campaignType).getValue();
         this.businessRuleId = businessRuleId;
         this.paramValue = paramValue;
         this.status     = EmailCampaignStatus.PENDING.getValue();
-        this.message    = message;
+        this.emailSubject = emailSubject;
+        this.emailMessage    = emailMessage;
+        this.emailAttachmentFileFormat = emailAttachmentFileFormat.getValue();
+        this.stretchyReport = stretchyReport;
+        this.stretchyReportParamMap = stretchyReportParamMap;
         this.submittedOnDate = submittedOnDate.toDate();
         this.submittedBy = submittedBy;
         this.recurrence = recurrence;
@@ -115,14 +142,17 @@ public class EmailCampaign extends AbstractPersistable<Long> {
 
     }
 
-    public static EmailCampaign instance(final AppUser submittedBy, final Report report, final JsonCommand command){
+    public static EmailCampaign instance(final AppUser submittedBy, final Report businessRuleId, final Report stretchyReport, final JsonCommand command){
 
         final String campaignName = command.stringValueOfParameterNamed(EmailCampaignValidator.campaignName);
         final Long  campaignType = command.longValueOfParameterNamed(EmailCampaignValidator.campaignType);
 
         final String paramValue = command.stringValueOfParameterNamed(EmailCampaignValidator.paramValue);
-
-        final String message   = command.stringValueOfParameterNamed(EmailCampaignValidator.message);
+        final String emailSubject = command.stringValueOfParameterNamed(EmailCampaignValidator.emailSubject);
+        final String emailMessage   = command.stringValueOfParameterNamed(EmailCampaignValidator.emailMessage);
+        final String stretchyReportParamMap = command.stringValueOfParameterNamed(ScheduledEmailConstants.STRETCHY_REPORT_PARAM_MAP_PARAM_NAME);
+        final Integer emailAttachmentFileFormatId = command.integerValueOfParameterNamed(ScheduledEmailConstants.EMAIL_ATTACHMENT_FILE_FORMAT_ID_PARAM_NAME);
+        final ScheduledEmailAttachmentFileFormat emailAttachmentFileFormat = ScheduledEmailAttachmentFileFormat.instance(emailAttachmentFileFormatId);
         LocalDate submittedOnDate = new LocalDate();
         if (command.hasParameter(EmailCampaignValidator.submittedOnDateParamName)) {
             submittedOnDate = command.localDateValueOfParameterNamed(EmailCampaignValidator.submittedOnDateParamName);
@@ -140,7 +170,8 @@ public class EmailCampaign extends AbstractPersistable<Long> {
         } else{recurrenceStartDate = null;}
 
 
-        return new EmailCampaign(campaignName,campaignType.intValue(),report,paramValue,message,submittedOnDate,submittedBy,recurrence,recurrenceStartDate);
+        return new EmailCampaign(campaignName,campaignType.intValue(),businessRuleId,paramValue,emailSubject,emailMessage,
+                submittedOnDate,submittedBy,stretchyReport,stretchyReportParamMap,emailAttachmentFileFormat,recurrence,recurrenceStartDate);
     }
 
     public Map<String,Object> update(JsonCommand command){
@@ -152,10 +183,10 @@ public class EmailCampaign extends AbstractPersistable<Long> {
             actualChanges.put(EmailCampaignValidator.campaignName, newValue);
             this.campaignName = StringUtils.defaultIfEmpty(newValue, null);
         }
-        if (command.isChangeInStringParameterNamed(EmailCampaignValidator.message, this.message)) {
-            final String newValue = command.stringValueOfParameterNamed(EmailCampaignValidator.message);
-            actualChanges.put(EmailCampaignValidator.message, newValue);
-            this.message = StringUtils.defaultIfEmpty(newValue, null);
+        if (command.isChangeInStringParameterNamed(EmailCampaignValidator.emailMessage, this.emailMessage)) {
+            final String newValue = command.stringValueOfParameterNamed(EmailCampaignValidator.emailMessage);
+            actualChanges.put(EmailCampaignValidator.emailMessage, newValue);
+            this.emailMessage = StringUtils.defaultIfEmpty(newValue, null);
         }
         if (command.isChangeInStringParameterNamed(EmailCampaignValidator.paramValue, this.paramValue)) {
             final String newValue = command.stringValueOfParameterNamed(EmailCampaignValidator.paramValue);
@@ -167,9 +198,9 @@ public class EmailCampaign extends AbstractPersistable<Long> {
             actualChanges.put(EmailCampaignValidator.campaignType, EmailCampaignType.fromInt(newValue));
             this.campaignType = EmailCampaignType.fromInt(newValue).getValue();
         }
-        if (command.isChangeInLongParameterNamed(EmailCampaignValidator.runReportId, (this.businessRuleId != null) ? this.businessRuleId.getId() : null)) {
-            final String newValue = command.stringValueOfParameterNamed(EmailCampaignValidator.runReportId);
-            actualChanges.put(EmailCampaignValidator.runReportId, newValue);
+        if (command.isChangeInLongParameterNamed(EmailCampaignValidator.businessRuleId, (this.businessRuleId != null) ? this.businessRuleId.getId() : null)) {
+            final String newValue = command.stringValueOfParameterNamed(EmailCampaignValidator.businessRuleId);
+            actualChanges.put(EmailCampaignValidator.businessRuleId, newValue);
         }
         if (command.isChangeInStringParameterNamed(EmailCampaignValidator.recurrenceParamName, this.recurrence)) {
             final String newValue = command.stringValueOfParameterNamed(EmailCampaignValidator.recurrenceParamName);
@@ -387,10 +418,6 @@ public class EmailCampaign extends AbstractPersistable<Long> {
         }
     }
 
-
-
-
-
     public LocalDate getSubmittedOnDate() {
         return (LocalDate) ObjectUtils.defaultIfNull(new LocalDate(this.submittedOnDate), null);
 
@@ -419,8 +446,8 @@ public class EmailCampaign extends AbstractPersistable<Long> {
     }
 
 
-    public String getMessage() {
-        return this.message;
+    public String getEmailMessage() {
+        return this.emailMessage;
     }
 
     public String getParamValue() {
