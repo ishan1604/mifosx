@@ -507,8 +507,8 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
             }
 
             Money unProcessed = processTransaction(newLoanTransaction, currency, installments, amountToProcess);
-            if (loanTransaction.getTransactionDate().isEqual(maxTransactionDate) && transactionDate.isAfter(installment.getFromDate())
-                    && transactionDate.isBefore(installment.getDueDate())) {
+            if (loanTransaction.getTransactionDate().isEqual(maxTransactionDate) && ((transactionDate.isAfter(installment.getFromDate())
+                    && transactionDate.isBefore(installment.getDueDate())))) {
                 Money earlyPayment = currentInstallmentOutstanding.minus(installment.getTotalOutstanding(currency));
                 if (earlyPayment.isGreaterThanZero()
                         && (newLoanTransaction.isRepayment() || newLoanTransaction.isInterestWaiver() || newLoanTransaction

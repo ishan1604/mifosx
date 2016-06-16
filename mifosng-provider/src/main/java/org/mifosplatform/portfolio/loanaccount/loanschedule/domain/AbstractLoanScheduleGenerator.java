@@ -310,7 +310,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                         // interest
                         // as per the number of days. and also identifies reduce
                         // principal for reschedule strategy
-                        if (!detail.isLatePayment() && detail.getStartDate().isAfter(periodStartDate)
+                        if (!detail.isLatePayment() && (detail.getStartDate().isAfter(periodStartDate) || (detail.getStartDate().equals(periodStartDate) && instalmentNumber == 1))
                                 && !detail.getStartDate().isAfter(scheduledDueDate)) {
                             reducePrincipal = reducePrincipal.plus(detail.getAmount());
                             extraPrincipal = extraPrincipal.plus(detail.getAmount());
@@ -1131,7 +1131,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                 && loanRepaymentScheduleTransactionProcessor.isInterestFirstRepaymentScheduleTransactionProcessor()) {
 
             int installmentNumber = findLastProcessedInstallmentNumber(installments, processTransactionsForInterestCompound);
-            List<LoanTransaction> processTransactions = processTransactions(transactions, processTransactionsForInterestCompound);
+            List<LoanTransaction> processTransactions = processTransactions(transactions, processTransactionsForInterestCompound, installmentNumber);
             if (processTransactions.size() > 0) {
                 loanScheduleModel = createInterestOnlyRecalculationDetails(mc, loanApplicationTerms, loanCharges, holidayDetailDTO,
                         loanRepaymentScheduleTransactionProcessor, previousSchedule, loanScheduleModel, installments, currency,
@@ -1145,7 +1145,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
         while (!recalculateFrom.isAfter(LocalDate.now())) {
 
             int installmentNumber = findLastProcessedInstallmentNumber(installments, recalculateFrom);
-            List<LoanTransaction> processTransactions = processTransactions(transactions, recalculateFrom);
+            List<LoanTransaction> processTransactions = processTransactions(transactions, recalculateFrom, installmentNumber);
             if (loanRepaymentScheduleTransactionProcessor.isInterestFirstRepaymentScheduleTransactionProcessor()
                     && processTransactions.size() > 0) {
                 loanScheduleModel = createInterestOnlyRecalculationDetails(mc, loanApplicationTerms, loanCharges, holidayDetailDTO,
@@ -1357,8 +1357,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
             // this block is to create early payment entries for schedule
             // generation
             for (RecalculationDetail recalculationDetail : earlypaymentDetail) {
-                if (!recalculationDetail.getStartDate().isAfter(installment.getDueDate())
-                        && recalculationDetail.getStartDate().isAfter(installment.getFromDate())) {
+                if (!recalculationDetail.getStartDate().isAfter(installment.getDueDate()) && (recalculationDetail.getStartDate().isAfter(installment.getFromDate()) || (recalculationDetail.getStartDate().isEqual(installment.getFromDate()) && installment.getInstallmentNumber().equals(1)) )) {
                     diffAmt.add(recalculationDetail);
                 }
             }
@@ -1804,10 +1803,10 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
         return repaymentScheduleInstallments;
     }
 
-    private List<LoanTransaction> processTransactions(final List<LoanTransaction> transactions, final LocalDate tillDate) {
+    private List<LoanTransaction> processTransactions(final List<LoanTransaction> transactions, final LocalDate tillDate, final Integer installmentNumber) {
         List<LoanTransaction> toProcess = new ArrayList<>();
         for (LoanTransaction loanTransaction : transactions) {
-            if (!loanTransaction.getTransactionDate().isAfter(tillDate)) {
+            if (!loanTransaction.getTransactionDate().isAfter(tillDate) || ( loanTransaction.getTransactionDate().equals(tillDate) && installmentNumber == 1)) {
                 toProcess.add(loanTransaction);
             }
         }
