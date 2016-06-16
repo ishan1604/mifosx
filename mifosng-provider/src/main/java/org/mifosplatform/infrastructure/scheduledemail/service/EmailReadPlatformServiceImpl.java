@@ -70,7 +70,7 @@ public class EmailReadPlatformServiceImpl implements EmailReadPlatformService {
         }
         
         public String tableName() {
-        	return "email_messages_outbound";
+        	return "m_email_messages_outbound";
         }
 
         @Override

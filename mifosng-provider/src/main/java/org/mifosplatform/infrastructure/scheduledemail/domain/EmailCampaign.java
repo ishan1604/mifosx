@@ -26,7 +26,7 @@ import javax.persistence.*;
 import java.util.*;
 
 @Entity
-@Table(name = "email_campaign")
+@Table(name = "m_email_campaign")
 public class EmailCampaign extends AbstractPersistable<Long> {
 
     @Column(name = "campaign_name", nullable = false)

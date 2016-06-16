@@ -20,7 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Entity
-@Table(name = "email_messages_outbound")
+@Table(name = "m_email_messages_outbound")
 public class EmailMessage extends AbstractPersistable<Long> {
 
     @Column(name = "external_id", nullable = true)

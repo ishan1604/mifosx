@@ -41,7 +41,7 @@ public class EmailConfigurationReadPlatformServiceImpl implements EmailConfigura
 	            sql.append("cnf.id as id, ");
 	            sql.append("cnf.name as name, ");
 	            sql.append("cnf.value as value ");
-	            sql.append("from email_configuration cnf");
+	            sql.append("from m_email_configuration cnf");
 	            
 	            this.schema = sql.toString();
 		}

@@ -80,7 +80,7 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
             sql.append("clu.username as closedByUsername, ");
             sql.append("acu.username as activatedByUsername, ");
             sql.append("ec.approvedon_date as activatedOnDate ");
-            sql.append("from email_campaign ec ");
+            sql.append("from m_email_campaign ec ");
             sql.append("left join m_appuser sbu on sbu.id = ec.submittedon_userid ");
             sql.append("left join m_appuser acu on acu.id = ec.approvedon_userid ");
             sql.append("left join m_appuser clu on clu.id = ec.closedon_userid ");
