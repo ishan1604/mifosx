@@ -39,6 +39,11 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
     @Column(name="system_defined")
     private boolean systemDefined;
 
+    @Column(name="display_condition")
+    private String displayCondition;
+
+    @Column(name="formula_expression")
+    private String formulaExpression;
 
     public RegisteredTableMetaData() {
     }
@@ -47,15 +52,28 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
         final String fieldName = mapObject.get("fieldName").toString();
         final String labelName =  mapObject.get("labelName").toString();
         final Integer order    = (Integer) mapObject.get("order");
-        return new RegisteredTableMetaData(registeredTable,tableName,fieldName,labelName,order);
+
+        String displayCondition = null;
+        if(mapObject.get("displayCondition") != null && !mapObject.get("displayCondition").toString().isEmpty()) {
+            displayCondition = mapObject.get("displayCondition").toString();
+        }
+
+        String formulaExpression = null;
+        if(mapObject.get("formulaExpression") != null && !mapObject.get("formulaExpression").toString().isEmpty()) {
+            formulaExpression = mapObject.get("formulaExpression").toString();
+        }
+
+        return new RegisteredTableMetaData(registeredTable,tableName,fieldName,labelName,order, displayCondition, formulaExpression);
     }
 
-    private RegisteredTableMetaData(final RegisteredTable registeredTable,final String tableName, final String fieldName, final String labelName, final Integer order) {
+    private RegisteredTableMetaData(final RegisteredTable registeredTable,final String tableName, final String fieldName, final String labelName, final Integer order, final String displayCondition, final String formulaExpression) {
         this.registeredTable = registeredTable;
         this.tableName = tableName;
         this.fieldName = fieldName;
         this.labelName = labelName;
         this.order = order;
+        this.displayCondition = displayCondition;
+        this.formulaExpression = formulaExpression;
     }
 
     public Map<String, Object> update(final JsonCommand command) {
@@ -79,6 +97,20 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
             if (command.isChangeInIntegerParameterNamed("order", this.order)) {
                 final Integer newValue = command.integerValueOfParameterNamed("order");
                 actualChanges.put("order", newValue);
+            }
+        }
+
+        if(command.parameterExists("displayCondition"))  {
+            if (command.isChangeInStringParameterNamed("displayCondition", this.displayCondition)) {
+                final String newValue = command.stringValueOfParameterNamed("displayCondition");
+                actualChanges.put("displayCondition", newValue);
+            }
+        }
+
+        if(command.parameterExists("formulaExpression"))  {
+            if (command.isChangeInStringParameterNamed("formulaExpression", this.formulaExpression)) {
+                final String newValue = command.stringValueOfParameterNamed("formulaExpression");
+                actualChanges.put("formulaExpression", newValue);
             }
         }
         return actualChanges;
@@ -107,6 +139,13 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
     public void updateOrder(final Integer order){
         this.order = order;
     }
+    public void updateDisplayCondition(final String displayCondition){
+        this.displayCondition = displayCondition;
+    }
+
+    public void updateFormulaExpression(final String formulaExpression){
+        this.formulaExpression = formulaExpression;
+    }
 
     public void updateLabelName(final String labelName){
           this.labelName = labelName;
@@ -115,4 +154,8 @@ public class RegisteredTableMetaData  extends AbstractPersistable<Long> {
     public boolean isSystemDefined() { return this.systemDefined;}
 
     public void updateIsSystemDefined(final boolean systemDefined) { this.systemDefined = systemDefined;}
+
+    public String getDisplayCondition() { return this.displayCondition; }
+
+    public String getFormulaExpression() { return this.formulaExpression; }
 }

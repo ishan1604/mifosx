@@ -166,7 +166,7 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
         final boolean isReversed = false;
         final PaymentDetail paymentDetail = null;
         return new SavingsAccountTransaction(savingsAccount, office, paymentDetail,
-                SavingsAccountTransactionType.INITIATE_TRANSFER.getValue(), date, new Date(), savingsAccount.getSummary()
+                SavingsAccountTransactionType.INITIATE_TRANSFER.getValue(), date, new LocalDate().toDate(), savingsAccount.getSummary()
                         .getAccountBalance(), isReversed, appUser);
     }
 
@@ -175,7 +175,7 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
         final boolean isReversed = false;
         final PaymentDetail paymentDetail = null;
         return new SavingsAccountTransaction(savingsAccount, office, paymentDetail,
-                SavingsAccountTransactionType.APPROVE_TRANSFER.getValue(), date, new Date(), savingsAccount.getSummary()
+                SavingsAccountTransactionType.APPROVE_TRANSFER.getValue(), date, new LocalDate().toDate(), savingsAccount.getSummary()
                         .getAccountBalance(), isReversed, appUser);
     }
 
@@ -184,7 +184,7 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
         final boolean isReversed = false;
         final PaymentDetail paymentDetail = null;
         return new SavingsAccountTransaction(savingsAccount, office, paymentDetail,
-                SavingsAccountTransactionType.WITHDRAW_TRANSFER.getValue(), date, new Date(), savingsAccount.getSummary()
+                SavingsAccountTransactionType.WITHDRAW_TRANSFER.getValue(), date, new LocalDate().toDate(), savingsAccount.getSummary()
                         .getAccountBalance(), isReversed, appUser);
     }
 
@@ -196,7 +196,7 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
 
     private SavingsAccountTransaction(final SavingsAccount savingsAccount, final Office office, final Integer typeOf,
             final LocalDate transactionLocalDate, final Money amount, final boolean isReversed, final AppUser appUser) {
-        this(savingsAccount, office, null, typeOf, transactionLocalDate, new Date(), amount, isReversed, appUser);
+        this(savingsAccount, office, null, typeOf, transactionLocalDate, new LocalDate().toDate(), amount, isReversed, appUser);
     }
 
     private SavingsAccountTransaction(final SavingsAccount savingsAccount, final Office office, final PaymentDetail paymentDetail,

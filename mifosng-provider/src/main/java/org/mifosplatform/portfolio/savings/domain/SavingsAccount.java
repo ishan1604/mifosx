@@ -5,6 +5,7 @@
  */
 package org.mifosplatform.portfolio.savings.domain;
 
+import ch.qos.logback.classic.Logger;
 import com.google.gson.JsonArray;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
@@ -71,6 +72,7 @@ import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.persistence.Version;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -422,12 +424,13 @@ public class SavingsAccount extends AbstractPersistable<Long> {
     }
 
     public void postInterest(final MathContext mc, final LocalDate interestPostingUpToDate, final boolean isInterestTransfer,
-            final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth) {
+            final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth, final Boolean isManualPosting) {
 
         final List<PostingPeriod> postingPeriods = calculateInterestUsing(mc, interestPostingUpToDate, isInterestTransfer,
                 isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
 
         Money interestPostedToDate = Money.zero(this.currency);
+        LocalDate lastPeriodEndDate = this.getStartInterestCalculationDate();
 
         boolean recalucateDailyBalanceDetails = false;
 
@@ -436,18 +439,25 @@ public class SavingsAccount extends AbstractPersistable<Long> {
             final LocalDate interestPostingTransactionDate = interestPostingPeriod.dateOfPostingTransaction();
             final Money interestEarnedToBePostedForPeriod = interestPostingPeriod.getInterestEarned();
 
-            if (!interestPostingTransactionDate.isAfter(interestPostingUpToDate)) {
+            if (!interestPostingTransactionDate.isAfter(interestPostingUpToDate) || isManualPosting == true) {
 
                 interestPostedToDate = interestPostedToDate.plus(interestEarnedToBePostedForPeriod);
 
                 final SavingsAccountTransaction postingTransaction = findInterestPostingTransactionFor(interestPostingTransactionDate);
+                final Money TotalInterestPostedForPeriod = getTotalInterestPostedBetweenDates(lastPeriodEndDate, interestPostingTransactionDate);
+
+                Money interestEarnedToBePosted = interestEarnedToBePostedForPeriod.minus(TotalInterestPostedForPeriod);
+
                 if (postingTransaction == null) {
-                    final SavingsAccountTransaction newPostingTransaction = SavingsAccountTransaction.interestPosting(this, office(),
-                            interestPostingTransactionDate, interestEarnedToBePostedForPeriod);
-                    this.transactions.add(newPostingTransaction);
-                    recalucateDailyBalanceDetails = true;
+
+                    if(interestEarnedToBePosted.isGreaterThan(Money.zero(this.currency))) {
+                        final SavingsAccountTransaction newPostingTransaction = SavingsAccountTransaction.interestPosting(this, office(),
+                                (isManualPosting && interestPostingTransactionDate.isAfter(interestPostingUpToDate) ? interestPostingUpToDate : interestPostingTransactionDate), interestEarnedToBePosted);
+                        this.transactions.add(newPostingTransaction);
+                        recalucateDailyBalanceDetails = true;
+                    }
                 } else {
-                    final boolean correctionRequired = postingTransaction.hasNotAmount(interestEarnedToBePostedForPeriod);
+                    final boolean correctionRequired = postingTransaction.hasNotAmount(interestEarnedToBePosted.plus(postingTransaction.getAmount()));
                     if (correctionRequired) {
                         postingTransaction.reverse();
                         final SavingsAccountTransaction newPostingTransaction = SavingsAccountTransaction.interestPosting(this, office(),
@@ -457,6 +467,8 @@ public class SavingsAccount extends AbstractPersistable<Long> {
                     }
                 }
             }
+
+            lastPeriodEndDate = interestPostingTransactionDate;
         }
 
         if (recalucateDailyBalanceDetails) {
@@ -486,6 +498,20 @@ public class SavingsAccount extends AbstractPersistable<Long> {
 
         return postingTransation;
     }
+
+    protected Money getTotalInterestPostedBetweenDates(final LocalDate startDate, final LocalDate endDate) {
+
+        Money TotalInterestInPeriod = Money.zero(this.currency);
+
+        for (final SavingsAccountTransaction transaction : this.transactions) {
+            if (transaction.isInterestPostingAndNotReversed() && transaction.isAfter(startDate) && (!transaction.isAfter(endDate) || transaction.transactionLocalDate().isEqual(endDate))) {
+                TotalInterestInPeriod = TotalInterestInPeriod.plus(transaction.getAmount(this.currency));
+            }
+        }
+
+        return TotalInterestInPeriod;
+    }
+
 
     // Determine the last transaction for given day
     protected SavingsAccountTransaction findLastTransaction(final LocalDate date) {
@@ -1945,7 +1971,7 @@ public class SavingsAccount extends AbstractPersistable<Long> {
             boolean isInterestTransfer = false;
             if (this.isBeforeLastPostingPeriod(getActivationLocalDate())) {
                 final LocalDate today = DateUtils.getLocalDateOfTenant();
-                this.postInterest(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+                this.postInterest(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, false);
             } else {
                 final LocalDate today = DateUtils.getLocalDateOfTenant();
                 this.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,

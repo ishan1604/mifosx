@@ -105,4 +105,12 @@ public final class SavingsAccountSummary {
         return this.accountBalance;
     }
 
+    public Money getTotalInterestPosted(final MonetaryCurrency currency) {
+        return Money.of(currency, this.totalInterestPosted);
+    }
+
+    public Money getTotalInterestEarned(final MonetaryCurrency currency) {
+        return Money.of(currency, this.totalInterestEarned);
+    }
+
 }
