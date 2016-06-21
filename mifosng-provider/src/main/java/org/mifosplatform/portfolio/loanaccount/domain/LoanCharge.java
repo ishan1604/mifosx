@@ -240,6 +240,7 @@ public class LoanCharge extends AbstractPersistable<Long> {
         if (amount != null) {
             chargeAmount = amount;
         }
+        /** comment this for now
         if(loan !=null) {
             //round charge amount using the curr
             if(chargeAmount !=null){
@@ -251,7 +252,7 @@ public class LoanCharge extends AbstractPersistable<Long> {
             if(chargeAmount !=null){
                 chargeAmount = chargeAmount.setScale(loanProduct.getCurrency().getDigitsAfterDecimal(),RoundingMode.HALF_EVEN);
             }
-        }
+        } */
 
         this.chargePaymentMode = chargeDefinition.getChargePaymentMode();
         if (chargePaymentMode != null) {
