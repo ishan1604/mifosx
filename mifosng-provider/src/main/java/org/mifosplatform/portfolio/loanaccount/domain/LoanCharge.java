@@ -242,11 +242,15 @@ public class LoanCharge extends AbstractPersistable<Long> {
         }
         if(loan !=null) {
             //round charge amount using the curr
-            Money roundAmount = Money.of(loan.getCurrency(), chargeAmount);
-            chargeAmount = roundAmount.getAmount();
-        }else if(loanProduct !=null){
-            Money roundAmount  = Money.of(loanProduct.getCurrency(),chargeAmount);
-            chargeAmount = roundAmount.getAmount();
+            if(chargeAmount !=null){
+                chargeAmount = chargeAmount.setScale(loan.getCurrency().getDigitsAfterDecimal(),RoundingMode.HALF_EVEN);
+            }
+
+        }
+        else if(loanProduct !=null){
+            if(chargeAmount !=null){
+                chargeAmount = chargeAmount.setScale(loanProduct.getCurrency().getDigitsAfterDecimal(),RoundingMode.HALF_EVEN);
+            }
         }
 
         this.chargePaymentMode = chargeDefinition.getChargePaymentMode();
