@@ -252,8 +252,16 @@ public class CommandWrapper {
         return this.entityName.equalsIgnoreCase("SMS");
     }
 
+    public boolean isEmailResource() {
+        return this.entityName.equalsIgnoreCase("EMAIL");
+    }
+
     public boolean isSmsCampaignResource() {
         return this.entityName.equals("SMS_CAMPAIGN");
+    }
+
+    public boolean isEmailCampaignResource() {
+        return this.entityName.equals("EMAIL_CAMPAIGN");
     }
 
     public boolean isLoanRescheduleResource() {
@@ -281,6 +289,17 @@ public class CommandWrapper {
     }
     public boolean isSmsCampaignReactivation(){
         return this.actionName.equals("REACTIVATE") && this.entityName.equalsIgnoreCase("SMS_CAMPAIGN");
+    }
+
+    public boolean isEmailCampaignActivation() {
+        return this.actionName.equalsIgnoreCase("ACTIVATE") && this.entityName.equalsIgnoreCase("EMAIL_CAMPAIGN");
+    }
+
+    public boolean isEmailCampaignClosure() {
+        return this.actionName.equalsIgnoreCase("CLOSE") && this.entityName.equalsIgnoreCase("EMAIL_CAMPAIGN");
+    }
+    public boolean isEmailCampaignReactivation(){
+        return this.actionName.equals("REACTIVATE") && this.entityName.equalsIgnoreCase("EMAIL_CAMPAIGN");
     }
 
     public boolean isCodeResource() {

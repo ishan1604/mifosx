@@ -30,10 +30,12 @@ public class EmailCampaignValidator {
     public static final String campaignName  = "campaignName";
     public static final String campaignType = "campaignType";
     public static final String businessRuleId = "businessRuleId";
-    public static final String reportId = "reportId";
+    public static final String stretchyReportId = "stretchyReportId";
+    public static final String stretchyReportParamMap = "stretchyReportParamMap";
     public static final String paramValue = "paramValue";
     public static final String emailSubject = "emailSubject";
     public static final String emailMessage   = "emailMessage";
+    public static final String emailAttachmentFileFormatId = "emailAttachmentFileFormatId";
     public static final String activationDateParamName = "activationDate";
     public static final String recurrenceStartDate = "recurrenceStartDate";
     public static final String submittedOnDateParamName = "submittedOnDate";
@@ -49,7 +51,8 @@ public class EmailCampaignValidator {
 
 
     public static final Set<String> supportedParams = new HashSet<String>(Arrays.asList(campaignName, campaignType,localeParamName,dateFormatParamName,
-            businessRuleId,paramValue,emailMessage,recurrenceStartDate,activationDateParamName,submittedOnDateParamName,closureDateParamName,recurrenceParamName));
+            businessRuleId,paramValue,emailMessage,recurrenceStartDate,activationDateParamName,submittedOnDateParamName,closureDateParamName,recurrenceParamName,
+            emailSubject,stretchyReportId,stretchyReportParamMap,emailAttachmentFileFormatId));
 
     public static final Set<String> supportedParamsForUpdate = new HashSet<>(Arrays.asList(campaignName, campaignType,localeParamName,dateFormatParamName,
             businessRuleId,paramValue,emailMessage,recurrenceStartDate,activationDateParamName,recurrenceParamName));
@@ -96,11 +99,11 @@ public class EmailCampaignValidator {
             baseDataValidator.reset().parameter(EmailCampaignValidator.recurrenceStartDate).value(recurrenceStartDate).notBlank();
         }
 
-        final Long runReportId = this.fromApiJsonHelper.extractLongNamed(EmailCampaignValidator.businessRuleId,element);
-        baseDataValidator.reset().parameter(EmailCampaignValidator.businessRuleId).value(runReportId).notNull().integerGreaterThanZero();
+        final Long businessRuleId = this.fromApiJsonHelper.extractLongNamed(EmailCampaignValidator.businessRuleId,element);
+        baseDataValidator.reset().parameter(EmailCampaignValidator.businessRuleId).value(businessRuleId).notNull().integerGreaterThanZero();
 
-        final String message = this.fromApiJsonHelper.extractStringNamed(EmailCampaignValidator.emailMessage, element);
-        baseDataValidator.reset().parameter(EmailCampaignValidator.emailMessage).value(message).notBlank().notExceedingLengthOf(480);
+        final String emailMessage = this.fromApiJsonHelper.extractStringNamed(EmailCampaignValidator.emailMessage, element);
+        baseDataValidator.reset().parameter(EmailCampaignValidator.emailMessage).value(emailMessage).notBlank().notExceedingLengthOf(480);
 
         final String paramValue = this.fromApiJsonHelper.extractStringNamed(EmailCampaignValidator.paramValue, element);
         baseDataValidator.reset().parameter(EmailCampaignValidator.paramValue).value(paramValue).notBlank();

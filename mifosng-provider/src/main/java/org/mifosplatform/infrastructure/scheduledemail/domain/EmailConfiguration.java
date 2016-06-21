@@ -12,7 +12,7 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "m_email_configuration")
+@Table(name = "scheduled_email_configuration")
 public class EmailConfiguration extends AbstractPersistable<Long> {
 	@Column(name = "name", nullable = false)
     private String name;

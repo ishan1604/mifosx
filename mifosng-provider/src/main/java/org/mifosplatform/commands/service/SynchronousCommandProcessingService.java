@@ -347,6 +347,33 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
             else {
                 throw new UnsupportedCommandException(wrapper.commandName());
             }
+        } else if (wrapper.isEmailResource()) {
+            if (wrapper.isCreate()) {
+                handler = this.applicationContext.getBean("createEmailCommandHandler", NewCommandSourceHandler.class);
+            } else if(wrapper.isUpdate()) {
+                handler = this.applicationContext.getBean("updateEmailCommandHandler", NewCommandSourceHandler.class);
+            } else if(wrapper.isDelete()) {
+                handler = this.applicationContext.getBean("deleteEmailCommandHandler", NewCommandSourceHandler.class);
+            } else {
+                throw new UnsupportedCommandException(wrapper.commandName());
+            }
+        }else if(wrapper.isEmailCampaignResource()){
+            if(wrapper.isCreate()){
+                handler = this.applicationContext.getBean("createEmailCampaignCommandHandler",NewCommandSourceHandler.class);
+            } else if(wrapper.isUpdate()){
+                handler = this.applicationContext.getBean("updateEmailCampaignCommandHandler",NewCommandSourceHandler.class);
+            } else if(wrapper.isDelete()){
+                handler = this.applicationContext.getBean("deleteEmailCampaignCommandHandler",NewCommandSourceHandler.class);
+            }else if(wrapper.isEmailCampaignActivation()){
+                handler= this.applicationContext.getBean("activateEmailCampaignCommandHandler",NewCommandSourceHandler.class);
+            } else if (wrapper.isEmailCampaignClosure()){
+                handler= this.applicationContext.getBean("closeEmailCampaignCommandHandler",NewCommandSourceHandler.class);
+            } else if(wrapper.isEmailCampaignReactivation()){
+                handler= this.applicationContext.getBean("reactivateEmailCampaignCommandHandler",NewCommandSourceHandler.class);
+            }
+            else {
+                throw new UnsupportedCommandException(wrapper.commandName());
+            }
         } else if (wrapper.isCurrencyResource()) {
             handler = this.applicationContext.getBean("updateCurrencyCommandHandler", NewCommandSourceHandler.class);
         } else if (wrapper.isFundResource()) {

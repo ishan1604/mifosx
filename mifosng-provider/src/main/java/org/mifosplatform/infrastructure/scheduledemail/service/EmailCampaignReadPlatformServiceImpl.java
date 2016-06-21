@@ -59,17 +59,17 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
             sql.append("ec.id as id, ");
             sql.append("ec.campaign_name as campaignName, ");
             sql.append("ec.campaign_type as campaignType, ");
-            sql.append("ec.businessReportId_id as businessReportId, ");
+            sql.append("ec.businessRule_id as businessRuleId, ");
             sql.append("ec.email_subject as emailSubject, ");
             sql.append("ec.email_message as emailMessage, ");
             sql.append("ec.email_attachment_file_format as emailAttachmentFileFormat, ");
             sql.append("sr.id as stretchyReportId, ");
             sql.append("sr.report_name as reportName, sr.report_type as reportType, sr.report_subtype as reportSubType, ");
             sql.append("sr.report_category as reportCategory, sr.report_sql as reportSql, sr.description as reportDescription, ");
-            sql.append("sr.core_report as coreReport, sr.use_report as useReport ");
+            sql.append("sr.core_report as coreReport, sr.use_report as useReport, ");
             sql.append("ec.stretchy_report_param_map as stretchyReportParamMap, ");
             sql.append("ec.param_value as paramValue, ");
-            sql.append("ec.status_enum as status, ");
+            sql.append("ec.status_enum as statusEnum, ");
             sql.append("ec.recurrence as recurrence, ");
             sql.append("ec.recurrence_start_date as recurrenceStartDate, ");
             sql.append("ec.next_trigger_date as nextTriggerDate, ");
@@ -80,7 +80,7 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
             sql.append("clu.username as closedByUsername, ");
             sql.append("acu.username as activatedByUsername, ");
             sql.append("ec.approvedon_date as activatedOnDate ");
-            sql.append("from m_email_campaign ec ");
+            sql.append("from scheduled_email_campaign ec ");
             sql.append("left join m_appuser sbu on sbu.id = ec.submittedon_userid ");
             sql.append("left join m_appuser acu on acu.id = ec.approvedon_userid ");
             sql.append("left join m_appuser clu on clu.id = ec.closedon_userid ");
@@ -120,7 +120,7 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
             final ReportData stretchyReport = new ReportData(reportId, reportName, reportType, reportSubType, reportCategory,
                     reportDescription, reportSql, coreReport, useReport, null);
 
-            final Integer statusId = JdbcSupport.getInteger(rs, "status");
+            final Integer statusId = JdbcSupport.getInteger(rs, "statusEnum");
             final EnumOptionData status = EmailCampaignStatusEnumerations.status(statusId);
             final DateTime nextTriggerDate = JdbcSupport.getDateTime(rs, "nextTriggerDate");
             final LocalDate  lastTriggerDate = JdbcSupport.getLocalDate(rs, "lastTriggerDate");
@@ -215,7 +215,7 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
 
     @Override
     public Collection<EmailBusinessRulesData> retrieveAll() {
-        final String searchType = "scheduledemail";
+        final String searchType = "sms";
         final String sql = "select " + this.businessRuleMapper.schema() + " where sr.report_type = ?";
 
         return this.jdbcTemplate.query(sql, this.businessRuleMapper, searchType);
@@ -223,7 +223,7 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
 
     @Override
     public EmailBusinessRulesData retrieveOneTemplate(Long resourceId) {
-        final String searchType = "scheduledemail";
+        final String searchType = "sms";
 
         final String sql = "select " + this.businessRuleMapper.schema() + " where sr.report_type = ? and sr.id = ?";
 
@@ -242,7 +242,7 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
     public EmailCampaignData retrieveOne(Long resourceId) {
         final Integer isVisible =1;
         try{
-            final String sql = "select " + this.emailCampaignMapper.schema + " where sc.id = ? and sc.is_visible = ?";
+            final String sql = "select " + this.emailCampaignMapper.schema + " where ec.id = ? and ec.is_visible = ?";
             return this.jdbcTemplate.queryForObject(sql, this.emailCampaignMapper, resourceId,isVisible);
         } catch (final EmptyResultDataAccessException e) {
             throw new EmailCampaignNotFound(resourceId);
@@ -252,7 +252,7 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
     @Override
     public Collection<EmailCampaignData> retrieveAllCampaign() {
         final Integer visible = 1;
-        final String sql = "select " + this.emailCampaignMapper.schema() + " where sc.is_visible = ?";
+        final String sql = "select " + this.emailCampaignMapper.schema() + " where ec.is_visible = ?";
         return this.jdbcTemplate.query(sql, this.emailCampaignMapper, visible);
     }
 
@@ -261,7 +261,7 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
         final Integer scheduleCampaignType = EmailCampaignType.SCHEDULE.getValue();
         final Integer statusEnum  = EmailCampaignStatus.ACTIVE.getValue();
         final Integer visible     = 1;
-        final String sql = "select " + this.emailCampaignMapper.schema() + " where sc.status_enum = ? and sc.campaign_type = ? and sc.is_visible = ?";
+        final String sql = "select " + this.emailCampaignMapper.schema() + " where ec.status_enum = ? and ec.campaign_type = ? and ec.is_visible = ?";
         return this.jdbcTemplate.query(sql,this.emailCampaignMapper, statusEnum,scheduleCampaignType,visible);
     }
 

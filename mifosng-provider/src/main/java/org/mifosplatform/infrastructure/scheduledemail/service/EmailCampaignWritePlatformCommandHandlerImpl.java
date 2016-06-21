@@ -122,7 +122,7 @@ public class EmailCampaignWritePlatformCommandHandlerImpl implements EmailCampai
             throw new ReportNotFoundException(businessRuleId);
         }
 
-        final Long reportId = command.longValueOfParameterNamed(EmailCampaignValidator.reportId);
+        final Long reportId = command.longValueOfParameterNamed(EmailCampaignValidator.stretchyReportId);
 
         final Report report  = this.reportRepository.findOne(reportId);
         if(report == null){

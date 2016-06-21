@@ -115,7 +115,6 @@ public class EmailCampaignData {
         return this.emailMessage;
     }
 
-
     public DateTime getNextTriggerDate() {
         return this.nextTriggerDate;
     }
