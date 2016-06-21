@@ -666,7 +666,7 @@ public class LoanCharge extends AbstractPersistable<Long> {
         minMaxCap = percentageOf;
         // this will round the amount value
         if (this.loan != null && minMaxCap != null) {
-            minMaxCap = Money.of(this.loan.getCurrency(), minMaxCap).getAmount();
+            minMaxCap = minMaxCap.setScale(this.loan.getCurrency().getDigitsAfterDecimal(),RoundingMode.HALF_EVEN);
         }
         return minMaxCap;
     }
