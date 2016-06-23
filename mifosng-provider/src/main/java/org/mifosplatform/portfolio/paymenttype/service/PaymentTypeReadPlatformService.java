@@ -11,7 +11,14 @@ import org.mifosplatform.portfolio.paymenttype.data.PaymentTypeData;
 
 public interface PaymentTypeReadPlatformService {
 
-    Collection<PaymentTypeData> retrieveAllPaymentTypes();
+    /**
+     * Retrieve a list of all payment types
+     * 
+     * @param includeDeletedPaymentTypes if set to true, all payment types including the ones marked as deleted
+     * will be returned
+     * @return list of {@link PaymentTypeData} objects
+     */
+    Collection<PaymentTypeData> retrieveAllPaymentTypes(boolean includeDeletedPaymentTypes);
     PaymentTypeData retrieveOne(Long paymentTypeId);
 
 }

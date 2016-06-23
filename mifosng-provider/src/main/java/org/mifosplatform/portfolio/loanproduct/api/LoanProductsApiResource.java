@@ -266,7 +266,7 @@ public class LoanProductsApiResource {
         final List<EnumOptionData> repaymentFrequencyTypeOptions = this.dropdownReadPlatformService.retrieveRepaymentFrequencyTypeOptions();
         final List<EnumOptionData> interestRateFrequencyTypeOptions = this.dropdownReadPlatformService
                 .retrieveInterestRateFrequencyTypeOptions();
-        final Collection<PaymentTypeData> paymentTypeOptions = this.paymentTypeReadPlatformService.retrieveAllPaymentTypes();
+        final Collection<PaymentTypeData> paymentTypeOptions = this.paymentTypeReadPlatformService.retrieveAllPaymentTypes(false);
 
         Collection<FundData> fundOptions = this.fundReadPlatformService.retrieveAllFunds();
         if (fundOptions.isEmpty()) {

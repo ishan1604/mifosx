@@ -16,6 +16,8 @@ import org.mifosplatform.portfolio.paymenttype.data.PaymentTypeDataValidator;
 import org.mifosplatform.portfolio.paymenttype.domain.PaymentType;
 import org.mifosplatform.portfolio.paymenttype.domain.PaymentTypeRepository;
 import org.mifosplatform.portfolio.paymenttype.domain.PaymentTypeRepositoryWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ public class PaymentTypeWriteServiceImpl implements PaymentTypeWriteService {
     private final PaymentTypeRepository repository;
     private final PaymentTypeRepositoryWrapper repositoryWrapper;
     private final PaymentTypeDataValidator fromApiJsonDeserializer;
+    private final static Logger logger = LoggerFactory.getLogger(PaymentTypeWriteServiceImpl.class);
 
     @Autowired
     public PaymentTypeWriteServiceImpl(PaymentTypeRepository repository, PaymentTypeRepositoryWrapper repositoryWrapper,
@@ -38,53 +41,79 @@ public class PaymentTypeWriteServiceImpl implements PaymentTypeWriteService {
 
     @Override
     public CommandProcessingResult createPaymentType(JsonCommand command) {
-        this.fromApiJsonDeserializer.validateForCreate(command.json());
-        String name = command.stringValueOfParameterNamed(PaymentTypeApiResourceConstants.NAME);
-        String description = command.stringValueOfParameterNamed(PaymentTypeApiResourceConstants.DESCRIPTION);
-        Boolean isCashPayment = command.booleanObjectValueOfParameterNamed(PaymentTypeApiResourceConstants.ISCASHPAYMENT);
-        Long position = command.longValueOfParameterNamed(PaymentTypeApiResourceConstants.POSITION);
+        try {
+            this.fromApiJsonDeserializer.validateForCreate(command.json());
+            String name = command.stringValueOfParameterNamed(PaymentTypeApiResourceConstants.NAME);
+            String description = command.stringValueOfParameterNamed(PaymentTypeApiResourceConstants.DESCRIPTION);
+            Boolean isCashPayment = command.booleanObjectValueOfParameterNamed(PaymentTypeApiResourceConstants.ISCASHPAYMENT);
+            Long position = command.longValueOfParameterNamed(PaymentTypeApiResourceConstants.POSITION);
 
-        PaymentType newPaymentType = PaymentType.create(name, description, isCashPayment, position);
-        this.repository.save(newPaymentType);
-        return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(newPaymentType.getId()).build();
+            PaymentType newPaymentType = PaymentType.create(name, description, isCashPayment, position);
+            this.repository.save(newPaymentType);
+            
+            return new CommandProcessingResultBuilder().
+                    withCommandId(command.commandId()).
+                    withEntityId(newPaymentType.getId()).
+                    build();
+        } catch (final DataIntegrityViolationException dve) {
+            handleCodeValueDataIntegrityIssues(command, dve);
+            return new CommandProcessingResultBuilder() //
+                    .withCommandId(command.commandId()) //
+                    .build();
+        }
+        
     }
 
     @Override
     public CommandProcessingResult updatePaymentType(Long paymentTypeId, JsonCommand command) {
 
-        this.fromApiJsonDeserializer.validateForUpdate(command.json());
-        final PaymentType paymentType = this.repositoryWrapper.findOneWithNotFoundDetection(paymentTypeId);
-        final Map<String, Object> changes = paymentType.update(command);
+        try {
+            this.fromApiJsonDeserializer.validateForUpdate(command.json());
+            final PaymentType paymentType = this.repositoryWrapper.findOneWithNotFoundDetection(paymentTypeId);
+            final Map<String, Object> changes = paymentType.update(command);
 
-        if (!changes.isEmpty()) {
-            this.repository.save(paymentType);
+            if (!changes.isEmpty()) {
+                this.repository.save(paymentType);
+            }
+
+            return new CommandProcessingResultBuilder().
+                    withCommandId(command.commandId()).
+                    withEntityId(command.entityId()).
+                    build();
+        } catch (final DataIntegrityViolationException dve) {
+            handleCodeValueDataIntegrityIssues(command, dve);
+            return new CommandProcessingResultBuilder() //
+                    .withCommandId(command.commandId()) //
+                    .build();
         }
-
-        return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(command.entityId()).build();
     }
 
     @Override
     public CommandProcessingResult deletePaymentType(Long paymentTypeId) {
         final PaymentType paymentType = this.repositoryWrapper.findOneWithNotFoundDetection(paymentTypeId);
-        try {
-            this.repository.delete(paymentType);
-            this.repository.flush();
-        } catch (final DataIntegrityViolationException e) {
-            handleDataIntegrityIssues(e);
-        }
+        
+        // delete the entity by setting the "deleted" flag to 1
+        paymentType.delete();
+        
+        this.repository.save(paymentType);
+        
         return new CommandProcessingResultBuilder().withEntityId(paymentType.getId()).build();
     }
-
-    private void handleDataIntegrityIssues(final DataIntegrityViolationException dve) {
-
+    
+    /*
+     * Guaranteed to throw an exception no matter what the data integrity issue
+     * is.
+     */
+    private void handleCodeValueDataIntegrityIssues(final JsonCommand command, final DataIntegrityViolationException dve) {
         final Throwable realCause = dve.getMostSpecificCause();
-        if (realCause.getMessage().contains("acc_product_mapping")) {
-            throw new PlatformDataIntegrityException("error.msg.payment.type.association.exist",
-                    "cannot.delete.payment.type.with.association");
-        } else if (realCause.getMessage().contains("payment_type_id")) { throw new PlatformDataIntegrityException(
-                "error.msg.payment.type.association.exist", "cannot.delete.payment.type.with.association"); }
+        if (realCause.getMessage().contains("unique_payment_type")) {
+            final String name = command.stringValueOfParameterNamed("name");
+            throw new PlatformDataIntegrityException("error.msg.payment.type.duplicate.name", "A payment type with name '" + name
+                    + "' already exists", "name", name);
+        }
 
-        throw new PlatformDataIntegrityException("error.msg.paymenttypes.unknown.data.integrity.issue",
-                "Unknown data integrity issue with resource.");
+        logger.error(dve.getMessage(), dve);
+        throw new PlatformDataIntegrityException("error.msg.code.value.unknown.data.integrity.issue",
+                "Unknown data integrity issue with resource: " + realCause.getMessage());
     }
 }

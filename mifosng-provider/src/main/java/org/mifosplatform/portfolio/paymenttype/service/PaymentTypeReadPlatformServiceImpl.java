@@ -30,12 +30,12 @@ public class PaymentTypeReadPlatformServiceImpl implements PaymentTypeReadPlatfo
     }
 
     @Override
-    public Collection<PaymentTypeData> retrieveAllPaymentTypes() {
+    public Collection<PaymentTypeData> retrieveAllPaymentTypes(final boolean includeDeletedPaymentTypes) {
         // TODO Auto-generated method stub
         this.context.authenticatedUser();
 
         final PaymentTypeMapper ptm = new PaymentTypeMapper();
-        final String sql = "select " + ptm.schema() + "order by position";
+        final String sql = "select " + ptm.schema(includeDeletedPaymentTypes) + "order by position";
 
         return this.jdbcTemplate.query(sql, ptm, new Object[] {});
     }
@@ -46,15 +46,22 @@ public class PaymentTypeReadPlatformServiceImpl implements PaymentTypeReadPlatfo
         this.context.authenticatedUser();
 
         final PaymentTypeMapper ptm = new PaymentTypeMapper();
-        final String sql = "select " + ptm.schema() + "where pt.id = ?";
+        final String sql = "select " + ptm.schema(false) + " and pt.id = ?";
 
         return this.jdbcTemplate.queryForObject(sql, ptm, new Object[] { paymentTypeId });
     }
 
     private static final class PaymentTypeMapper implements RowMapper<PaymentTypeData> {
 
-        public String schema() {
-            return " pt.id as id, pt.value as name, pt.description as description,pt.is_cash_payment as isCashPayment,pt.order_position as position from m_payment_type pt ";
+        public String schema(final boolean includeDeletedPaymentTypes) {
+            String sql =  " pt.id as id, pt.value as name, pt.description as description, pt.is_deleted as deleted, "
+                    + "pt.is_cash_payment as isCashPayment, pt.order_position as position from m_payment_type pt ";
+            
+            if (!includeDeletedPaymentTypes) {
+                sql += "where pt.is_deleted = 0 ";
+            }
+            
+            return sql;
         }
 
         @Override
@@ -65,8 +72,9 @@ public class PaymentTypeReadPlatformServiceImpl implements PaymentTypeReadPlatfo
             final String description = rs.getString("description");
             final boolean isCashPayment = rs.getBoolean("isCashPayment");
             final Long position = rs.getLong("position");
+            final boolean deleted = rs.getBoolean("deleted");
 
-            return PaymentTypeData.instance(id, name, description, isCashPayment, position);
+            return PaymentTypeData.instance(id, name, description, isCashPayment, position, deleted);
         }
 
     }

@@ -109,7 +109,7 @@ public class CollectionSheetReadPlatformServiceImpl implements CollectionSheetRe
         boolean firstTime = true;
         Long prevGroupId = null;
         Long prevClientId = null;
-        final Collection<PaymentTypeData> paymentOptions = this.paymentTypeReadPlatformService.retrieveAllPaymentTypes();
+        final Collection<PaymentTypeData> paymentOptions = this.paymentTypeReadPlatformService.retrieveAllPaymentTypes(false);
                 
 
         final List<JLGGroupData> jlgGroupsData = new ArrayList<>();
@@ -675,7 +675,7 @@ public class CollectionSheetReadPlatformServiceImpl implements CollectionSheetRe
         // merge savings data into loan data
         mergeLoanData(collectionSheetFlatDatas, (List<IndividualClientData>) clientData);
         
-        final Collection<PaymentTypeData> paymentOptions = this.paymentTypeReadPlatformService.retrieveAllPaymentTypes();
+        final Collection<PaymentTypeData> paymentOptions = this.paymentTypeReadPlatformService.retrieveAllPaymentTypes(false);
 
         return IndividualCollectionSheetData.instance(transactionDate, clientData, paymentOptions);
 

@@ -15,10 +15,12 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.lang.StringUtils;
 import org.mifosplatform.commands.domain.CommandWrapper;
 import org.mifosplatform.commands.service.CommandWrapperBuilder;
 import org.mifosplatform.commands.service.PortfolioCommandSourceWritePlatformService;
@@ -64,9 +66,15 @@ public class PaymentTypeApiResource {
     @GET
     @Consumes({ MediaType.TEXT_HTML, MediaType.APPLICATION_JSON })
     @Produces(MediaType.APPLICATION_JSON)
-    public String getAllPaymentTypes(@Context final UriInfo uriInfo) {
+    public String getAllPaymentTypes(@Context final UriInfo uriInfo, 
+            @QueryParam("includeDeletedPaymentTypes") final String includeDeletedPaymentTypes) {
         this.securityContext.authenticatedUser().validateHasReadPermission(PaymentTypeApiResourceConstants.resourceNameForPermissions);
-        final Collection<PaymentTypeData> paymentTypes = this.readPlatformService.retrieveAllPaymentTypes();
+        Collection<PaymentTypeData> paymentTypes = this.readPlatformService.retrieveAllPaymentTypes(false);
+        
+        if (StringUtils.equalsIgnoreCase(includeDeletedPaymentTypes, "true")) {
+            paymentTypes = this.readPlatformService.retrieveAllPaymentTypes(true);
+        }
+        
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.jsonSerializer.serialize(settings, paymentTypes, PaymentTypeApiResourceConstants.RESPONSE_DATA_PARAMETERS);
     }

@@ -7,10 +7,12 @@ package org.mifosplatform.portfolio.paymenttype.domain;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 
 import org.apache.commons.lang.StringUtils;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
@@ -19,7 +21,7 @@ import org.mifosplatform.portfolio.paymenttype.data.PaymentTypeData;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 
 @Entity
-@Table(name = "m_payment_type")
+@Table(name = "m_payment_type", uniqueConstraints = { @UniqueConstraint(columnNames = { "value", "deletion_token" }, name = "unique_payment_type") })
 public class PaymentType extends AbstractPersistable<Long> {
 
     @Column(name = "value")
@@ -33,18 +35,27 @@ public class PaymentType extends AbstractPersistable<Long> {
 
     @Column(name = "order_position")
     private Long position;
+    
+    @Column(name = "is_deleted")
+    private boolean deleted;
+    
+    @Column(name = "deletion_token")
+    private String deletionToken;
 
     protected PaymentType() {}
 
-    public PaymentType(final String name, final String description, final Boolean isCashPayment, final Long position) {
+    public PaymentType(final String name, final String description, final Boolean isCashPayment, final Long position, 
+            final boolean deleted, final String deletionToken) {
         this.name = name;
         this.description = description;
         this.isCashPayment = isCashPayment;
         this.position = position;
+        this.deleted = deleted;
+        this.deletionToken = deletionToken;
     }
 
     public static PaymentType create(String name, String description, Boolean isCashPayment, Long position) {
-        return new PaymentType(name, description, isCashPayment, position);
+        return new PaymentType(name, description, isCashPayment, position, false, "NA");
     }
 
     public Map<String, Object> update(final JsonCommand command) {
@@ -79,6 +90,34 @@ public class PaymentType extends AbstractPersistable<Long> {
     }
 
     public PaymentTypeData toData() {
-        return PaymentTypeData.instance(getId(), this.name, this.description, this.isCashPayment, this.position);
+        return PaymentTypeData.instance(getId(), this.name, this.description, this.isCashPayment, this.position, 
+                this.deleted);
+    }
+    
+    /**
+     * Delete the {@link PaymentType} entity by setting the "deleted" flag to 1
+     */
+    public void delete() {
+        this.deleted = true;
+        
+        // generate and store a random token
+        this.deletionToken = this.generateDeletionToken();
+    }
+
+    /**
+     * @return the deleted
+     */
+    public boolean isDeleted() {
+        return deleted;
+    }
+    
+   /**
+    * Generates a random string that will be used as a deletion token
+    * @return UUID random string
+    */
+   private String generateDeletionToken() {
+       UUID uuid = UUID.randomUUID();
+       
+       return uuid.toString();
     }
 }
