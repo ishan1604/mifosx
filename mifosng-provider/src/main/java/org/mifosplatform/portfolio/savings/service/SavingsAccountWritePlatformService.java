@@ -65,5 +65,5 @@ public interface SavingsAccountWritePlatformService {
     void processPostActiveActions(SavingsAccount account, DateTimeFormatter fmt, Set<Long> existingTransactionIds,
             Set<Long> existingReversedTransactionIds);
 
-    void postInterest(SavingsAccount account);
+    void postInterest(SavingsAccount account, Boolean isManualPosting);
 }
