@@ -13,6 +13,7 @@ public class PortfolioAccountDTO {
     private final long[] accountStatus;
     private final Integer depositType;
     private final boolean excludeOverDraftAccounts;
+    private final Long groupId;
 
     public PortfolioAccountDTO(final Integer accountTypeId, final Long clientId, final String currencyCode, final long[] accountStatus,
             final Integer depositType, final boolean excludeOverDraftAccounts) {
@@ -22,6 +23,7 @@ public class PortfolioAccountDTO {
         this.accountStatus = accountStatus;
         this.depositType = depositType;
         this.excludeOverDraftAccounts = excludeOverDraftAccounts;
+        this.groupId = null;
     }
 
     public PortfolioAccountDTO(final Integer accountTypeId, final Long clientId, final long[] accountStatus) {
@@ -31,6 +33,7 @@ public class PortfolioAccountDTO {
         this.accountStatus = accountStatus;
         this.depositType = null;
         this.excludeOverDraftAccounts = false;
+        this.groupId = null;
     }
     
     public PortfolioAccountDTO(final Integer accountTypeId, final Long clientId, final String currencyCode, final long[] accountStatus,
@@ -41,6 +44,17 @@ public class PortfolioAccountDTO {
         this.accountStatus = accountStatus;
         this.depositType = depositType;
         this.excludeOverDraftAccounts = false;
+        this.groupId = null;
+    }
+    public PortfolioAccountDTO(final Integer accountTypeId,final String currencyCode, final long[] accountStatus,
+                               final Integer depositType,final Long groupId) {
+        this.accountTypeId = accountTypeId;
+        this.clientId = null;
+        this.currencyCode = currencyCode;
+        this.accountStatus = accountStatus;
+        this.depositType = depositType;
+        this.excludeOverDraftAccounts = false;
+        this.groupId = groupId;
     }
 
     public Integer getAccountTypeId() {
@@ -66,5 +80,7 @@ public class PortfolioAccountDTO {
     public boolean isExcludeOverDraftAccounts() {
         return this.excludeOverDraftAccounts;
     }
+
+    public Long getGroupId(){return this.groupId;}
 
 }

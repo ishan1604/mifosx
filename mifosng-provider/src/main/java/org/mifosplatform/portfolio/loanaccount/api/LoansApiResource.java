@@ -330,6 +330,16 @@ public class LoansApiResource {
                         currencyCode, accountStatus, DepositAccountType.SAVINGS_DEPOSIT.getValue());
                 accountLinkingOptions = this.portfolioAccountReadPlatformService.retrieveAllForLookup(portfolioAccountDTO);
 
+            }else if (groupId !=null){
+                String currencyCode = null;
+                final CurrencyData currencyData = newLoanAccount.currency();
+                if (currencyData != null) {
+                    currencyCode = currencyData.code();
+                }
+                final long[] accountStatus = { SavingsAccountStatusType.ACTIVE.getValue() };
+                PortfolioAccountDTO portfolioAccountDTO = new PortfolioAccountDTO(PortfolioAccountType.SAVINGS.getValue(),
+                        currencyCode, accountStatus, DepositAccountType.SAVINGS_DEPOSIT.getValue(),groupId);
+                accountLinkingOptions = this.portfolioAccountReadPlatformService.retrieveAllForLookup(portfolioAccountDTO);
             }
 
             // add product options, allowed loan officers and calendar options
