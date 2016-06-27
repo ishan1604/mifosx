@@ -22,6 +22,7 @@ public class DocumentCommand {
     private Long size;
     private String type;
     private String location;
+    private String locale;
     private Integer storageType;
 
     private Long appTableId;
@@ -29,7 +30,7 @@ public class DocumentCommand {
     private final Set<String> modifiedParameters;
 
     public DocumentCommand(final Set<String> modifiedParameters, final Long id, final String parentEntityType, final Long parentEntityId,
-            final String name, final String fileName, final Long size, final String type, final String description, final String location,final Long appTableId) {
+            final String name, final String fileName, final Long size, final String type, final String description, final String location,final Long appTableId,final String locale) {
         this.modifiedParameters = modifiedParameters;
         this.id = id;
         this.parentEntityType = parentEntityType;
@@ -40,6 +41,7 @@ public class DocumentCommand {
         this.type = type;
         this.description = description;
         this.location = location;
+        this.locale = locale;
         this.appTableId = appTableId;
     }
 
@@ -79,6 +81,9 @@ public class DocumentCommand {
 
     public String getLocation() {
         return this.location;
+    }
+    public String getLocale() {
+        return this.locale;
     }
 
     public Set<String> getModifiedParameters() {
