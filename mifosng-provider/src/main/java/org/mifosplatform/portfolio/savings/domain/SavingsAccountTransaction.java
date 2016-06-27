@@ -27,7 +27,9 @@ import javax.persistence.TemporalType;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
 import org.joda.time.LocalDate;
+import org.joda.time.LocalDateTime;
 import org.mifosplatform.infrastructure.core.domain.LocalDateInterval;
+import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.organisation.monetary.data.CurrencyData;
 import org.mifosplatform.organisation.monetary.domain.MonetaryCurrency;
 import org.mifosplatform.organisation.monetary.domain.Money;
@@ -196,7 +198,7 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
 
     private SavingsAccountTransaction(final SavingsAccount savingsAccount, final Office office, final Integer typeOf,
             final LocalDate transactionLocalDate, final Money amount, final boolean isReversed, final AppUser appUser) {
-        this(savingsAccount, office, null, typeOf, transactionLocalDate, new LocalDate().toDate(), amount, isReversed, appUser);
+        this(savingsAccount, office, null, typeOf, transactionLocalDate, new DateUtils().getLocalDateTimeOfTenant().toDate(), amount, isReversed, appUser);
     }
 
     private SavingsAccountTransaction(final SavingsAccount savingsAccount, final Office office, final PaymentDetail paymentDetail,
