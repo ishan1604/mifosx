@@ -73,7 +73,7 @@ public class DocumentWritePlatformServiceJpaRepositoryImpl implements DocumentWr
 
             if(documentCommand.getAppTableId()!=null){
 
-                final String commandJsonString ="{"+documentCommand.getName()+":"+document.getId()+"}";
+                final String commandJsonString ="{"+documentCommand.getName()+":"+document.getId()+",locale:"+documentCommand.getLocale()+"}";
 
                 final JsonCommand datatable = new JsonCommand(null,commandJsonString,null,null,null,null,null,null,null,null,null,null,null,null);
 

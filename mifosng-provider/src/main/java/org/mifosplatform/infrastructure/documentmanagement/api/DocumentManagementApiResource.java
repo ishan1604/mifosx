@@ -91,7 +91,7 @@ public class DocumentManagementApiResource {
     public String createDocument(@PathParam("entityType") final String entityType, @PathParam("entityId") final Long entityId,
             @HeaderParam("Content-Length") final Long fileSize, @FormDataParam("file") final InputStream inputStream,
             @FormDataParam("file") final FormDataContentDisposition fileDetails, @FormDataParam("file") final FormDataBodyPart bodyPart,
-            @FormDataParam("name") final String name, @FormDataParam("description") final String description,@FormDataParam("appTableId") final Long appTableId) {
+            @FormDataParam("name") final String name, @FormDataParam("description") final String description,@FormDataParam("appTableId") final Long appTableId,@FormDataParam("locale") final String locale) {
 
         /**
          * TODO: also need to have a backup and stop reading from stream after
@@ -103,7 +103,7 @@ public class DocumentManagementApiResource {
          * permissable
          **/
         final DocumentCommand documentCommand = new DocumentCommand(null, null, entityType, entityId, name, fileDetails.getFileName(),
-                fileSize, bodyPart.getMediaType().toString(), description, null,appTableId);
+                fileSize, bodyPart.getMediaType().toString(), description,null,appTableId,locale);
 
         final Long documentId = this.documentWritePlatformService.createDocument(documentCommand, inputStream);
 
@@ -118,7 +118,7 @@ public class DocumentManagementApiResource {
             @PathParam("documentId") final Long documentId, @HeaderParam("Content-Length") final Long fileSize,
             @FormDataParam("file") final InputStream inputStream, @FormDataParam("file") final FormDataContentDisposition fileDetails,
             @FormDataParam("file") final FormDataBodyPart bodyPart, @FormDataParam("name") final String name,
-            @FormDataParam("description") final String description) {
+            @FormDataParam("description") final String description,@FormDataParam("locale") final String locale) {
 
         final Set<String> modifiedParams = new HashSet<>();
         modifiedParams.add("name");
@@ -135,10 +135,10 @@ public class DocumentManagementApiResource {
             modifiedParams.add("type");
             modifiedParams.add("location");
             documentCommand = new DocumentCommand(modifiedParams, documentId, entityType, entityId, name, fileDetails.getFileName(),
-                    fileSize, bodyPart.getMediaType().toString(), description, null,null);
+                    fileSize, bodyPart.getMediaType().toString(), description, null,null,locale);
         } else {
             documentCommand = new DocumentCommand(modifiedParams, documentId, entityType, entityId, name, null, null, null, description,
-                    null,null);
+                    null,null,locale);
         }
         /***
          * TODO: does not return list of changes, should be done for consistency
@@ -189,7 +189,7 @@ public class DocumentManagementApiResource {
             @PathParam("documentId") final Long documentId) {
 
         final DocumentCommand documentCommand = new DocumentCommand(null, documentId, entityType, entityId, null, null, null, null, null,
-                null,null);
+                null,null,null);
 
         final CommandProcessingResult documentIdentifier = this.documentWritePlatformService.deleteDocument(documentCommand);
 

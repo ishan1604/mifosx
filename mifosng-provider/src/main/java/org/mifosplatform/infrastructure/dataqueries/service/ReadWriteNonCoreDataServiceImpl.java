@@ -1910,7 +1910,16 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     sql += ", ";
                 }
 
-                pValue =  changedColumns.get(key).toString();
+                if(changedColumns.get(key)!=null){
+
+                    pValue =  changedColumns.get(key).toString();
+
+                }else{
+
+                    pValue =  "";
+                }
+
+
 
                 if (StringUtils.isEmpty(pValue)) {
                     pValueWrite = "null";
