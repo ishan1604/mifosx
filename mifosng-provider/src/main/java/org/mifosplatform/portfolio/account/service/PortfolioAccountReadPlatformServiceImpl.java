@@ -92,7 +92,13 @@ public class PortfolioAccountReadPlatformServiceImpl implements PortfolioAccount
     public Collection<PortfolioAccountData> retrieveAllForLookup(final PortfolioAccountDTO portfolioAccountDTO) {
 
         List<Object> sqlParams = new ArrayList<>();
-        sqlParams.add(portfolioAccountDTO.getClientId());
+        String clientOrGroupId = "sa.client_id = ? ";
+        if(portfolioAccountDTO.getClientId() != null){
+            sqlParams.add(portfolioAccountDTO.getClientId());
+        }else{
+            sqlParams.add(portfolioAccountDTO.getGroupId());
+            clientOrGroupId = "sa.group_id= ? ";
+        }
         Collection<PortfolioAccountData> accounts = null;
         String sql = null;
         String defaultAccountStatus = "300";
@@ -117,7 +123,7 @@ public class PortfolioAccountReadPlatformServiceImpl implements PortfolioAccount
                 accounts = this.jdbcTemplate.query(sql, this.loanAccountMapper, sqlParams.toArray());
             break;
             case SAVINGS:
-                sql = "select " + this.savingsAccountMapper.schema() + " where sa.client_id = ? and sa.status_enum in ("
+                sql = "select " + this.savingsAccountMapper.schema() + " where "+ clientOrGroupId + " and sa.status_enum in ("
                         + defaultAccountStatus.toString() + ")";
                 if (portfolioAccountDTO.getCurrencyCode() != null) {
                     sql += " and sa.currency_code = ?";
