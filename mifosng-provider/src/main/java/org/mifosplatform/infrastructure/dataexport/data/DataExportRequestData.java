@@ -1,0 +1,22 @@
+package org.mifosplatform.infrastructure.dataexport.data;
+
+import java.util.List;
+
+public class DataExportRequestData {
+
+    // Specify the baseEntity which is used as the base object:
+    public DataExportBaseEntityEnum baseEntity;
+
+    // Contains the various filter queries for each tableName
+    public List<DataExportFilter> dataExportFiltersList;
+
+    // List of other (data)tables to retrieve:
+    public List<String> exportDatatables;
+
+
+    public DataExportRequestData(DataExportBaseEntityEnum baseEntity, List<DataExportFilter> dataExportFiltersList, List<String> exportDatatables) {
+        this.baseEntity = baseEntity;
+        this.dataExportFiltersList = dataExportFiltersList;
+        this.exportDatatables = exportDatatables;
+    }
+}
