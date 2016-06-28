@@ -110,7 +110,8 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
                         .append(" pd.account_number as accountNumber, ").append(" pt.value as paymentTypeName, ")
                         .append(" pt.is_deleted as paymentTypeDeleted, ")
                         .append(" pd.payment_type_id as paymentTypeId,").append(" pd.bank_number as bankNumber, ")
-                        .append(" pd.routing_code as routingCode, ").append(" note.id as noteId, ")
+                        .append(" pd.routing_code as routingCode, ")
+                        .append(" lt.transaction_type_enum as loanTransactionType, ")
                         .append(" st.transaction_type_enum as savingsTransactionType ");
             }            
             if (associationParametersData.isNotesRequired()) {        
