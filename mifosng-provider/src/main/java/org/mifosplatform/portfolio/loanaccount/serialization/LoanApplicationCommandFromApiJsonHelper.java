@@ -422,7 +422,7 @@ public final class LoanApplicationCommandFromApiJsonHelper {
                             .ignoreIfNull().positiveAmount();
 
                     final String description = this.fromApiJsonHelper.extractStringNamed("description", collateralItemElement);
-                    baseDataValidator.reset().parameter("collateral").parameterAtIndexArray("description", i).value(description).notBlank()
+                    baseDataValidator.reset().parameter("collateral").parameterAtIndexArray("description", i).value(description)
                             .notExceedingLengthOf(500);
 
                 }
@@ -867,7 +867,7 @@ public final class LoanApplicationCommandFromApiJsonHelper {
                             .ignoreIfNull().positiveAmount();
 
                     final String description = this.fromApiJsonHelper.extractStringNamed("description", collateralItemElement);
-                    baseDataValidator.reset().parameter("collateral").parameterAtIndexArray("description", i).value(description).notBlank()
+                    baseDataValidator.reset().parameter("collateral").parameterAtIndexArray("description", i).value(description)
                             .notExceedingLengthOf(500);
 
                 }
