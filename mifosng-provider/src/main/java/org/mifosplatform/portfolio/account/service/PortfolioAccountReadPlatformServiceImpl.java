@@ -113,7 +113,7 @@ public class PortfolioAccountReadPlatformServiceImpl implements PortfolioAccount
             case INVALID:
             break;
             case LOAN:
-                sql = "select " + this.loanAccountMapper.schema() + " where sa.client_id = ? and la.loan_status_id in ("
+                sql = "select " + this.loanAccountMapper.schema() + " where la.client_id = ? and la.loan_status_id in ("
                         + defaultAccountStatus.toString() + ")";
                 if (portfolioAccountDTO.getCurrencyCode() != null) {
                     sql += " and la.currency_code = ?";
