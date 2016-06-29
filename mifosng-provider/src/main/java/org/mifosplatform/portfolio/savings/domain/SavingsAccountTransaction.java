@@ -198,7 +198,7 @@ public final class SavingsAccountTransaction extends AbstractPersistable<Long> {
 
     private SavingsAccountTransaction(final SavingsAccount savingsAccount, final Office office, final Integer typeOf,
             final LocalDate transactionLocalDate, final Money amount, final boolean isReversed, final AppUser appUser) {
-        this(savingsAccount, office, null, typeOf, transactionLocalDate, new DateUtils().getLocalDateTimeOfTenant().toDate(), amount, isReversed, appUser);
+        this(savingsAccount, office, null, typeOf, transactionLocalDate, new Date(), amount, isReversed, appUser);
     }
 
     private SavingsAccountTransaction(final SavingsAccount savingsAccount, final Office office, final PaymentDetail paymentDetail,
