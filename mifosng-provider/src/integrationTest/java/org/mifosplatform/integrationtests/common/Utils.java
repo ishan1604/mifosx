@@ -43,8 +43,8 @@ public class Utils {
     private static final String LOGIN_URL = "/mifosng-provider/api/v1/authentication?username=mifos&password=password&" + TENANT_IDENTIFIER;
 
     public static void initializeRESTAssured() {
-        RestAssured.baseURI = "https://localhost";
-        RestAssured.port = 8443;
+        RestAssured.baseURI = "http://localhost";
+        RestAssured.port = 8080;
         RestAssured.keystore("src/main/resources/keystore.jks", "openmf");
     }
 

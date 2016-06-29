@@ -386,7 +386,7 @@ public final class Client extends AbstractPersistable<Long> {
 
     public void activate(final AppUser currentUser, final DateTimeFormatter formatter, final LocalDate activationLocalDate) {
 
-        if(isNotPending()){
+        if(isNotPending() && !isRejected()){
             final String defaultUserMessage = "Cannot activate client. Client must be in a pending state.";
             final ApiParameterError error = ApiParameterError.parameterError("error.msg.client.not.in.pending.state", defaultUserMessage,
                     ClientApiConstants.activationDateParamName, activationLocalDate.toString(formatter));
@@ -396,7 +396,6 @@ public final class Client extends AbstractPersistable<Long> {
 
             throw new PlatformApiDataValidationException(dataValidationErrors);
         }
-
 
 
 

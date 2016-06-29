@@ -107,6 +107,7 @@ public class LoanProductTestBuilder {
     private Boolean allowPartialPeriodInterestCalcualtion = false;
     
     private Boolean allowVariableInstallments = Boolean.FALSE;
+    private Boolean splitInterestAmongGuarantors = false;
     private Integer minimumGap;
     private Integer maximumGap;
 
@@ -181,6 +182,7 @@ public class LoanProductTestBuilder {
                 map.put("mandatoryGuarantee", this.mandatoryGuarantee);
                 map.put("minimumGuaranteeFromGuarantor", this.minimumGuaranteeFromGuarantor);
                 map.put("minimumGuaranteeFromOwnFunds", this.minimumGuaranteeFromOwnFunds);
+                map.put("splitInterestAmongGuarantors", this.splitInterestAmongGuarantors);
             }
         }
         map.put("graceOnPrincipalPayment", graceOnPrincipalPayment);
@@ -381,6 +383,7 @@ public class LoanProductTestBuilder {
             if (this.accountList[i].getAccountType().equals(Account.AccountType.LIABILITY)) {
                 final String ID = this.accountList[i].getAccountID().toString();
                 map.put("overpaymentLiabilityAccountId", ID);
+                map.put("suspendedIncomeAccountId", ID);
             }
         }
 
@@ -452,11 +455,12 @@ public class LoanProductTestBuilder {
     }
 
     public LoanProductTestBuilder withOnHoldFundDetails(final String mandatoryGuarantee, final String minimumGuaranteeFromGuarantor,
-            final String minimumGuaranteeFromOwnFunds) {
+            final String minimumGuaranteeFromOwnFunds, final Boolean splitInterestAmongGuarantors) {
         this.holdGuaranteeFunds = true;
         this.mandatoryGuarantee = mandatoryGuarantee;
         this.minimumGuaranteeFromGuarantor = minimumGuaranteeFromGuarantor;
         this.minimumGuaranteeFromOwnFunds = minimumGuaranteeFromOwnFunds;
+        this.splitInterestAmongGuarantors = splitInterestAmongGuarantors;
         return this;
     }
 

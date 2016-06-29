@@ -116,9 +116,10 @@ public class AccountingScenarioIntegrationTest {
         final Account incomeAccount = this.accountHelper.createIncomeAccount();
         final Account expenseAccount = this.accountHelper.createExpenseAccount();
         final Account overpaymentAccount = this.accountHelper.createLiabilityAccount();
+        final Account suspendedIncomeAccount = this.accountHelper.createLiabilityAccount();
 
         final Integer loanProductID = createLoanProductWithUpfrontAccrualAccountingEnabled(assetAccount, incomeAccount, expenseAccount,
-                overpaymentAccount);
+                overpaymentAccount, suspendedIncomeAccount);
 
         final Integer clientID = ClientHelper.createClient(this.requestSpec, this.responseSpec, this.DATE_OF_JOINING);
         final Integer loanID = applyForLoanApplication(clientID, loanProductID);
@@ -546,9 +547,10 @@ public class AccountingScenarioIntegrationTest {
         final Account incomeAccount = this.accountHelper.createIncomeAccount();
         final Account expenseAccount = this.accountHelper.createExpenseAccount();
         final Account overpaymentAccount = this.accountHelper.createLiabilityAccount();
+        final Account suspendedIncomeAccount = this.accountHelper.createLiabilityAccount();
 
         final Integer loanProductID = createLoanProductWithPeriodicAccrualAccountingEnabled(assetAccount, incomeAccount, expenseAccount,
-                overpaymentAccount);
+                overpaymentAccount, suspendedIncomeAccount);
 
         final Integer clientID = ClientHelper.createClient(this.requestSpec, this.responseSpec, this.DATE_OF_JOINING);
         final Integer loanID = applyForLoanApplication(clientID, loanProductID);
