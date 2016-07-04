@@ -1708,7 +1708,7 @@ public class Loan extends AbstractPersistable<Long> {
         if (loanCharge.getChargeCalculation().isPercentageBased()) {
             chargeAmt = loanCharge.getPercentage();
             if (loanCharge.isInstalmentFee()) {
-                totalChargeAmt = loanCharge.minimumAndMaximumCap(calculatePerInstallmentChargeAmount(loanCharge));
+                totalChargeAmt = calculatePerInstallmentChargeAmount(loanCharge);
             }
         } else {
             chargeAmt = loanCharge.amount();
