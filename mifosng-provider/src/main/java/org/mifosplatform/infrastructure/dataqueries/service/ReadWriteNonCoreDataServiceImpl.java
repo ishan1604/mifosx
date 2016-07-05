@@ -2123,8 +2123,8 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
                     String[] codeValueParams = {paramValue};
 
-                    if(paramValue.contains(",")) {
-                        String[] codeValuesParams = paramValue.split(",");
+                    if(StringUtils.contains(paramValue, ",")) {
+                        codeValueParams = paramValue.split(",");
                     }
 
                     for (final String val : codeValueParams ){
