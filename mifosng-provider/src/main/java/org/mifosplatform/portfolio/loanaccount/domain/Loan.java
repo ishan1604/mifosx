@@ -4751,7 +4751,7 @@ public class Loan extends AbstractPersistable<Long> {
         // if (!(this.repaymentScheduleDetail().isInterestRecalculationEnabled() || this.loanProduct().isHoldGuaranteeFundsEnabled())) { return; }
         if (!(this.repaymentScheduleDetail().isInterestRecalculationEnabled())) { return; }
         LocalDate lastTransactionDate = getLastUserTransactionDate();
-        
+
         if (lastTransactionDate.isAfter(activityDate)) {
             String errorMessage = null;
             String action = null;
