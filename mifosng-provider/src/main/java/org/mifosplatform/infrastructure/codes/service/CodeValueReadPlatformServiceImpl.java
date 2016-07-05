@@ -7,6 +7,7 @@ package org.mifosplatform.infrastructure.codes.service;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 
 import org.mifosplatform.infrastructure.codes.data.CodeValueData;
@@ -36,7 +37,7 @@ public class CodeValueReadPlatformServiceImpl implements CodeValueReadPlatformSe
 
         public String schema() {
             return " cv.id as id, cv.code_value as value, cv.code_id as codeId, cv.order_position as position, "
-                    + "cv.is_mandatory as isMandatory, cv.code_description as description "
+                    + "cv.is_mandatory as isMandatory, cv.code_description as description, cv.is_deleted as deleted "
                     + "from m_code_value as cv join m_code c on cv.code_id = c.id ";
         }
 
@@ -48,8 +49,9 @@ public class CodeValueReadPlatformServiceImpl implements CodeValueReadPlatformSe
             final Integer position = rs.getInt("position");
             final String description = rs.getString("description");
             final boolean isMandatory = rs.getBoolean("isMandatory");
+            final boolean deleted = rs.getBoolean("deleted");
 
-            return CodeValueData.instance(id, value, position, isMandatory, description);
+            return CodeValueData.instance(id, value, position, isMandatory, description, deleted);
         }
     }
 
@@ -71,7 +73,7 @@ public class CodeValueReadPlatformServiceImpl implements CodeValueReadPlatformSe
         this.context.authenticatedUser();
 
         final CodeValueDataMapper rm = new CodeValueDataMapper();
-        final String sql = "select " + rm.schema() + "where cv.code_id = ? and cv.is_deleted = 0 order by position";
+        final String sql = "select " + rm.schema() + "where cv.code_id = ? order by position";
 
         return this.jdbcTemplate.query(sql, rm, new Object[] { codeId });
     }
@@ -92,5 +94,20 @@ public class CodeValueReadPlatformServiceImpl implements CodeValueReadPlatformSe
 			throw new CodeValueNotFoundException(codeValueId);
 		}
 
+    }
+
+    @Override
+    public Collection<CodeValueData> retrieveAllActiveCodeValues(Long codeId) {
+        final Collection<CodeValueData> codeValues = this.retrieveAllCodeValues(codeId);
+        
+        Collection<CodeValueData> activeCodeValues = new ArrayList<CodeValueData>();
+        
+        for (CodeValueData codeValue : codeValues) {
+            if (codeValue.isActive()) {
+                activeCodeValues.add(codeValue);
+            }
+        }
+        
+        return activeCodeValues;
     }
 }

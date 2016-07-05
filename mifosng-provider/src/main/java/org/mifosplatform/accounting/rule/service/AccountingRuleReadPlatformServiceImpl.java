@@ -176,7 +176,7 @@ public class AccountingRuleReadPlatformServiceImpl implements AccountingRuleRead
     private static final class AccountingTagRuleDataMapper implements RowMapper<AccountingTagRuleData> {
 
         public String taggedAccountSchema() {
-            return " tag.id as id,tag.tag_id as tagId, tag.acc_type_enum as transactionType, cv.code_value as tagName from m_code_value cv join acc_rule_tags tag on tag.tag_id=cv.id "
+            return " tag.id as id,tag.tag_id as tagId, tag.acc_type_enum as transactionType, cv.code_value as tagName, cv.is_deleted as tagDeleted from m_code_value cv join acc_rule_tags tag on tag.tag_id=cv.id "
                     + "join acc_accounting_rule rule on tag.acc_rule_id=rule.id ";
         }
 
@@ -186,7 +186,8 @@ public class AccountingRuleReadPlatformServiceImpl implements AccountingRuleRead
             final Long tagId = rs.getLong("tagId");
             final Integer transactionType = JdbcSupport.getInteger(rs, "transactionType");
             final String tagName = rs.getString("tagName");
-            final CodeValueData tag = CodeValueData.instance(tagId, tagName);
+            final boolean tagDeleted = rs.getBoolean("tagDeleted");
+            final CodeValueData tag = CodeValueData.instance(tagId, tagName, tagDeleted);
             final EnumOptionData transactionTypeEnum = AccountingEnumerations.journalEntryType(transactionType);
             return new AccountingTagRuleData(id, tag, transactionTypeEnum);
         }
