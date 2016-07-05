@@ -4748,7 +4748,7 @@ public class Loan extends AbstractPersistable<Long> {
         // if (!(this.repaymentScheduleDetail().isInterestRecalculationEnabled() || this.loanProduct().isHoldGuaranteeFundsEnabled())) { return; }
         if (!(this.repaymentScheduleDetail().isInterestRecalculationEnabled())) { return; }
         LocalDate lastTransactionDate = getLastUserTransactionDate();
-        final LocalDate clientOfficeJoiningDate = this.client.getOfficeJoiningLocalDate();
+        
         if (lastTransactionDate.isAfter(activityDate)) {
             String errorMessage = null;
             String action = null;
@@ -4777,7 +4777,7 @@ public class Loan extends AbstractPersistable<Long> {
                 default:
                 break;
             }
-            throw new InvalidLoanStateTransitionException(action, postfix, errorMessage, clientOfficeJoiningDate);
+            throw new InvalidLoanStateTransitionException(action, postfix, errorMessage, lastTransactionDate);
         }
     }
 
