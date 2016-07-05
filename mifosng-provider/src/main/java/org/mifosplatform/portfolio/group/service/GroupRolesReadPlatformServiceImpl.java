@@ -56,7 +56,7 @@ public class GroupRolesReadPlatformServiceImpl implements GroupRolesReadPlatform
     private static final class GroupRolesDataMapper implements RowMapper<GroupRoleData> {
 
         public final String schema() {
-            return " role.id AS id, role.client_id AS clientId, c.display_name as clientName, role.role_cv_id AS roleId, cv.code_value AS roleName"
+            return " role.id AS id, role.client_id AS clientId, c.display_name as clientName, role.role_cv_id AS roleId, cv.is_deleted as roleIsDeleted, cv.code_value AS roleName"
                     + " from m_code_value cv join m_group_roles role on role.role_cv_id = cv.id left join m_client c on c.id = role.client_id ";
         }
 
@@ -67,7 +67,8 @@ public class GroupRolesReadPlatformServiceImpl implements GroupRolesReadPlatform
             final String clientName = rs.getString("clientName");
             final Long roleId = JdbcSupport.getLong(rs, "roleId");
             final String roleName = rs.getString("roleName");
-            final CodeValueData role = CodeValueData.instance(roleId, roleName);
+            final boolean roleIsDeleted = rs.getBoolean("roleIsDeleted");
+            final CodeValueData role = CodeValueData.instance(roleId, roleName, roleIsDeleted);
             return new GroupRoleData(id, role, clientId, clientName);
         }
 

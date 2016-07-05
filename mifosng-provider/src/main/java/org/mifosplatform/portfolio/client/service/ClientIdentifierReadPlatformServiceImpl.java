@@ -80,7 +80,8 @@ public class ClientIdentifierReadPlatformServiceImpl implements ClientIdentifier
         public String schema() {
             return "ci.id as id, ci.client_id as clientId, ci.document_type_id as documentTypeId, ci.document_key as documentKey,"
                     + " ci.description as description, cv.code_value as documentType, cv.is_mandatory as documentIsMandatory, "
-                    + " cv.order_position as documentPosition, cv.code_description as documentDescription"
+                    + " cv.order_position as documentPosition, cv.code_description as documentDescription, "
+                    + " cv.is_deleted as documentIsDeleted "
                     + " from m_client_identifier ci, m_client c, m_office o, m_code_value cv"
                     + " where ci.client_id=c.id and c.office_id=o.id" + " and ci.document_type_id=cv.id"
                     + " and ci.client_id = ? and o.hierarchy like ? ";
@@ -98,9 +99,10 @@ public class ClientIdentifierReadPlatformServiceImpl implements ClientIdentifier
             final boolean documentIsMandatory = rs.getBoolean("documentIsMandatory");
             final Integer documentPosition = JdbcSupport.getInteger(rs, "documentPosition");
             final String documentDescription = rs.getString("documentDescription");
+            final boolean documentIsDeleted = rs.getBoolean("documentIsDeleted");
 
             final CodeValueData documentType = CodeValueData.instance(documentTypeId, documentTypeName, documentPosition, 
-                    documentIsMandatory, documentDescription);
+                    documentIsMandatory, documentDescription, documentIsDeleted);
 
             return ClientIdentifierData.singleItem(id, clientId, documentType, documentKey, description);
         }

@@ -8,6 +8,7 @@ package org.mifosplatform.infrastructure.codes.service;
 import java.util.Collection;
 
 import org.mifosplatform.infrastructure.codes.data.CodeValueData;
+import org.mifosplatform.infrastructure.codes.domain.Code;
 
 /**
  * A service for retrieving code value information based on the code itself.
@@ -33,6 +34,14 @@ public interface CodeValueReadPlatformService {
     Collection<CodeValueData> retrieveCodeValuesByCode(final String code);
 
     Collection<CodeValueData> retrieveAllCodeValues(final Long codeId);
+    
+    /**
+     * Retrieves all code values with 'deleted' property set to false
+     * 
+     * @param codeId {@link Code} entity identifier
+     * @return {@link CodeValueData} objects
+     */
+    Collection<CodeValueData> retrieveAllActiveCodeValues(final Long codeId);
 
     CodeValueData retrieveCodeValue(final Long codeValueId);
 }

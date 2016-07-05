@@ -24,38 +24,43 @@ public class CodeValueData implements Serializable {
 
     @SuppressWarnings("unused")
     private final String description;
+    
+    private final boolean deleted;
 
-    public static CodeValueData instance(final Long id, final String name, final Integer position) {
+    public static CodeValueData instance(final Long id, final String name, final Integer position, 
+            final boolean deleted) {
         String description = null;
         boolean isMandatory = false;
-        return new CodeValueData(id, name, position, isMandatory, description);
+        return new CodeValueData(id, name, position, isMandatory, description, deleted);
     }
 
-    public static CodeValueData instance(final Long id, final String name, final String description) {
+    public static CodeValueData instance(final Long id, final String name, final String description, 
+            final boolean deleted) {
         Integer position = null;
         boolean isMandatory = false;
-        return new CodeValueData(id, name, position, isMandatory, description);
+        return new CodeValueData(id, name, position, isMandatory, description, deleted);
     }
 
-    public static CodeValueData instance(final Long id, final String name) {
+    public static CodeValueData instance(final Long id, final String name, final boolean deleted) {
         String description = null;
         Integer position = null;
         boolean isMandatory = false;
-        return new CodeValueData(id, name, position, isMandatory, description);
+        return new CodeValueData(id, name, position, isMandatory, description, deleted);
     }
 
-    public static CodeValueData instance(final Long id, final String name, final Integer position, final boolean isMandatory, 
-            final String description) {
-        return new CodeValueData(id, name, position, isMandatory, description);
+    public static CodeValueData instance(final Long id, final String name, final Integer position, 
+            final boolean isMandatory, final String description, final boolean deleted) {
+        return new CodeValueData(id, name, position, isMandatory, description, deleted);
     }
 
     private CodeValueData(final Long id, final String name, final Integer position, final boolean isMandatory, 
-            final String description) {
+            final String description, final boolean deleted) {
         this.id = id;
         this.name = name;
         this.position = position;
         this.isMandatory = isMandatory;
         this.description = description;
+        this.deleted = deleted;
     }
 
     public Long getId() {
@@ -71,5 +76,19 @@ public class CodeValueData implements Serializable {
      */
     public boolean isMandatory() {
         return isMandatory;
+    }
+    
+    /**
+     * @return value of the deleted property
+     */
+    public boolean isDeleted() {
+        return this.deleted;
+    }
+    
+    /**
+     * @return true if the "deleted" property is false
+     */
+    public boolean isActive() {
+        return !this.deleted;
     }
 }

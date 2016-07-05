@@ -277,18 +277,18 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             sqlBuilder
                     .append("c.id as id, c.account_no as accountNo, c.external_id as externalId, c.status_enum as statusEnum,c.sub_status as subStatus, ");
             sqlBuilder
-                    .append("cvSubStatus.code_value as subStatusValue,cvSubStatus.code_description as subStatusDesc,c.office_id as officeId, o.name as officeName, ");
+                    .append("cvSubStatus.is_deleted as subStatusIsDeleted, cvSubStatus.code_value as subStatusValue,cvSubStatus.code_description as subStatusDesc,c.office_id as officeId, o.name as officeName, ");
             sqlBuilder.append("c.transfer_to_office_id as transferToOfficeId, transferToOffice.name as transferToOfficeName, ");
             sqlBuilder.append("c.firstname as firstname, c.middlename as middlename, c.lastname as lastname, ");
             sqlBuilder.append("c.fullname as fullname, c.display_name as displayName, ");
             sqlBuilder.append("c.mobile_no as mobileNo, ");
             sqlBuilder.append("c.date_of_birth as dateOfBirth, ");
             sqlBuilder.append("c.gender_cv_id as genderId, ");
-            sqlBuilder.append("cv.code_value as genderValue, ");
+            sqlBuilder.append("cv.code_value as genderValue, cv.is_deleted as genderIsDeleted, ");
             sqlBuilder.append("c.client_type_cv_id as clienttypeId, ");
-            sqlBuilder.append("cvclienttype.code_value as clienttypeValue, ");
+            sqlBuilder.append("cvclienttype.code_value as clienttypeValue, cvclienttype.is_deleted as clientTypeIsDeleted, ");
             sqlBuilder.append("c.client_classification_cv_id as classificationId, ");
-            sqlBuilder.append("cvclassification.code_value as classificationValue, ");
+            sqlBuilder.append("cvclassification.code_value as classificationValue, cvclassification.is_deleted as classificationIsDeleted, ");
             sqlBuilder.append("c.activation_date as activationDate, c.image_id as imageId, ");
             sqlBuilder.append("c.staff_id as staffId, s.display_name as staffName,");
             sqlBuilder.append("c.default_savings_product as savingsProductId, sp.name as savingsProductName, ");
@@ -341,7 +341,9 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             final Long subStatusId = JdbcSupport.getLong(rs, "subStatus");
             final String subStatusValue = rs.getString("subStatusValue");
             final String subStatusDesc = rs.getString("subStatusDesc");
-            final CodeValueData subStatus = CodeValueData.instance(subStatusId, subStatusValue, subStatusDesc);
+            final boolean subStatusIsDeleted = rs.getBoolean("subStatusIsDeleted");
+            final CodeValueData subStatus = CodeValueData.instance(subStatusId, subStatusValue, subStatusDesc, 
+                    subStatusIsDeleted);
 
             final Long officeId = JdbcSupport.getLong(rs, "officeId");
             final String officeName = rs.getString("officeName");
@@ -360,15 +362,19 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             final LocalDate dateOfBirth = JdbcSupport.getLocalDate(rs, "dateOfBirth");
             final Long genderId = JdbcSupport.getLong(rs, "genderId");
             final String genderValue = rs.getString("genderValue");
-            final CodeValueData gender = CodeValueData.instance(genderId, genderValue);
+            final boolean genderIsDeleted = rs.getBoolean("genderIsDeleted");
+            final CodeValueData gender = CodeValueData.instance(genderId, genderValue, genderIsDeleted);
 
             final Long clienttypeId = JdbcSupport.getLong(rs, "clienttypeId");
             final String clienttypeValue = rs.getString("clienttypeValue");
-            final CodeValueData clienttype = CodeValueData.instance(clienttypeId, clienttypeValue);
+            final boolean clientTypeIsDeleted = rs.getBoolean("clientTypeIsDeleted");
+            final CodeValueData clienttype = CodeValueData.instance(clienttypeId, clienttypeValue, clientTypeIsDeleted);
 
             final Long classificationId = JdbcSupport.getLong(rs, "classificationId");
             final String classificationValue = rs.getString("classificationValue");
-            final CodeValueData classification = CodeValueData.instance(classificationId, classificationValue);
+            final boolean classificationIsDeleted = rs.getBoolean("classificationIsDeleted");
+            final CodeValueData classification = CodeValueData.instance(classificationId, classificationValue, 
+                    classificationIsDeleted);
 
             final LocalDate activationDate = JdbcSupport.getLocalDate(rs, "activationDate");
             final Long imageId = JdbcSupport.getLong(rs, "imageId");
@@ -429,18 +435,18 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             final StringBuilder builder = new StringBuilder(400);
 
             builder.append("c.id as id, c.account_no as accountNo, c.external_id as externalId, c.status_enum as statusEnum,c.sub_status as subStatus, ");
-            builder.append("cvSubStatus.code_value as subStatusValue,cvSubStatus.code_description as subStatusDesc,c.office_id as officeId, o.name as officeName, ");
+            builder.append("cvSubStatus.is_deleted as subStatusIsDeleted, cvSubStatus.code_value as subStatusValue,cvSubStatus.code_description as subStatusDesc,c.office_id as officeId, o.name as officeName, ");
             builder.append("c.transfer_to_office_id as transferToOfficeId, transferToOffice.name as transferToOfficeName, ");
             builder.append("c.firstname as firstname, c.middlename as middlename, c.lastname as lastname, ");
             builder.append("c.fullname as fullname, c.display_name as displayName, ");
             builder.append("c.mobile_no as mobileNo, ");
             builder.append("c.date_of_birth as dateOfBirth, ");
             builder.append("c.gender_cv_id as genderId, ");
-            builder.append("cv.code_value as genderValue, ");
+            builder.append("cv.code_value as genderValue, cv.is_deleted as genderIsDeleted,");
             builder.append("c.client_type_cv_id as clienttypeId, ");
-            builder.append("cvclienttype.code_value as clienttypeValue, ");
+            builder.append("cvclienttype.code_value as clienttypeValue, cvclienttype.is_deleted as clientTypeIsDeleted,");
             builder.append("c.client_classification_cv_id as classificationId, ");
-            builder.append("cvclassification.code_value as classificationValue, ");
+            builder.append("cvclassification.code_value as classificationValue, cvclassification.is_deleted as classificationIsDeleted, ");
 
             builder.append("c.submittedon_date as submittedOnDate, ");
             builder.append("sbu.username as submittedByUsername, ");
@@ -492,7 +498,9 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             final Long subStatusId = JdbcSupport.getLong(rs, "subStatus");
             final String subStatusValue = rs.getString("subStatusValue");
             final String subStatusDesc = rs.getString("subStatusDesc");
-            final CodeValueData subStatus = CodeValueData.instance(subStatusId, subStatusValue, subStatusDesc);
+            final boolean subStatusIsDeleted = rs.getBoolean("subStatusIsDeleted");
+            final CodeValueData subStatus = CodeValueData.instance(subStatusId, subStatusValue, subStatusDesc, 
+                    subStatusIsDeleted);
 
             final Long officeId = JdbcSupport.getLong(rs, "officeId");
             final String officeName = rs.getString("officeName");
@@ -511,15 +519,20 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             final LocalDate dateOfBirth = JdbcSupport.getLocalDate(rs, "dateOfBirth");
             final Long genderId = JdbcSupport.getLong(rs, "genderId");
             final String genderValue = rs.getString("genderValue");
-            final CodeValueData gender = CodeValueData.instance(genderId, genderValue);
+            final boolean genderIsDeleted = rs.getBoolean("genderIsDeleted");
+            final CodeValueData gender = CodeValueData.instance(genderId, genderValue, genderIsDeleted);
 
             final Long clienttypeId = JdbcSupport.getLong(rs, "clienttypeId");
             final String clienttypeValue = rs.getString("clienttypeValue");
-            final CodeValueData clienttype = CodeValueData.instance(clienttypeId, clienttypeValue);
+            final boolean clientTypeIsDeleted = rs.getBoolean("clientTypeIsDeleted");
+            final CodeValueData clienttype = CodeValueData.instance(clienttypeId, clienttypeValue, 
+                    clientTypeIsDeleted);
 
             final Long classificationId = JdbcSupport.getLong(rs, "classificationId");
             final String classificationValue = rs.getString("classificationValue");
-            final CodeValueData classification = CodeValueData.instance(classificationId, classificationValue);
+            final boolean classificationIsDeleted = rs.getBoolean("classificationIsDeleted");
+            final CodeValueData classification = CodeValueData.instance(classificationId, classificationValue, 
+                    classificationIsDeleted);
 
             final LocalDate activationDate = JdbcSupport.getLocalDate(rs, "activationDate");
             final Long imageId = JdbcSupport.getLong(rs, "imageId");
