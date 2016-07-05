@@ -11,7 +11,7 @@ import java.util.Set;
 public class BusinessEventNotificationConstants {
 
     public static enum BUSINESS_EVENTS {
-        LOAN_APPROVED("loan_approved"), LOAN_UNDO_APPROVAL("loan_undo_approval"), LOAN_UNDO_DISBURSAL("loan_undo_disbursal"), LOAN_UNDO_TRANSACTION(
+        LOAN_APPROVED("loan_approved"), LOAN_UNDO_APPROVAL("loan_undo_approval"), LOAN_REJECTED("loan_rejected"),LOAN_UNDO_DISBURSAL("loan_undo_disbursal"), LOAN_UNDO_TRANSACTION(
                 "loan_undo_transaction"), LOAN_MAKE_REPAYMENT("loan_repayment_transaction"), LOAN_WRITTEN_OFF("loan_writtenoff"), LOAN_UNDO_WRITTEN_OFF(
                 "loan_undo_writtenoff");
 

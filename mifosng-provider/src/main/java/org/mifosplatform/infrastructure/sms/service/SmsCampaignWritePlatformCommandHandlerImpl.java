@@ -48,6 +48,7 @@ import org.mifosplatform.infrastructure.sms.exception.SmsCampaignNotFound;
 import org.mifosplatform.portfolio.calendar.service.CalendarUtils;
 import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.client.domain.ClientRepository;
+import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.template.domain.TemplateRepository;
 import org.mifosplatform.template.service.TemplateMergeService;
 import org.mifosplatform.useradministration.domain.AppUser;
@@ -192,8 +193,7 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
 
     }
 
-
-    private void insertDirectCampaignIntoSmsOutboundTable(final String smsParams,
+    public void insertDirectCampaignIntoSmsOutboundTable(final String smsParams,
                                                           final String textMessageTemplate,final String campaignName){
         try{
             HashMap<String,String> campaignParams = new ObjectMapper().readValue(smsParams, new TypeReference<HashMap<String,String>>(){});
