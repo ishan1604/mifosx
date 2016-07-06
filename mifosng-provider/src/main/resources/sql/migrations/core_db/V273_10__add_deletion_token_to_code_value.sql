@@ -1,5 +1,5 @@
 alter table m_code_value
-add deletion_token varchar(100);
+add deletion_token varchar(100) not null default "NA";
 
 update m_code_value
 set deletion_token = sha2(concat(id, '_', code_id), 224)

@@ -50,7 +50,7 @@ public class CodeValue extends AbstractPersistable<Long> {
 
     public static CodeValue createNew(final Code code, final String label, final int position, final boolean isMandatory, 
             final String description) {
-        return new CodeValue(code, label, position, isMandatory, description, false, null);
+        return new CodeValue(code, label, position, isMandatory, description, false, "NA");
     }
 
     protected CodeValue() {
@@ -87,7 +87,7 @@ public class CodeValue extends AbstractPersistable<Long> {
             position = new Integer(0);
         }
         
-        return new CodeValue(code, label, position.intValue(), isMandatory, description, false, null);
+        return new CodeValue(code, label, position.intValue(), isMandatory, description, false, "NA");
     }
 
     public Map<String, Object> update(final JsonCommand command) {
