@@ -49,6 +49,8 @@ import org.mifosplatform.portfolio.calendar.service.CalendarUtils;
 import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.client.domain.ClientRepository;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanRepository;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
 import org.mifosplatform.template.domain.TemplateRepository;
 import org.mifosplatform.template.service.TemplateMergeService;
 import org.mifosplatform.useradministration.domain.AppUser;
@@ -56,6 +58,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,6 +93,8 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
     private final ReadReportingService readReportingService;
     private final GenericDataService genericDataService;
     private final FromJsonHelper fromJsonHelper;
+    private final LoanRepository loanRepository;
+
 
 
 
@@ -97,7 +103,8 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
         final SmsCampaignValidator smsCampaignValidator,final SmsCampaignReadPlatformService smsCampaignReadPlatformService,
         final ReportRepository reportRepository,final TemplateRepository templateRepository, final TemplateMergeService templateMergeService,
         final SmsMessageRepository smsMessageRepository,final ClientRepository clientRepository,final SchedularWritePlatformService schedularWritePlatformService,
-        final ReadReportingService readReportingService, final GenericDataService genericDataService,final FromJsonHelper fromJsonHelper) {
+        final ReadReportingService readReportingService, final GenericDataService genericDataService,final FromJsonHelper fromJsonHelper,
+        final LoanRepository loanRepository) {
         this.context = context;
         this.smsCampaignRepository = smsCampaignRepository;
         this.smsCampaignValidator = smsCampaignValidator;
@@ -111,6 +118,7 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
         this.readReportingService = readReportingService;
         this.genericDataService = genericDataService;
         this.fromJsonHelper = fromJsonHelper;
+        this.loanRepository = loanRepository;
     }
 
     @Transactional
@@ -193,7 +201,7 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
 
     }
 
-    public void insertDirectCampaignIntoSmsOutboundTable(final String smsParams,
+    private void insertDirectCampaignIntoSmsOutboundTable(final String smsParams,
                                                           final String textMessageTemplate,final String campaignName){
         try{
             HashMap<String,String> campaignParams = new ObjectMapper().readValue(smsParams, new TypeReference<HashMap<String,String>>(){});
@@ -219,6 +227,38 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
             // TODO throw something here
         }
 
+    }
+
+    @Override
+    public void insertDirectCampaignIntoSmsOutboundTable(final Loan loan, final SmsCampaign smsCampaign){
+        try{
+            HashMap<String,String> campaignParams = new ObjectMapper().readValue(smsCampaign.getParamValue(), new TypeReference<HashMap<String,String>>(){});
+            campaignParams.put("${clientId}", loan.getClientId().toString());
+            campaignParams.put("${loanId}", loan.getId().toString());
+
+            HashMap<String,String> queryParamForRunReport =  new ObjectMapper().readValue(smsCampaign.getParamValue(), new TypeReference<HashMap<String,String>>(){});
+            queryParamForRunReport.put("${clientId}",loan.getClientId().toString());
+            queryParamForRunReport.put("${loanId}",loan.getId().toString());
+
+            List<HashMap<String,Object>> runReportObject = this.getRunReportByServiceImpl(campaignParams.get("reportName"),queryParamForRunReport);
+
+            if(runReportObject !=null){
+                for(HashMap<String,Object> entry : runReportObject){
+                    String textMessage = this.compileSmsTemplate(smsCampaign.getMessage(), smsCampaign.getCampaignName(), entry);
+                    Long clientId = loan.getClientId();
+                    Object mobileNo = entry.get("mobileNo");
+
+                    Client client =  this.clientRepository.findOne(clientId);
+                    if(mobileNo !=null) {
+                        SmsMessage smsMessage = SmsMessage.pendingSms(null,null,client,null,textMessage,null,mobileNo.toString(),smsCampaign.getCampaignName());
+                        this.smsMessageRepository.save(smsMessage);
+                    }
+                }
+            }
+        }catch(final IOException e){
+            System.out.println("IOException: " + e.getMessage());
+            // TODO throw something here
+        }catch(final RuntimeException e){System.out.println("RuntimeException: " + e.getMessage());}
     }
 
     @Override
@@ -352,7 +392,8 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
                 .build();
     }
 
-    private String compileSmsTemplate(final String textMessageTemplate,final String campaignName , final Map<String, Object> smsParams)  {
+    @Override
+    public String compileSmsTemplate(final String textMessageTemplate,final String campaignName , final Map<String, Object> smsParams)  {
         final MustacheFactory mf = new DefaultMustacheFactory();
         final Mustache mustache = mf.compile(new StringReader(textMessageTemplate), campaignName);
 

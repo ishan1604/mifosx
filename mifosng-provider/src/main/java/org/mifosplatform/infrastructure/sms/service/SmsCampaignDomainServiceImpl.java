@@ -7,7 +7,12 @@ package org.mifosplatform.infrastructure.sms.service;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.mifosplatform.infrastructure.codes.domain.CodeValueRepository;
+import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
+import org.mifosplatform.infrastructure.dataqueries.service.GenericDataService;
+import org.mifosplatform.infrastructure.dataqueries.service.ReadReportingService;
 import org.mifosplatform.infrastructure.sms.domain.*;
 import org.mifosplatform.portfolio.account.service.AccountTransfersReadPlatformService;
 import org.mifosplatform.portfolio.account.service.AccountTransfersWritePlatformService;
@@ -17,6 +22,8 @@ import org.mifosplatform.portfolio.common.service.BusinessEventListner;
 import org.mifosplatform.portfolio.common.service.BusinessEventNotifierService;
 import org.mifosplatform.portfolio.common.BusinessEventNotificationConstants.BUSINESS_EVENTS;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionRepository;
 import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetailRepository;
 import org.mifosplatform.portfolio.savings.domain.DepositAccountOnHoldTransactionRepository;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountDomainService;
@@ -26,6 +33,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.domain.Specifications;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -35,6 +44,7 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import java.io.IOException;
 import java.math.RoundingMode;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -59,20 +69,24 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
     private final SavingsAccountTransactionSummaryWrapper savingsAccountTransactionSummaryWrapper;
     private final SavingsHelper savingsHelper;
     private final AccountTransfersReadPlatformService accountTransfersReadPlatformService;
-    private final SmsCampaignWritePlatformCommandHandlerImpl smsCampaignWritePlatformCommandHandler;
+    private final SmsCampaignWritePlatformService smsCampaignWritePlatformCommandHandler;
+    private final LoanTransactionRepository loanTransactionRepository;
     private final CodeValueRepository codeValueRepository;
     private final PaymentDetailRepository paymentDetailRepository;
+    private final ReadReportingService readReportingService;
+    private final GenericDataService genericDataService;
 
     @Autowired
     public SmsCampaignDomainServiceImpl(final SmsCampaignRepository smsCampaignRepository, final SmsMessageRepository smsMessageRepository,
                                         final AccountTransfersWritePlatformService accountTransfersWritePlatformService,
                                         final BusinessEventNotifierService businessEventNotifierService,
                                         final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
-                                        final SavingsAccountDomainService savingsAccountDomainService,
+                                        final SavingsAccountDomainService savingsAccountDomainService, final GenericDataService genericDataService,
                                         final SavingsAccountTransactionSummaryWrapper savingsAccountTransactionSummaryWrapper,
                                         final AccountTransfersReadPlatformService accountTransfersReadPlatformService,
                                         final CodeValueRepository codeValueRepository, final ClientRepository clientRepository,
-                                        final PaymentDetailRepository paymentDetailRepository, final SmsCampaignWritePlatformCommandHandlerImpl smsCampaignWritePlatformCommandHandler){
+                                        final PaymentDetailRepository paymentDetailRepository, final SmsCampaignWritePlatformService smsCampaignWritePlatformCommandHandler,
+                                        final LoanTransactionRepository loanTransactionRepository, final ReadReportingService readReportingService){
         this.smsCampaignRepository = smsCampaignRepository;
         this.smsMessageRepository = smsMessageRepository;
         this.accountTransfersWritePlatformService = accountTransfersWritePlatformService;
@@ -86,6 +100,9 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
         this.paymentDetailRepository = paymentDetailRepository;
         this.clientRepository = clientRepository;
         this.smsCampaignWritePlatformCommandHandler = smsCampaignWritePlatformCommandHandler;
+        this.loanTransactionRepository = loanTransactionRepository;
+        this.readReportingService = readReportingService;
+        this.genericDataService = genericDataService;
     }
 
     @PostConstruct
@@ -99,7 +116,7 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
         ArrayList<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("loan rejected");
         if(smsCampaigns.size()>0){
             for (SmsCampaign campaign:smsCampaigns){
-                this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(campaign.getParamValue(),campaign.getMessage(),campaign.getCampaignName());
+                this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan,campaign);
             }
         }
     }
@@ -107,20 +124,27 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
     private void notifyAcceptedLoanOwner(Loan loan) {
         ArrayList<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("loan accepted");
 
-        ///Find sms campaign by id or something
-        //call insertDirecet message
         if(smsCampaigns.size()>0){
             for (SmsCampaign campaign:smsCampaigns){
-                this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(campaign.getParamValue(),campaign.getMessage(),campaign.getCampaignName());
+                this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan,campaign);
             }
         }
     }
 
-    private void sendSmsForLoanRepayment(Loan loan) {
+    private void sendSmsForLoanRepayment(LoanTransaction loanTransaction) {
         ArrayList<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("loan repayment");
+
         if(smsCampaigns.size()>0){
-            for (SmsCampaign campaign:smsCampaigns){
-                this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(campaign.getParamValue(),campaign.getMessage(),campaign.getCampaignName());
+            for (SmsCampaign smsCampaign:smsCampaigns){
+                HashMap<String, Object> smsParams = processRepaymentDataForSms(loanTransaction);
+                String message = this.smsCampaignWritePlatformCommandHandler.compileSmsTemplate(smsCampaign.getMessage(),smsCampaign.getCampaignName(),smsParams);
+                Client client = loanTransaction.getLoan().getClient();
+                Object mobileNo = smsParams.get("mobileNo");
+
+                if(mobileNo !=null) {
+                    SmsMessage smsMessage = SmsMessage.pendingSms(null,null,client,null,message,null,mobileNo.toString(),smsCampaign.getCampaignName());
+                    this.smsMessageRepository.save(smsMessage);
+                }
             }
         }
     }
@@ -135,6 +159,30 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
             }
         }
         return smsCampaigns;
+    }
+
+    private HashMap<String, Object> processRepaymentDataForSms(final LoanTransaction loanTransaction){
+
+        HashMap<String, Object> smsParams = new HashMap<String, Object>();
+        Loan loan = loanTransaction.getLoan();
+        Client client = loan.getClient();
+        DateTimeFormatter timeFormatter = DateTimeFormat.forPattern("HH:mm");
+        DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("MMM:d:yyyy");
+
+        smsParams.put("id",loanTransaction.getLoan().getClientId());
+        smsParams.put("firstname",client.getFirstname());
+        smsParams.put("middlename",client.getMiddlename());
+        smsParams.put("lastname",client.getLastname());
+        smsParams.put("FullName",client.getDisplayName());
+        smsParams.put("mobileNo",client.mobileNo());
+        smsParams.put("LoanAmount",loan.getPrincpal());
+        smsParams.put("LoanOutstanding",loanTransaction.getOutstandingLoanBalance());
+        smsParams.put("LoanAccountId", loan.getAccountNumber());
+        smsParams.put("repaymentAmount", loanTransaction.getAmount(loan.getCurrency()));
+        smsParams.put("RepaymentDate", loanTransaction.getCreatedDateTime().toLocalDate().toString(dateFormatter));
+        smsParams.put("RepaymentTime", loanTransaction.getCreatedDateTime().toLocalTime().toString(timeFormatter));
+
+        return smsParams;
     }
 
     private class SendSmsOnLoanApproved implements BusinessEventListner{
@@ -178,9 +226,9 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
 
         @Override
         public void businessEventWasExecuted(AbstractPersistable<Long> businessEventEntity) {
-            if (businessEventEntity instanceof Loan) {
-                Loan loan = (Loan) businessEventEntity;
-                sendSmsForLoanRepayment(loan);
+            if (businessEventEntity instanceof LoanTransaction) {
+                LoanTransaction loanTransaction = (LoanTransaction) businessEventEntity;
+                sendSmsForLoanRepayment(loanTransaction);
             }
         }
     }
