@@ -7,6 +7,7 @@ package org.mifosplatform.infrastructure.codes.service;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 
 import org.mifosplatform.infrastructure.codes.data.CodeValueData;
@@ -73,7 +74,7 @@ public class CodeValueReadPlatformServiceImpl implements CodeValueReadPlatformSe
         this.context.authenticatedUser();
 
         final CodeValueDataMapper rm = new CodeValueDataMapper();
-        final String sql = "select " + rm.schema() + "where cv.code_id = ? and cv.is_active = 1 order by position";
+        final String sql = "select " + rm.schema() + "where cv.code_id = ? order by position";
 
         return this.jdbcTemplate.query(sql, rm, new Object[] { codeId });
     }
@@ -92,5 +93,20 @@ public class CodeValueReadPlatformServiceImpl implements CodeValueReadPlatformSe
             throw new CodeValueNotFoundException(codeValueId);
         }
 
+    }
+    
+    @Override
+    public Collection<CodeValueData> retrieveAllActiveCodeValues(Long codeId) {
+        final Collection<CodeValueData> codeValues = this.retrieveAllCodeValues(codeId);
+        
+        Collection<CodeValueData> activeCodeValues = new ArrayList<CodeValueData>();
+        
+        for (CodeValueData codeValue : codeValues) {
+            if (codeValue.isActive()) {
+                activeCodeValues.add(codeValue);
+            }
+        }
+        
+        return activeCodeValues;
     }
 }

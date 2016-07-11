@@ -21,46 +21,46 @@ public class CodeValueData implements Serializable {
 
     @SuppressWarnings("unused")
     private final String description;
-    private final boolean isActive;
+    private final boolean active;
     private final boolean isMandatory;
 
     public static CodeValueData instance(final Long id, final String name, final Integer position, 
-            final boolean isActive) {
+            final boolean active) {
         String description = null;
         boolean isMandatory = false;
         
-        return new CodeValueData(id, name, position, description, isActive, isMandatory);
+        return new CodeValueData(id, name, position, description, active, isMandatory);
     }
 
-    public static CodeValueData instance(final Long id, final String name, final String description, final boolean isActive) {
+    public static CodeValueData instance(final Long id, final String name, final String description, 
+            final boolean active) {
         Integer position = null;
         boolean isMandatory = false;
         
-        return new CodeValueData(id, name, position, description, isActive, isMandatory);
+        return new CodeValueData(id, name, position, description, active, isMandatory);
     }
 
-    public static CodeValueData instance(final Long id, final String name) {
+    public static CodeValueData instance(final Long id, final String name, final boolean active) {
         String description = null;
         Integer position = null;
-        boolean isActive = false;
         boolean isMandatory = false;
         
-        return new CodeValueData(id, name, position, description, isActive, isMandatory);
+        return new CodeValueData(id, name, position, description, active, isMandatory);
     }
 
     public static CodeValueData instance(final Long id, final String name, final Integer position, 
-            final String description, final boolean isActive, final boolean isMandatory) {
-        return new CodeValueData(id, name, position, description, isActive, isMandatory);
+            final String description, final boolean active, final boolean isMandatory) {
+        return new CodeValueData(id, name, position, description, active, isMandatory);
     }
 
     private CodeValueData(final Long id, final String name, final Integer position, 
-            final String description, final boolean isActive, final boolean isMandatory) {
+            final String description, final boolean active, final boolean isMandatory) {
         this.id = id;
         this.name = name;
         this.position = position;
         this.isMandatory = isMandatory;
         this.description = description;
-        this.isActive = isActive;
+        this.active = active;
     }
 
     public Long getId() {
@@ -76,5 +76,12 @@ public class CodeValueData implements Serializable {
      */
     public boolean isMandatory() {
         return isMandatory;
+    }
+
+    /**
+     * @return the active
+     */
+    public boolean isActive() {
+        return active;
     }
 }

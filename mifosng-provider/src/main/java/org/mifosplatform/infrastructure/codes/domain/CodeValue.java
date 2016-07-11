@@ -7,6 +7,7 @@ package org.mifosplatform.infrastructure.codes.domain;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -43,10 +44,13 @@ public class CodeValue extends AbstractPersistable<Long> {
     
     @Column(name = "is_mandatory")
     private boolean isMandatory;
+    
+    @Column(name = "deletion_token")
+    private String deletionToken;
 
     public static CodeValue createNew(final Code code, final String label, final int position, final String description,
             final boolean isActive, final boolean isMandatory) {
-        return new CodeValue(code, label, position, description, isActive, isMandatory);
+        return new CodeValue(code, label, position, description, isActive, isMandatory, "NA");
     }
 
     protected CodeValue() {
@@ -54,13 +58,14 @@ public class CodeValue extends AbstractPersistable<Long> {
     }
 
     private CodeValue(final Code code, final String label, final int position, final String description, final boolean isActive, 
-            final boolean isMandatory) {
+            final boolean isMandatory, final String deletionToken) {
         this.code = code;
         this.label = StringUtils.defaultIfEmpty(label, null);
         this.position = position;
         this.description = description;
         this.isActive = isActive;
         this.isMandatory = isMandatory;
+        this.deletionToken = deletionToken;
     }
 
     public String label() {
@@ -87,7 +92,7 @@ public class CodeValue extends AbstractPersistable<Long> {
         
         final boolean isMandatory = command.booleanPrimitiveValueOfParameterNamed(CODEVALUE_JSON_INPUT_PARAMS.IS_MANDATORY.getValue());
 
-        return new CodeValue(code, label, position.intValue(), description, isActive, isMandatory);
+        return new CodeValue(code, label, position.intValue(), description, isActive, isMandatory, "NA");
     }
 
     public Map<String, Object> update(final JsonCommand command) {
@@ -145,7 +150,7 @@ public class CodeValue extends AbstractPersistable<Long> {
      **/
     public void delete() {
         this.isActive = false;
-        this.label = this.label + "_deleted_" + this.getId();
+        this.deletionToken = UUID.randomUUID().toString();
     }
     
     /** 
