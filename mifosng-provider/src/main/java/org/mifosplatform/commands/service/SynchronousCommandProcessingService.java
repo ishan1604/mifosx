@@ -198,7 +198,10 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
 
         final String authToken = ThreadLocalContextUtil.getAuthToken();
         final String tenantIdentifier = ThreadLocalContextUtil.getTenant().getTenantIdentifier();
-        final AppUser appUser = this.context.authenticatedUser();
+
+        // We have to feed in the command here, to ensure that the Hooks are sent if a user is updating his own password:
+        final CommandWrapper command = CommandWrapper.wrap(actionName,entityName,null,null);
+        final AppUser appUser = this.context.authenticatedUser(command);
 
         final HookEventSource hookEventSource = new HookEventSource(entityName, actionName);
 
