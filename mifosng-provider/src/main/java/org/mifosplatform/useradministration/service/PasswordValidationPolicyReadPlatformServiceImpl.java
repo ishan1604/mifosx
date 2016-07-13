@@ -57,12 +57,13 @@ public class PasswordValidationPolicyReadPlatformServiceImpl implements Password
             final Boolean active = rs.getBoolean("active");
             final String description = rs.getString("description");
             final String key = rs.getString("key");
+            final String regex = rs.getString("regex");
 
-            return new PasswordValidationPolicyData(id, active, description, key);
+            return new PasswordValidationPolicyData(id, active, description, key, regex);
         }
 
         public String schema() {
-            return " pvp.id as id, pvp.active as active, pvp.description as description, pvp.`key` as `key`"
+            return " pvp.id as id, pvp.active as active, pvp.description as description, pvp.`key` as `key`, pvp.regex as regex"
             		+ " from m_password_validation_policy pvp";
         }
     }
