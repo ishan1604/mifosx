@@ -6,9 +6,20 @@
 package org.mifosplatform.infrastructure.dataexport.service;
 
 import org.mifosplatform.infrastructure.dataexport.data.DataExportRequestData;
+import org.mifosplatform.infrastructure.dataexport.data.DataExportTemplateData;
+import javax.ws.rs.core.Response;
+
+import java.util.Collection;
 
 public interface DataExportReadPlatformService {
 
-    DataExportRequestData retrieveDataExportTemplate();
+    DataExportTemplateData retrieveDataExportTemplate(String entity);
 
+    DataExportRequestData retrieveDataExportRequestData (String entity);
+
+    Collection<DataExportRequestData> retrieveDataExportRequestDataCollection ();
+
+    Response downloadDataExportFile(String entity, Long dataExportProcessId, String fileFormat);
+
+    //List<String> retrieveEntityParameters (DataExportBaseEntityEnum entity, JsonCommand command);
 }

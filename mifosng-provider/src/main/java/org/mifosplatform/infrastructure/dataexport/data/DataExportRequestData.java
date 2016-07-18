@@ -18,12 +18,6 @@ public class DataExportRequestData {
     // List of other (data)tables to retrieve:
     public List<String> exportDatatables;
 
-    private String select;
-    private String from;
-    private String where;
-    private String order;
-
-
     public DataExportRequestData(DataExportBaseEntityEnum baseEntity, List<DataExportFilter> dataExportFiltersList, List<String> exportDatatables) {
         this.baseEntity = baseEntity;
         this.dataExportFiltersList = dataExportFiltersList;

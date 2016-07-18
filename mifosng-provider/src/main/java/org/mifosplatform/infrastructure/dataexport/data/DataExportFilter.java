@@ -22,11 +22,4 @@ public class DataExportFilter {
         return searchQuery;
     }
 
-   /* public String retrieveClientData() {
-        this.tableName = DataExportBaseEntityEnum.CLIENT.getTablename();
-        String sql = "select account_no as Id, display_name as Name, office_id as OfficeId, status_enum as Status from ";
-        sql += tableName;
-
-        return sql;
-    }*/
 }
