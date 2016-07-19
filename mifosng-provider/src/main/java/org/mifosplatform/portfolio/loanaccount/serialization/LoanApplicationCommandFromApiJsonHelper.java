@@ -462,7 +462,7 @@ public final class LoanApplicationCommandFromApiJsonHelper {
                 final JsonArray array = topLevelJsonElement.get("groupMemberAllocation").getAsJsonArray();
                 final Locale locale = this.fromApiJsonHelper.extractLocaleParameter(topLevelJsonElement);
 
-                long total = 0;
+                BigDecimal total = new BigDecimal(0) ;
 
                 for (int i = 1; i <= array.size(); i++) {
 
@@ -479,10 +479,12 @@ public final class LoanApplicationCommandFromApiJsonHelper {
                     final BigDecimal amount = this.fromApiJsonHelper.extractBigDecimalNamed("amount", groupMemberAllocationElement, locale);
                     baseDataValidator.reset().parameter("groupMemberAllocation.amount").parameterAtIndexArray("amount", i).value(amount).notNull().zeroOrPositiveAmount();
 
-                    total += amount.longValue();
+                   total = total.add(amount);
                 }
 
-                baseDataValidator.reset().parameter("groupMemberAllocation").value(total).equalToParameter("principal", principal.longValue());
+                final BigDecimal principalAsBigDecimal = this.fromApiJsonHelper.extractBigDecimalNamed("principal",topLevelJsonElement,locale);
+
+                baseDataValidator.reset().parameter("groupMemberAllocation").value(total).equalToParameter("principal", principalAsBigDecimal);
 
 
             } else {
