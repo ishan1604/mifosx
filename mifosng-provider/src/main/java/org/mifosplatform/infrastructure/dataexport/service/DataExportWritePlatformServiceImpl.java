@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -53,11 +54,12 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
 
             DataExportBaseEntityEnum entity = DataExportBaseEntityEnum.valueOf(command.stringValueOfParameterNamed(DataExportApiConstants.ENTITY));
             List<String> parameters;
-            if(entity.equals(DataExportBaseEntityEnum.CLIENT)){parameters = DataExportApiConstants.CLIENT_FIELD_NAMES;}
-            else if(entity.equals(DataExportBaseEntityEnum.GROUP)){parameters = null;}
-            else if(entity.equals(DataExportBaseEntityEnum.LOAN)){parameters = null;}
-            else if(entity.equals(DataExportBaseEntityEnum.SAVINGSACCOUNT)){parameters = null;}
-            else {parameters = null;}
+            if(entity==null){parameters = null;}
+            else if(entity.equals(DataExportBaseEntityEnum.CLIENT)){parameters = DataExportApiConstants.CLIENT_FIELD_NAMES;}
+            else if(entity.equals(DataExportBaseEntityEnum.GROUP)){parameters = DataExportApiConstants.GROUP_FIELD_NAMES;}
+            else if(entity.equals(DataExportBaseEntityEnum.LOAN)){parameters = DataExportApiConstants.LOAN_FIELD_NAMES;}
+            else if(entity.equals(DataExportBaseEntityEnum.SAVINGSACCOUNT)){parameters = DataExportApiConstants.SAVINGS_ACCOUNT_FIELD_NAMES;}
+            else {throw new InvalidParameterException(entity.name());}
 
             Map<String, List<String>> sql = getBaseEntitySql(entity,parameters);
 

@@ -27,9 +27,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 @Path("/dataexport")
 @Component
@@ -72,11 +70,27 @@ public class DataExportApiResource {
     public String retrieveDataExportTemplate(@QueryParam(DataExportApiConstants.ENTITY) final String entity,
                                              @Context final UriInfo uriInfo) {
 
-        this.platformSecurityContext.authenticatedUser().validateHasReadPermission(DataExportBaseEntityEnum.valueOf(entity).name());
+        List<String> entities = new ArrayList<>();
+        for(DataExportBaseEntityEnum entityEnum:DataExportBaseEntityEnum.values()){entities.add(entityEnum.name());}
 
-        final DataExportRequestData dataExportRequestData = this.dataExportReadPlatformService.retrieveDataExportRequestData(entity);
+        if(entity!=null && entities.contains(entity)){
+            this.platformSecurityContext.authenticatedUser().validateHasReadPermission(entity);
+        }else{
+            this.platformSecurityContext.authenticatedUser().validateHasPermissionTo("READ",entities);
+        }
+
+
+        //final DataExportRequestData dataExportRequestData = this.dataExportReadPlatformService.retrieveDataExportRequestData(entity);
         final DataExportTemplateData dataExportTemplate = this.dataExportReadPlatformService.retrieveDataExportTemplate(entity);
-        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+
+        Set<String> mandatoryQueryParams;
+        if(entity!=null && entity.equals(DataExportBaseEntityEnum.CLIENT.getName())){mandatoryQueryParams = new HashSet<>(DataExportApiConstants.CLIENT_FIELD_NAMES);
+        }else if (entity!=null && entity.equals(DataExportBaseEntityEnum.GROUP.getName())){mandatoryQueryParams = new HashSet<>(DataExportApiConstants.GROUP_FIELD_NAMES);
+        }else if (entity!=null && entity.equals(DataExportBaseEntityEnum.LOAN.getName())){mandatoryQueryParams = new HashSet<>(DataExportApiConstants.LOAN_FIELD_NAMES);
+        }else if (entity!=null && entity.equals(DataExportBaseEntityEnum.SAVINGSACCOUNT.getName())){mandatoryQueryParams = new HashSet<>(DataExportApiConstants.SAVINGS_ACCOUNT_FIELD_NAMES);
+        }else {mandatoryQueryParams = null;}
+
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters(),mandatoryQueryParams);
         return this.toApiJsonSerializer.serialize(settings,dataExportTemplate);
     }
 
@@ -85,11 +99,11 @@ public class DataExportApiResource {
     @Produces({ MediaType.APPLICATION_JSON })
     public String createDataExport(@QueryParam(DataExportApiConstants.ENTITY) final String entity, final String apiRequestBodyAsJson) {
 
-        this.platformSecurityContext.authenticatedUser().validateHasReadPermission(DataExportBaseEntityEnum.valueOf(entity).name());
+        this.platformSecurityContext.authenticatedUser().validateHasReadPermission(entity);
 
         final CommandWrapper commandRequest = new CommandWrapperBuilder() //
+                .createDataExport(apiRequestBodyAsJson) //
                 .withJson(apiRequestBodyAsJson) //
-                .createDataExport() //
                 .build();
 
         final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
@@ -105,7 +119,7 @@ public class DataExportApiResource {
                                                  @QueryParam(DataExportApiConstants.ENTITY) final String entity,
                                                  @QueryParam(DataExportApiConstants.FILE_FORMAT) final String fileFormat) {
 
-        this.platformSecurityContext.authenticatedUser().validateHasReadPermission(DataExportBaseEntityEnum.valueOf(entity).name());
+        this.platformSecurityContext.authenticatedUser().validateHasReadPermission(entity);
 
         return this.dataExportReadPlatformService.downloadDataExportFile(entity, dataExportProcessId, fileFormat);
     }

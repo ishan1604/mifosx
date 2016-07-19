@@ -69,26 +69,20 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
 
     @Override
     public DataExportTemplateData retrieveDataExportTemplate(final String entityName) {
-        List<Map<String, String>> entityMaps = new ArrayList<>();
         List<DataExportBaseEntityEnum> entities = new ArrayList<>();
 
         if (entityName != null){
-            Map<String, String> map = new HashMap<>();
-            DataExportBaseEntityEnum entity = DataExportBaseEntityEnum.valueOf(entityName.toUpperCase());
+            DataExportBaseEntityEnum entity = DataExportBaseEntityEnum.valueOf(entityName);
             if(entity == null || entity.getTablename().isEmpty()){throw new InvalidRequestException(entityName);}
-            map.put(entity.name(),entity.getTablename());
             entities.add(entity);
-            entityMaps.add(map);
         } else {
             for(DataExportBaseEntityEnum entity : DataExportBaseEntityEnum.values()){
-                Map<String, String> map = new HashMap<>();
-                map.put(entity.name(),entity.getTablename());
                 entities.add(entity);
-                entityMaps.add(map);
             }
         }
 
-        List<Map<String,String>> dataTables = assembleDataTableNames(entities);
+        List<Map<String, String>> entityMaps = assembleDataTableNames(entities, DataExportApiConstants.ENTITY_TABLE);
+        List<Map<String,String>> dataTables = assembleDataTableNames(entities, DataExportApiConstants.DATATABLE_NAME);
 
         return new DataExportTemplateData(entityMaps,dataTables);
     }
@@ -114,13 +108,14 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
         } else {throw new InvalidParameterException(entity.name());}
     }*/
 
-    private List<Map<String, String>> assembleDataTableNames(final List<DataExportBaseEntityEnum> entityNames){
+    private List<Map<String, String>> assembleDataTableNames(final List<DataExportBaseEntityEnum> entityNames, String key){
         List<Map<String,String>> tables = new ArrayList<>();
 
         for (DataExportBaseEntityEnum entity : entityNames){
             for(RegisteredTable registeredTable : this.registeredTableRepository.findAllByApplicationTableName(entity.getTablename())){
                 Map<String,String> table = new HashMap<>();
-                table.put(entity.name(),registeredTable.getRegisteredTableName());
+                table.put(DataExportApiConstants.ENTITY_NAME,entity.name());
+                table.put(key,registeredTable.getRegisteredTableName());
                 tables.add(table);
             }
         }

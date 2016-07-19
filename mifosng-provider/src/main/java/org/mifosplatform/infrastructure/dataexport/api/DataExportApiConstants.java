@@ -15,6 +15,9 @@ public class DataExportApiConstants {
 
     public final static String FILE_FORMAT = "fileFormat";
     public final static String DATA_EXPORT_PROCESS_ID = "dataExportProcessId";
+    public final static String ENTITY_NAME = "entityName";
+    public final static String ENTITY_TABLE = "entityTable";
+    public final static String DATATABLE_NAME = "datatableName";
 
     public final static String ENTITY = "entity";
     public final static String CLIENT_ID = "id";

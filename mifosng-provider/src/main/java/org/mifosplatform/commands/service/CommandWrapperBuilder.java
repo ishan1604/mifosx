@@ -589,12 +589,12 @@ public class CommandWrapperBuilder {
         return this;
     }
 
-    public CommandWrapperBuilder createDataExport() {
+    public CommandWrapperBuilder createDataExport(final String json) {
         this.actionName = "CREATE";
         this.entityName = "DATAEXPORT";
         this.entityId = null;
         this.href = "/dataexport/";
-        this.json = "{}";
+        this.json = json;
         return this;
     }
 
