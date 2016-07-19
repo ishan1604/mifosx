@@ -884,12 +884,14 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
 
         sqlBuilder = sqlBuilder.append(", CHANGE `" + name + "` `" + newName + "` " + type);
-        if (length != null && length > 0) {
-            if (type.toLowerCase().equals("decimal")) {
-                sqlBuilder.append("(19,6)");
-            } else if (type.toLowerCase().equals("varchar")) {
-                sqlBuilder.append("(" + length + ")");
-            }
+
+        if (type.toLowerCase().equals("decimal")) {
+            sqlBuilder.append("(19,6)");
+        }
+
+        if (length != null && length > 0 && type.toLowerCase().equals("varchar")) {
+
+            sqlBuilder.append("(" + length + ")");
         }
 
         if (mandatory != null) {
