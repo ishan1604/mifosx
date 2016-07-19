@@ -7,7 +7,6 @@ package org.mifosplatform.infrastructure.codes.domain;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -23,7 +22,7 @@ import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 
 @Entity
-@Table(name = "m_code_value", uniqueConstraints = { @UniqueConstraint(columnNames = { "code_id", "code_value" }, name = "code_value_duplicate") })
+@Table(name = "m_code_value", uniqueConstraints = { @UniqueConstraint(columnNames = { "code_id", "code_value" }, name = "unique_code_value") })
 public class CodeValue extends AbstractPersistable<Long> {
 
     @Column(name = "code_value", length = 100)
@@ -44,13 +43,10 @@ public class CodeValue extends AbstractPersistable<Long> {
     
     @Column(name = "is_mandatory")
     private boolean isMandatory;
-    
-    @Column(name = "deletion_token")
-    private String deletionToken;
 
     public static CodeValue createNew(final Code code, final String label, final int position, final String description,
             final boolean isActive, final boolean isMandatory) {
-        return new CodeValue(code, label, position, description, isActive, isMandatory, "NA");
+        return new CodeValue(code, label, position, description, isActive, isMandatory);
     }
 
     protected CodeValue() {
@@ -58,14 +54,13 @@ public class CodeValue extends AbstractPersistable<Long> {
     }
 
     private CodeValue(final Code code, final String label, final int position, final String description, final boolean isActive, 
-            final boolean isMandatory, final String deletionToken) {
+            final boolean isMandatory) {
         this.code = code;
         this.label = StringUtils.defaultIfEmpty(label, null);
         this.position = position;
         this.description = description;
         this.isActive = isActive;
         this.isMandatory = isMandatory;
-        this.deletionToken = deletionToken;
     }
 
     public String label() {
@@ -92,7 +87,7 @@ public class CodeValue extends AbstractPersistable<Long> {
         
         final boolean isMandatory = command.booleanPrimitiveValueOfParameterNamed(CODEVALUE_JSON_INPUT_PARAMS.IS_MANDATORY.getValue());
 
-        return new CodeValue(code, label, position.intValue(), description, isActive, isMandatory, "NA");
+        return new CodeValue(code, label, position.intValue(), description, isActive, isMandatory);
     }
 
     public Map<String, Object> update(final JsonCommand command) {
@@ -150,11 +145,13 @@ public class CodeValue extends AbstractPersistable<Long> {
      **/
     public void delete() {
         this.isActive = false;
-        this.deletionToken = UUID.randomUUID().toString();
+        
+        // update the name of the code value
+        this.label = this.label + "_deleted_" + this.getId();
     }
     
     /** 
-     * @return true if the "isActive" property is false, else false
+     * @return the "deleted" property (true/false) 
      **/
     public boolean isDeleted() {
         return !this.isActive;
@@ -167,3 +164,4 @@ public class CodeValue extends AbstractPersistable<Long> {
         return this.isActive;
     }
 }
+
