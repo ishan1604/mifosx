@@ -24,9 +24,11 @@ public class DataExportApiConstants {
     public final static String GROUP_ID = "groupId";
     public final static String LOAN_ID = "loanId";
     public final static String SAVINGS_ACCOUNT_ID = "savingsaccountId";
+    public final static String OFFICE_TABLE = "m_office";
 
     public final static String ACCOUNT_NO = "account_no";
     public final static String OFFICE_ID = "office_id";
+    public final static String OFFICE_NAME = "office";
     public final static String FULL_NAME = "display_name";
     public final static String STATUS = "status_enum";
     public final static String SUBMITTED_ON_DATE = "submitted_on_date";

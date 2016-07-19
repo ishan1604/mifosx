@@ -5,35 +5,43 @@
  */
 package org.mifosplatform.infrastructure.dataexport.service;
 
-import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.dataexport.api.DataExportApiConstants;
 import org.mifosplatform.infrastructure.dataexport.data.DataExportBaseEntityEnum;
+import org.mifosplatform.infrastructure.dataexport.data.DataExportFileFormat;
 import org.mifosplatform.infrastructure.dataexport.data.DataExportRequestData;
 import org.mifosplatform.infrastructure.dataexport.data.DataExportTemplateData;
+import org.mifosplatform.infrastructure.dataexport.domain.DataExportProcess;
+import org.mifosplatform.infrastructure.dataexport.domain.DataExportProcessRepository;
+import org.mifosplatform.infrastructure.dataexport.domain.DataExportRepository;
 import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTable;
 import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableRepository;
 import org.mifosplatform.portfolio.client.domain.ClientRepository;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanRepository;
-import javax.ws.rs.core.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
 import org.springframework.stereotype.Service;
 
+import javax.ws.rs.core.Response;
 import java.security.InvalidParameterException;
 import java.util.*;
 
 @Service
 public class DataExportReadPlatformServiceImpl implements DataExportReadPlatformService {
     private final RegisteredTableRepository registeredTableRepository;
+    private final DataExportRepository dataExportRepository;
+    private final DataExportProcessRepository dataExportProcessRepository;
     private final ClientRepository clientRepository;
     private final LoanRepository loanRepository;
 
     @Autowired
     public DataExportReadPlatformServiceImpl(final RegisteredTableRepository registeredTableRepository,
-            final ClientRepository clientRepository, final LoanRepository loanRepository) {
+            final ClientRepository clientRepository, final LoanRepository loanRepository,
+            final DataExportRepository dataExportRepository, final DataExportProcessRepository dataExportProcessRepository) {
         this.registeredTableRepository = registeredTableRepository;
         this.clientRepository = clientRepository;
         this.loanRepository = loanRepository;
+        this.dataExportRepository = dataExportRepository;
+        this.dataExportProcessRepository = dataExportProcessRepository;
     }
 
     @Override
@@ -41,7 +49,7 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
         try {
             DataExportBaseEntityEnum baseEntity = null;
             if (entity != null) {
-                baseEntity = DataExportBaseEntityEnum.valueOf(entity.toUpperCase());
+                baseEntity = DataExportBaseEntityEnum.valueOf(entity);
             }
             if (baseEntity == null || baseEntity.getTablename().isEmpty()) {
                 throw new InvalidParameterException(entity);
@@ -64,6 +72,11 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
 
     @Override
     public Response downloadDataExportFile(final String entity, final Long dataExportProcessId, final String fileFormat) {
+
+        final DataExportBaseEntityEnum baseEntity = DataExportBaseEntityEnum.valueOf(entity);
+        final DataExportProcess dataExportProcess = this.dataExportProcessRepository.findOne(dataExportProcessId);
+        final DataExportFileFormat dataExportFileFormat = DataExportFileFormat.valueOf(fileFormat);
+
         return null;
     }
 

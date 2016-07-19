@@ -7,19 +7,31 @@ package org.mifosplatform.infrastructure.dataexport.data;
 
 public class DataExportFilter {
     public String tableName;
-    public String searchQuery;
+    public String fieldName;
+    public String paramValue;
+    public String searchSql;
 
-    public DataExportFilter(String tableName, String searchQuery) {
+    public DataExportFilter(String tableName, String paramValue, String fieldName) {
         this.tableName = tableName;
-        this.searchQuery = searchQuery;
+        this.paramValue = paramValue;
+        this.fieldName = fieldName;
+        setSearchSql(tableName,paramValue,fieldName);
     }
 
     public String getTableName() {
         return tableName;
     }
 
-    public String getSearchQuery() {
-        return searchQuery;
+    public String getParamValue() {
+        return paramValue;
+    }
+
+    public String getFieldName(){return fieldName;}
+
+    public String getSearchQuery(){return searchSql;}
+
+    private void setSearchSql(String tableName, String paramValue, String fieldName){
+        this.searchSql = tableName + "." + fieldName + " = " + paramValue;
     }
 
 }

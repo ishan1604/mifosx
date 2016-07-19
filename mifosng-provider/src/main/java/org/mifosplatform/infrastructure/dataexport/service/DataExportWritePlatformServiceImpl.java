@@ -6,10 +6,14 @@
 package org.mifosplatform.infrastructure.dataexport.service;
 
 
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
+import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.mifosplatform.infrastructure.dataexport.api.DataExportApiConstants;
 import org.mifosplatform.infrastructure.dataexport.data.DataExportBaseEntityEnum;
+import org.mifosplatform.infrastructure.dataexport.data.DataExportFilter;
 import org.mifosplatform.infrastructure.dataexport.data.ExportDataValidator;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.useradministration.domain.AppUser;
@@ -20,10 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.InvalidParameterException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Type;
+import java.util.*;
 
 @Service
 public class DataExportWritePlatformServiceImpl implements DataExportWritePlatformService {
@@ -33,12 +35,14 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
     private final PlatformSecurityContext context;
     private final ExportDataValidator fromApiJsonDeserializer;
     private final DataExportReadPlatformService readPlatformService;
+    private final FromJsonHelper fromApiJsonHelper;
 
     @Autowired
-    public DataExportWritePlatformServiceImpl(final PlatformSecurityContext context,
+    public DataExportWritePlatformServiceImpl(final PlatformSecurityContext context, final FromJsonHelper fromApiJsonHelper,
                                               final ExportDataValidator fromApiJsonDeserializer,
                                               final DataExportReadPlatformService readPlatformService){
         this.context = context;
+        this.fromApiJsonHelper = fromApiJsonHelper;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.readPlatformService = readPlatformService;
     }
@@ -55,13 +59,32 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
             DataExportBaseEntityEnum entity = DataExportBaseEntityEnum.valueOf(command.stringValueOfParameterNamed(DataExportApiConstants.ENTITY));
             List<String> parameters;
             if(entity==null){parameters = null;}
-            else if(entity.equals(DataExportBaseEntityEnum.CLIENT)){parameters = DataExportApiConstants.CLIENT_FIELD_NAMES;}
-            else if(entity.equals(DataExportBaseEntityEnum.GROUP)){parameters = DataExportApiConstants.GROUP_FIELD_NAMES;}
-            else if(entity.equals(DataExportBaseEntityEnum.LOAN)){parameters = DataExportApiConstants.LOAN_FIELD_NAMES;}
-            else if(entity.equals(DataExportBaseEntityEnum.SAVINGSACCOUNT)){parameters = DataExportApiConstants.SAVINGS_ACCOUNT_FIELD_NAMES;}
+            else if(entity.isClient()){parameters = DataExportApiConstants.CLIENT_FIELD_NAMES;}
+            else if(entity.isGroup()){parameters = DataExportApiConstants.GROUP_FIELD_NAMES;}
+            else if(entity.isLoan()){parameters = DataExportApiConstants.LOAN_FIELD_NAMES;}
+            else if(entity.isSavingsAccount()){parameters = DataExportApiConstants.SAVINGS_ACCOUNT_FIELD_NAMES;}
             else {throw new InvalidParameterException(entity.name());}
 
+            final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+            this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, command.json(), new HashSet<>(parameters));
+
+            final JsonElement element = this.fromApiJsonHelper.parse(command.json());
+
+            final Set<DataExportFilter> dataExportFilterSet = new HashSet<>();
+            for (String parameter : parameters){
+                String paramValue = command.jsonFragment(parameter);
+                if(paramValue.length()>0){
+                    DataExportFilter dataExportFilter = new DataExportFilter(entity.getTablename(),paramValue,parameter);
+                    dataExportFilterSet.add(dataExportFilter);
+                }
+            }
+
             Map<String, List<String>> sql = getBaseEntitySql(entity,parameters);
+            if(dataExportFilterSet.size()>0){
+                for(DataExportFilter filter : dataExportFilterSet){
+                    sql.get("where").add(filter.getSearchQuery());
+                }
+            }
 
             return CommandProcessingResult.commandOnlyResult(command.commandId());
 
@@ -76,10 +99,15 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
         List<String> order = new ArrayList<>();
 
         for(String parameter : parameters){
-            select.add(parameter);
+            select.add(entity.getTablename() + "." + parameter);
         }
 
          from.add(entity.getTablename());
+
+        if(parameters.contains(DataExportApiConstants.OFFICE_ID)){
+            select.add(DataExportApiConstants.OFFICE_TABLE + "." + DataExportApiConstants.OFFICE_NAME);
+            from.add(DataExportApiConstants.OFFICE_TABLE);
+        }
 
         sql.put("select",select);
         sql.put("from",from);

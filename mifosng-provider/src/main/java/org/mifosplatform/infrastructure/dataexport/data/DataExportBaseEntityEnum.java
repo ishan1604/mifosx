@@ -24,11 +24,28 @@ public enum DataExportBaseEntityEnum {
 
     private String tableName;
 
-    private DataExportBaseEntityEnum(String name, String tableName){
-
+    DataExportBaseEntityEnum(String name, String tableName){
         this.name = name;
         this.tableName = tableName;
-
     }
 
+    /**
+     * @return true if enum is equal to DataExportBaseEntityEnum.CLIENT, else false
+     */
+    public boolean isClient(){return this.equals(CLIENT);}
+
+    /**
+     * @return true if enum is equal to DataExportBaseEntityEnum.GROUP, else false
+     */
+    public boolean isGroup(){return this.equals(GROUP);}
+
+    /**
+     * @return true if enum is equal to DataExportBaseEntityEnum.LOAN, else false
+     */
+    public boolean isLoan(){return this.equals(LOAN);}
+
+    /**
+     * @return true if enum is equal to DataExportBaseEntityEnum.SAVINGSACCOUNT, else false
+     */
+    public boolean isSavingsAccount(){return this.equals(SAVINGSACCOUNT);}
 }
