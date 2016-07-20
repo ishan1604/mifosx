@@ -1714,11 +1714,23 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         String columnName = "";
         String pValue = null;
 
+
+        Locale clientApplicationLocale = null;
+
+        if(queryParams.get("locale") != null && !queryParams.get("locale").toString().isEmpty())
+        {
+            clientApplicationLocale = new Locale(queryParams.get("locale").toString());
+        }
+
         for (final ResultsetColumnHeaderData pColumnHeader : columnHeaders) {
             final String key = pColumnHeader.getColumnName();
             if(pColumnHeader.getColumnFormulaExpression() != null && !pColumnHeader.getColumnFormulaExpression().isEmpty()) {
                 // If this field has a column Expression the we parse that instead of the value
                 pValueWrite = this.getFormulaExpressionValue(affectedColumns, metaData, pColumnHeader.getColumnFormulaExpression());
+
+                // Write back the new value so it can be used in other fields:
+                affectedColumns.put(key,  getObjectValueforColumn(pColumnHeader,pValueWrite,clientApplicationLocale));
+
                 columnName = "`" + key + "`";
                 insertColumns += ", " + columnName;
                 selectColumns += "," + pValueWrite + " as " + columnName;
