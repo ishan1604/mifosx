@@ -83,14 +83,14 @@ public class DataExportApiResource {
         //final DataExportRequestData dataExportRequestData = this.dataExportReadPlatformService.retrieveDataExportRequestData(entity);
         final DataExportTemplateData dataExportTemplate = this.dataExportReadPlatformService.retrieveDataExportTemplate(entity);
 
-        Set<String> mandatoryQueryParams;
+        /*Set<String> mandatoryQueryParams;
         if(entity!=null && entity.equals(DataExportBaseEntityEnum.CLIENT.getName())){mandatoryQueryParams = new HashSet<>(DataExportApiConstants.CLIENT_FIELD_NAMES);
         }else if (entity!=null && entity.equals(DataExportBaseEntityEnum.GROUP.getName())){mandatoryQueryParams = new HashSet<>(DataExportApiConstants.GROUP_FIELD_NAMES);
         }else if (entity!=null && entity.equals(DataExportBaseEntityEnum.LOAN.getName())){mandatoryQueryParams = new HashSet<>(DataExportApiConstants.LOAN_FIELD_NAMES);
         }else if (entity!=null && entity.equals(DataExportBaseEntityEnum.SAVINGSACCOUNT.getName())){mandatoryQueryParams = new HashSet<>(DataExportApiConstants.SAVINGS_ACCOUNT_FIELD_NAMES);
-        }else {mandatoryQueryParams = null;}
+        }else {mandatoryQueryParams = null;}*/
 
-        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters(),mandatoryQueryParams);
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings,dataExportTemplate);
     }
 
