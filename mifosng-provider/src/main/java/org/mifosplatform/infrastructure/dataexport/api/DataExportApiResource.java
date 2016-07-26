@@ -15,6 +15,8 @@ import org.mifosplatform.infrastructure.core.serialization.ToApiJsonSerializer;
 import org.mifosplatform.infrastructure.dataexport.data.DataExportBaseEntityEnum;
 import org.mifosplatform.infrastructure.dataexport.data.DataExportRequestData;
 import org.mifosplatform.infrastructure.dataexport.data.DataExportTemplateData;
+import org.mifosplatform.infrastructure.dataexport.domain.DataExportProcess;
+import org.mifosplatform.infrastructure.dataexport.domain.DataExportProcessRepository;
 import org.mifosplatform.infrastructure.dataexport.service.DataExportReadPlatformService;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,25 +36,24 @@ import java.util.*;
 @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
 public class DataExportApiResource {
 
-    private final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList("entity","id", "name", "displayName", "externalId",
-            "principalAmount","outstandingAmount", "office", "status"));
     private final PlatformSecurityContext platformSecurityContext;
     private final DataExportReadPlatformService dataExportReadPlatformService;
     private final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService;
     private final ToApiJsonSerializer<Object> toApiJsonSerializer;
     private final ApiRequestParameterHelper apiRequestParameterHelper;
+    private final DataExportProcessRepository dataExportProcessRepository;
 
     @Autowired
     public DataExportApiResource(final DataExportReadPlatformService dataExportReadPlatformService,
                                  final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
-                                 final PlatformSecurityContext platformSecurityContext,
-                                 final ToApiJsonSerializer<Object> toApiJsonSerializer,
-                                 final ApiRequestParameterHelper apiRequestParameterHelper) {
+                                 final PlatformSecurityContext platformSecurityContext, final DataExportProcessRepository dataExportProcessRepository,
+                                 final ToApiJsonSerializer<Object> toApiJsonSerializer, final ApiRequestParameterHelper apiRequestParameterHelper) {
         this.platformSecurityContext = platformSecurityContext;
         this.dataExportReadPlatformService = dataExportReadPlatformService;
         this.toApiJsonSerializer = toApiJsonSerializer;
         this.apiRequestParameterHelper = apiRequestParameterHelper;
         this.commandsSourceWritePlatformService = commandsSourceWritePlatformService;
+        this.dataExportProcessRepository = dataExportProcessRepository;
     }
 
     @GET
@@ -60,7 +61,11 @@ public class DataExportApiResource {
     @Produces({ MediaType.APPLICATION_JSON})
     public String retrieveAllDataExportProcesses(@Context final UriInfo uriInfo){
 
-        return this.dataExportReadPlatformService.retrieveDataExportRequestDataCollection().toString();
+        this.platformSecurityContext.authenticatedUser().validateHasReadPermission(DataExportApiConstants.DATA_EXPORT);
+
+        final Collection<DataExportProcess> dataExportProcesses = this.dataExportProcessRepository.findAll();
+
+        return this.toApiJsonSerializer.serialize(dataExportProcesses);
     }
 
     @GET
@@ -79,16 +84,7 @@ public class DataExportApiResource {
             this.platformSecurityContext.authenticatedUser().validateHasPermissionTo("READ",entities);
         }
 
-
-        //final DataExportRequestData dataExportRequestData = this.dataExportReadPlatformService.retrieveDataExportRequestData(entity);
         final DataExportTemplateData dataExportTemplate = this.dataExportReadPlatformService.retrieveDataExportTemplate(entity);
-
-        /*Set<String> mandatoryQueryParams;
-        if(entity!=null && entity.equals(DataExportBaseEntityEnum.CLIENT.getName())){mandatoryQueryParams = new HashSet<>(DataExportApiConstants.CLIENT_FIELD_NAMES);
-        }else if (entity!=null && entity.equals(DataExportBaseEntityEnum.GROUP.getName())){mandatoryQueryParams = new HashSet<>(DataExportApiConstants.GROUP_FIELD_NAMES);
-        }else if (entity!=null && entity.equals(DataExportBaseEntityEnum.LOAN.getName())){mandatoryQueryParams = new HashSet<>(DataExportApiConstants.LOAN_FIELD_NAMES);
-        }else if (entity!=null && entity.equals(DataExportBaseEntityEnum.SAVINGSACCOUNT.getName())){mandatoryQueryParams = new HashSet<>(DataExportApiConstants.SAVINGS_ACCOUNT_FIELD_NAMES);
-        }else {mandatoryQueryParams = null;}*/
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings,dataExportTemplate);

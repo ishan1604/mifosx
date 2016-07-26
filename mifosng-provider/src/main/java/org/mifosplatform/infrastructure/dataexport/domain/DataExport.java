@@ -5,13 +5,10 @@
  */
 package org.mifosplatform.infrastructure.dataexport.domain;
 
-import org.mifosplatform.infrastructure.dataexport.data.DataExportBaseEntityEnum;
-import org.mifosplatform.organisation.office.domain.Office;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import java.util.Date;
 
@@ -45,6 +42,13 @@ public class DataExport extends AbstractPersistable<Long> {
 
     @Column(name = "data_sql", nullable = false)
     private String sql;
+
+    /**
+     * {@link DataExport} protected no-arg constructor
+     *
+     * (An entity class must have a no-arg public/protected constructor according to the JPA specification)
+     **/
+    protected DataExport() { }
 
     /**
      * @param baseEntity
@@ -87,5 +91,41 @@ public class DataExport extends AbstractPersistable<Long> {
                                       final String accountNo, final Long office, final String displayName, final String mobileNo,
                                       final String sql) {
         return new DataExport(baseEntity,entityId,status,submittedOnDate,accountNo,office,displayName,mobileNo,sql);
+    }
+
+    public String getBaseEntity() {
+        return baseEntity;
+    }
+
+    public Long getEntityId() {
+        return entityId;
+    }
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public Date getSubmittedOnDate() {
+        return submittedOnDate;
+    }
+
+    public String getAccountNo() {
+        return accountNo;
+    }
+
+    public Long getOfficeId() {
+        return officeId;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public String getMobileNo() {
+        return mobileNo;
+    }
+
+    public String getSql() {
+        return sql;
     }
 }
