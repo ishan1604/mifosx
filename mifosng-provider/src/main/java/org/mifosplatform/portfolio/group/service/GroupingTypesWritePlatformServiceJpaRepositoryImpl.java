@@ -905,56 +905,59 @@ public class GroupingTypesWritePlatformServiceJpaRepositoryImpl implements Group
     }
     public void validateActivationDateNotAfterLoansAndSavings(final Group group,final LocalDate activationDate){
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-        for(final Client client : group.getActiveClientMembers()){
-            final List<Loan> clientLoans = this.loanRepository.findLoanByClientId(client.getId());
-            for(final Loan clientLoan : clientLoans){
-                if(activationDate.isAfter(clientLoan.getSubmittedOnDate())){
-                    final String defaultUserMessage = "Activation date cannot be before a group client's loan submitted on date.";
-                    final ApiParameterError error = ApiParameterError.parameterError(
-                            "error.msg.group.activationDate.cannot.be.before.group.clients.loan.submittedon.date", defaultUserMessage,
-                            GroupingTypesApiConstants.activationDateParamName, activationDate);
-                    dataValidationErrors.add(error);
-                    break;
-                }
-            }
-            final List<SavingsAccount> clientSavingsAccounts = this.savingsRepository.findSavingAccountByClientId(client.getId());
-            for(final SavingsAccount clientSavingsAccount : clientSavingsAccounts){
-                if(activationDate.isAfter(clientSavingsAccount.getSubmittedOnDate())){
-                    final String defaultUserMessage = "Activation date cannot be before a group client's savings submitted on date.";
-                    final ApiParameterError error = ApiParameterError.parameterError(
-                            "error.msg.group.activationDate.cannot.be.before..group.clients.savings.submittedon.date", defaultUserMessage,
-                            GroupingTypesApiConstants.activationDateParamName, activationDate);
-                    dataValidationErrors.add(error);
-                    break;
-                }
-            }
-        }
-        /** For group loans and savings validation */
-        final List<Loan> groupLoans = this.loanRepository.findByGroupId(group.getId());
-        for(final Loan groupLoan : groupLoans){
-            if(activationDate.isAfter(groupLoan.getSubmittedOnDate())){
-                final String defaultUserMessage = "Activation date cannot be before a group's loan submitted on date.";
-                final ApiParameterError error = ApiParameterError.parameterError(
-                        "error.msg.group.activationDate.cannot.be.before.groups.loan.submittedon.date", defaultUserMessage,
-                        GroupingTypesApiConstants.activationDateParamName, activationDate);
-                dataValidationErrors.add(error);
-                break;
-            }
-        }
 
-        final List<SavingsAccount> groupSavingsAccounts = this.savingsRepository.findByGroupId(group.getId());
-        for(final SavingsAccount groupSavingAccount : groupSavingsAccounts){
-            if(activationDate.isAfter(groupSavingAccount.getSubmittedOnDate())){
-                final String defaultUserMessage = "Activation date cannot be before a group's savings submitted on date.";
-                final ApiParameterError error = ApiParameterError.parameterError(
-                        "error.msg.group.activationDate.cannot.be.before.groups.savings.submittedon.date", defaultUserMessage,
-                        GroupingTypesApiConstants.activationDateParamName, activationDate);
-                dataValidationErrors.add(error);
-                break;
+        if(activationDate != null) {
+            for (final Client client : group.getActiveClientMembers()) {
+                final List<Loan> clientLoans = this.loanRepository.findLoanByClientId(client.getId());
+                for (final Loan clientLoan : clientLoans) {
+                    if (activationDate.isAfter(clientLoan.getSubmittedOnDate())) {
+                        final String defaultUserMessage = "Activation date cannot be before a group client's loan submitted on date.";
+                        final ApiParameterError error = ApiParameterError.parameterError(
+                                "error.msg.group.activationDate.cannot.be.before.group.clients.loan.submittedon.date", defaultUserMessage,
+                                GroupingTypesApiConstants.activationDateParamName, activationDate);
+                        dataValidationErrors.add(error);
+                        break;
+                    }
+                }
+                final List<SavingsAccount> clientSavingsAccounts = this.savingsRepository.findSavingAccountByClientId(client.getId());
+                for (final SavingsAccount clientSavingsAccount : clientSavingsAccounts) {
+                    if (activationDate.isAfter(clientSavingsAccount.getSubmittedOnDate())) {
+                        final String defaultUserMessage = "Activation date cannot be before a group client's savings submitted on date.";
+                        final ApiParameterError error = ApiParameterError.parameterError(
+                                "error.msg.group.activationDate.cannot.be.before..group.clients.savings.submittedon.date", defaultUserMessage,
+                                GroupingTypesApiConstants.activationDateParamName, activationDate);
+                        dataValidationErrors.add(error);
+                        break;
+                    }
+                }
             }
-        }
-        if(!dataValidationErrors.isEmpty()){
-            throw new PlatformApiDataValidationException(dataValidationErrors);
+            /** For group loans and savings validation */
+            final List<Loan> groupLoans = this.loanRepository.findByGroupId(group.getId());
+            for (final Loan groupLoan : groupLoans) {
+                if (activationDate.isAfter(groupLoan.getSubmittedOnDate())) {
+                    final String defaultUserMessage = "Activation date cannot be before a group's loan submitted on date.";
+                    final ApiParameterError error = ApiParameterError.parameterError(
+                            "error.msg.group.activationDate.cannot.be.before.groups.loan.submittedon.date", defaultUserMessage,
+                            GroupingTypesApiConstants.activationDateParamName, activationDate);
+                    dataValidationErrors.add(error);
+                    break;
+                }
+            }
+
+            final List<SavingsAccount> groupSavingsAccounts = this.savingsRepository.findByGroupId(group.getId());
+            for (final SavingsAccount groupSavingAccount : groupSavingsAccounts) {
+                if (activationDate.isAfter(groupSavingAccount.getSubmittedOnDate())) {
+                    final String defaultUserMessage = "Activation date cannot be before a group's savings submitted on date.";
+                    final ApiParameterError error = ApiParameterError.parameterError(
+                            "error.msg.group.activationDate.cannot.be.before.groups.savings.submittedon.date", defaultUserMessage,
+                            GroupingTypesApiConstants.activationDateParamName, activationDate);
+                    dataValidationErrors.add(error);
+                    break;
+                }
+            }
+            if (!dataValidationErrors.isEmpty()) {
+                throw new PlatformApiDataValidationException(dataValidationErrors);
+            }
         }
     }
 
