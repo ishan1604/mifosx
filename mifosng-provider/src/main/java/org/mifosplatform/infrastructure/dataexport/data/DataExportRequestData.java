@@ -24,7 +24,6 @@ public class DataExportRequestData {
 
     // List of other (data)tables to retrieve:
     private List<String> exportDatatables;
-    private Map<String,String> paramsToFields;
     private Set<String> supportedParameters;
 
     public DataExportRequestData(DataExportBaseEntityEnum baseEntity, List<DataExportFilter> dataExportFiltersList,
@@ -66,28 +65,22 @@ public class DataExportRequestData {
 
     public Set<String> getSupportedParameters(){return this.supportedParameters;}
 
-    public Map<String,String> getParamsToFields(){return this.paramsToFields;}
-
     private void assignParameters(){
         switch(this.baseEntity){
             case CLIENT:
                 this.supportedParameters = (supportedParameters==null?new HashSet<>(DataExportApiConstants.CLIENT_SUPPORTED_PARAMETERS):supportedParameters);
-                this.paramsToFields = (paramsToFields==null?DataExportApiConstants.CLIENT_PARAMETERS_TO_FIELD_NAMES:paramsToFields);
                 this.displayedFieldNames = (displayedFieldNames==null?DataExportApiConstants.CLIENT_FIELD_NAMES:displayedFieldNames);
                 break;
             case GROUP:
                 this.supportedParameters = (supportedParameters==null?new HashSet<>(DataExportApiConstants.GROUP_SUPPORTED_PARAMETERS):supportedParameters);
-                this.paramsToFields = (paramsToFields==null?DataExportApiConstants.GROUP_PARAMETERS_TO_FIELD_NAMES:paramsToFields);
                 this.displayedFieldNames = (displayedFieldNames==null?DataExportApiConstants.GROUP_FIELD_NAMES:displayedFieldNames);
                 break;
             case LOAN:
                 this.supportedParameters = (supportedParameters==null?new HashSet<>(DataExportApiConstants.LOAN_SUPPORTED_PARAMETERS):supportedParameters);
-                this.paramsToFields = (paramsToFields==null?DataExportApiConstants.LOAN_PARAMETERS_TO_FIELD_NAMES:paramsToFields);
                 this.displayedFieldNames = (displayedFieldNames==null?DataExportApiConstants.LOAN_FIELD_NAMES:displayedFieldNames);
                 break;
             case SAVINGSACCOUNT:
                 this.supportedParameters = (supportedParameters==null?new HashSet<>(DataExportApiConstants.SAVINGS_ACCOUNT_SUPPORTED_PARAMETERS):supportedParameters);
-                this.paramsToFields = (paramsToFields==null?DataExportApiConstants.SAVINGS_ACCOUNT_PARAMETERS_TO_FIELD_NAMES:paramsToFields);
                 this.displayedFieldNames = (displayedFieldNames==null?DataExportApiConstants.SAVINGS_ACCOUNT_FIELD_NAMES:displayedFieldNames);
                 break;
             default:

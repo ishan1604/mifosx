@@ -28,19 +28,28 @@ public class XlsFileHelper {
 
         Set<String> keyset = data.get(0).keySet();
         int rownum = 0;
+        int cellnum = 0;
+        Row row = sheet.createRow(rownum++);
+
+        for (String paramkey : keyset) {
+            String key = paramkey;
+            if(key.startsWith("'")){
+                key = key.substring(1);
+            }
+            Cell cell = row.createCell(cellnum++);
+            cell.setCellValue(key);
+        }
+
         for (Map<String,Object> entry : data) {
-            Row row = sheet.createRow(rownum++);
-            //Object [] objArr = data.get(key);
-            int cellnum = 0;
+            row = sheet.createRow(rownum++);
+            cellnum = 0;
             for (String key : keyset) {
-                if(rownum<=1){
-                    Cell cell = row.createCell(cellnum++);
-                    cell.setCellValue(key);
-                } else {
-                    Object obj = entry.get(key);
-                    Cell cell = row.createCell(cellnum++);
-                    cell.setCellValue(obj.toString());
+                String obj = entry.get(key)!=null?entry.get(key).toString():null;
+                if(obj.startsWith("'")){
+                    obj = obj.substring(1);
                 }
+                Cell cell = row.createCell(cellnum++);
+                cell.setCellValue(obj);
             }
         }
         try

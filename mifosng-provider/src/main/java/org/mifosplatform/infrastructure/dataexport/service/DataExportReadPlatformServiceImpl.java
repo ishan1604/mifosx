@@ -8,10 +8,7 @@ package org.mifosplatform.infrastructure.dataexport.service;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.infrastructure.dataexport.api.DataExportApiConstants;
 import org.mifosplatform.infrastructure.dataexport.data.*;
-import org.mifosplatform.infrastructure.dataexport.domain.DataExport;
-import org.mifosplatform.infrastructure.dataexport.domain.DataExportProcess;
-import org.mifosplatform.infrastructure.dataexport.domain.DataExportProcessRepository;
-import org.mifosplatform.infrastructure.dataexport.domain.DataExportRepository;
+import org.mifosplatform.infrastructure.dataexport.domain.*;
 import org.mifosplatform.infrastructure.dataexport.exception.EntityMismatchException;
 import org.mifosplatform.infrastructure.dataexport.helper.FileHelper;
 import org.mifosplatform.infrastructure.dataexport.helper.XmlFileHelper;
@@ -31,14 +28,17 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
     private final JdbcTemplate jdbcTemplate;
     private final DataExportRepository dataExportRepository;
     private final DataExportProcessRepository dataExportProcessRepository;
+    private final EnumValueCollectionRepositoryWrapper enumValueCollectionRepositoryWrapper;
 
     @Autowired
     public DataExportReadPlatformServiceImpl(final RegisteredTableRepository registeredTableRepository, final RoutingDataSource dataSource,
-            final DataExportRepository dataExportRepository, final DataExportProcessRepository dataExportProcessRepository) {
+            final DataExportRepository dataExportRepository, final DataExportProcessRepository dataExportProcessRepository,
+            final EnumValueCollectionRepositoryWrapper enumValueCollectionRepositoryWrapper) {
         this.registeredTableRepository = registeredTableRepository;
         this.dataExportRepository = dataExportRepository;
         this.dataExportProcessRepository = dataExportProcessRepository;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.enumValueCollectionRepositoryWrapper = enumValueCollectionRepositoryWrapper;
     }
 
     @Override
@@ -185,9 +185,8 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
             final DataExportRequestData requestData, final DataExportFileFormat fileFormat, final String sql) {
 
         final String fileName = dataExportProcess.getFileName();
-        final List<Map<String, Object>> rawfileData = this.jdbcTemplate.queryForList(sql);
+        final List<Map<String, Object>> rawfileData = reassignEnumValues(this.jdbcTemplate.queryForList(sql), requestData.getBaseEntity());
         final List<String[]> fileData = getFileData(rawfileData);
-        //final Map<String,Object[]> xlsFileData = getXlsFileData(rawfileData);
         DataExportFileData dataExportFileData = null;
 
         switch (fileFormat) {
@@ -215,26 +214,19 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
         return dataExportFileData;
     }
 
-    /*private Map<String,Object[]> getXlsFileData(final List<Map<String, Object>> rawfileData) {
-        try {
-            final Map<String,Object[]> fileData = new TreeMap<>();
-            final Integer columnSize = rawfileData.size();
-            final Set<String> keySet = rawfileData.get(0).keySet();
-            final Integer keyCount = keySet.size();
+    private List<Map<String, Object>> reassignEnumValues(final List<Map<String, Object>> rawfileData, DataExportBaseEntityEnum entity) {
+        final List<Map<String, Object>> fileData = new ArrayList<>();
 
-            for(Map<String, Object> entry : rawfileData)
-            *//*for(String key : rawfileData.get(0).keySet()){
-                int i = 0;
-                Object[] column = new Object[columnSize];
-                for (Map<String, Object> map : rawfileData) {
-                    column[i] = map.get(key);
-                    i++;
-                }
-                fileData.put(key,column);
-            }*//*
-            return fileData;
-        } catch (InvalidParameterException ipe){return null;
-        } catch (IndexOutOfBoundsException iob){return null;
-        } catch (NullPointerException npe){return null;}
-    }*/
+        for(Map<String, Object> entry : rawfileData) {
+            for (String key : entry.keySet()) {
+                Object value;
+                try{String fieldName = DataExportFieldLabel.fromLabel(key,entity).getField();
+                    value = this.enumValueCollectionRepositoryWrapper.findOneByFieldNameAndId(fieldName,Long.valueOf(entry.get(key).toString())).getValue();
+                }catch (Exception e){value = entry.get(key);}
+                entry.put(key,value);
+            }
+            fileData.add(entry);
+        }
+        return fileData;
+    }
 }

@@ -94,8 +94,9 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
                 String paramValue = jsonRequestMap.get(paramKey);
                 if(paramValue != null && paramValue.length()>0 && !paramKey.equals(DataExportApiConstants.ENTITY)){
                     String fieldName = paramKey;
-                    if(requestData.getParamsToFields().containsKey(paramKey)){
-                        fieldName = requestData.getParamsToFields().get(paramKey);
+                    DataExportFieldLabel param = DataExportFieldLabel.fromParam(paramValue,entity);
+                    if(!param.isInvalid()){
+                        fieldName = param.getField();
                     }
                     DataExportFilter dataExportFilter = new DataExportFilter(entity.getTablename(),paramValue,fieldName);
                     requestData.addDataExportFilter(dataExportFilter);
@@ -117,11 +118,12 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
             final String mobileNo = (client != null ? client.mobileNo() : null);
             final String sql = assembleSqlString(sqlMap);
 
+
             final DataExport newDataExport = DataExport.instance(entity.getName(),entityId,status,submittedOnDate,accountNo,officeId,displayName,mobileNo,sql);
 
             this.dataExportRepository.save(newDataExport);
 
-            final Integer processStatus = DataExportProcessStatus.INIT.getId();
+            final Integer processStatus = DataExportProcessStatus.PROCESSING.getId();
             final LocalDateTime processEndDate = DateUtils.getLocalDateTimeOfTenant();
             final String fileName = processEndDate.toString(DATA_EXPORT_FILENAME_DATETIME_FORMAT_PATTERN);
 
@@ -153,7 +155,8 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
 
         for(String fieldName : fieldNames){
             DataExportFieldLabel label = DataExportFieldLabel.fromField(fieldName);
-            if(label.isClientId() || label.isGroupId() || label.isOfficeId()) {
+            if(label.isInvalid()){throw new InputMismatchException("No DataExportFieldLabel found with field name " + fieldName);}
+            if(label.getReferenceTable()!=null) {
                 labels.add(label);
             } else {select.add(entity.getTablename() + "." + fieldName + " as " + label.getLabel());}
         }
@@ -162,9 +165,9 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
 
         if(labels.size()>0){
             for(DataExportFieldLabel label : labels){
-                DataExportFieldLabel referral = DataExportFieldLabel.getReferral(label.getTable());
-                select.add(label.getTable() + "." + referral.getField() + " as " + referral.getLabel());
-                from.add("left join " + label.getTable() + " on " + label.getTable() + "." + DataExportApiConstants.ENTITY_ID
+                DataExportFieldLabel referral = DataExportFieldLabel.refer(label.getReferenceTable());
+                select.add(label.getReferenceTable() + "." + referral.getField() + " as " + label.getLabel());
+                from.add("left join " + label.getReferenceTable() + " on " + label.getReferenceTable() + "." + DataExportApiConstants.ENTITY_ID
                         + " = " + entity.getTablename() + "." + label.getField());
             }
         }
