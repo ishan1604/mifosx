@@ -5,20 +5,22 @@
  */
 package org.mifosplatform.infrastructure.dataexport.service;
 
+import org.mifosplatform.infrastructure.codes.domain.CodeValue;
+import org.mifosplatform.infrastructure.codes.domain.CodeValueRepository;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.infrastructure.dataexport.api.DataExportApiConstants;
 import org.mifosplatform.infrastructure.dataexport.data.*;
-import org.mifosplatform.infrastructure.dataexport.domain.DataExport;
-import org.mifosplatform.infrastructure.dataexport.domain.DataExportProcess;
-import org.mifosplatform.infrastructure.dataexport.domain.DataExportProcessRepository;
-import org.mifosplatform.infrastructure.dataexport.domain.DataExportRepository;
+import org.mifosplatform.infrastructure.dataexport.domain.*;
 import org.mifosplatform.infrastructure.dataexport.exception.EntityMismatchException;
 import org.mifosplatform.infrastructure.dataexport.helper.FileHelper;
 import org.mifosplatform.infrastructure.dataexport.helper.XmlFileHelper;
 import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTable;
+import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableMetaData;
+import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableMetaDataRepository;
 import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Service;
 
 import javax.ws.rs.core.Response;
@@ -28,34 +30,66 @@ import java.util.*;
 @Service
 public class DataExportReadPlatformServiceImpl implements DataExportReadPlatformService {
     private final RegisteredTableRepository registeredTableRepository;
+    private final RegisteredTableMetaDataRepository registeredTableMetaDataRepository;
     private final JdbcTemplate jdbcTemplate;
     private final DataExportRepository dataExportRepository;
     private final DataExportProcessRepository dataExportProcessRepository;
+    private final EnumValueCollectionRepositoryWrapper enumValueCollectionRepositoryWrapper;
+    private final EntityLabelRepository entityLabelRepository;
+    private final CodeValueRepository codeValueRepository;
 
     @Autowired
     public DataExportReadPlatformServiceImpl(final RegisteredTableRepository registeredTableRepository, final RoutingDataSource dataSource,
-            final DataExportRepository dataExportRepository, final DataExportProcessRepository dataExportProcessRepository) {
+            final DataExportRepository dataExportRepository, final DataExportProcessRepository dataExportProcessRepository,
+            final EnumValueCollectionRepositoryWrapper enumValueCollectionRepositoryWrapper, final EntityLabelRepository entityLabelRepository,
+            final RegisteredTableMetaDataRepository registeredTableMetaDataRepository, final CodeValueRepository codeValueRepository) {
         this.registeredTableRepository = registeredTableRepository;
         this.dataExportRepository = dataExportRepository;
         this.dataExportProcessRepository = dataExportProcessRepository;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.enumValueCollectionRepositoryWrapper = enumValueCollectionRepositoryWrapper;
+        this.entityLabelRepository = entityLabelRepository;
+        this.registeredTableMetaDataRepository = registeredTableMetaDataRepository;
+        this.codeValueRepository = codeValueRepository;
     }
 
     @Override
     public DataExportRequestData retrieveDataExportRequestData(final String entity){
+        return retrieveDataExportRequestData(entity, new ArrayList<DataExportFilter>(), new ArrayList<String>());
+    }
+
+    @Override
+    public DataExportRequestData retrieveDataExportRequestData(final String entity,
+            final List<DataExportFilter> filters, final List<String> datatables){
         try {
-            DataExportBaseEntityEnum baseEntity = null;
+            final DataExportBaseEntityEnum baseEntity;
+            final List<String> exportDatatables = new ArrayList<>();
+
             if (entity != null) {
                 baseEntity = DataExportBaseEntityEnum.valueOf(entity.toUpperCase());
-            }
-            if (baseEntity == null || baseEntity.getTablename().isEmpty()) {
+            }else{baseEntity = null;}
+            if (baseEntity == null || baseEntity.getTablename().isEmpty() || filters == null || datatables == null) {
                 throw new InvalidParameterException(entity);
             }
 
-            final List<DataExportFilter> filters = new ArrayList<>();
-            final List<String> exportDatatables = new ArrayList<>();
+            if(datatables.size()>0){
+                List<String> dataTableCheckList = assembleExportDataTables(baseEntity);
+                for(String dataTable : datatables){
+                    if(dataTableCheckList.contains(dataTable)){
+                        exportDatatables.add(dataTable);
+                    }
+                }
+            }
 
-            return new DataExportRequestData(baseEntity, filters, exportDatatables);
+            final Set<String> supportedParameters = new HashSet<>();
+            final List<EntityLabel> entityLabels = new ArrayList<>(this.entityLabelRepository.findAllByTable(baseEntity.getTablename()));
+
+            supportedParameters.addAll(DataExportApiConstants.BASIC_SUPPORTED_PARAMETERS);
+            for(EntityLabel entityLabel : entityLabels){
+                supportedParameters.add(entityLabel.getJsonParam());
+            }
+
+            return new DataExportRequestData(baseEntity, filters, exportDatatables, supportedParameters);
         } catch(InvalidParameterException e){return null;}
     }
 
@@ -126,10 +160,11 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
 
         for (DataExportBaseEntityEnum entity : entityNames){
             if(type.equals(DataExportApiConstants.DATATABLE_NAME)) {
-                for (RegisteredTable registeredTable : this.registeredTableRepository.findAllByApplicationTableName(entity.getTablename())) {
+                List<String> dataTables = assembleExportDataTables(entity);
+                for (String dataTable : dataTables) {
                     Map<String, String> table = new HashMap<>();
                     table.put(DataExportApiConstants.ENTITY_NAME, entity.name());
-                    table.put(type, registeredTable.getRegisteredTableName());
+                    table.put(type, dataTable);
                     tables.add(table);
                 }
             }
@@ -138,7 +173,7 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
                 table.put(DataExportApiConstants.ENTITY_NAME, entity.name());
                 table.put(type, entity.getTablename());
                 tables.add(table);
-                if(tables.isEmpty()){throw new RuntimeException("Something went wrong while assembling the datatables.");}
+                if(tables.isEmpty()){throw new RuntimeException("Something went wrong while assembling the entitytables.");}
             }
         }
 
@@ -185,9 +220,8 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
             final DataExportRequestData requestData, final DataExportFileFormat fileFormat, final String sql) {
 
         final String fileName = dataExportProcess.getFileName();
-        final List<Map<String, Object>> rawfileData = this.jdbcTemplate.queryForList(sql);
+        final List<Map<String, Object>> rawfileData = reassignEnumValues(sql, requestData.getBaseEntity());
         final List<String[]> fileData = getFileData(rawfileData);
-        //final Map<String,Object[]> xlsFileData = getXlsFileData(rawfileData);
         DataExportFileData dataExportFileData = null;
 
         switch (fileFormat) {
@@ -215,26 +249,69 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
         return dataExportFileData;
     }
 
-    /*private Map<String,Object[]> getXlsFileData(final List<Map<String, Object>> rawfileData) {
-        try {
-            final Map<String,Object[]> fileData = new TreeMap<>();
-            final Integer columnSize = rawfileData.size();
-            final Set<String> keySet = rawfileData.get(0).keySet();
-            final Integer keyCount = keySet.size();
+    private List<Map<String, Object>> reassignEnumValues(String sql, DataExportBaseEntityEnum entity) {
+        final List<Map<String, Object>> fileData = new ArrayList<>();
+        final List<Map<String, Object>> rawfileData = this.jdbcTemplate.queryForList(sql);
+        final List<String> cbKeys = findLabelsInSqlWithFieldCharactaristic(sql,"_cb_");
+        SqlRowSet rowSet = this.jdbcTemplate.queryForRowSet(sql);
 
-            for(Map<String, Object> entry : rawfileData)
-            *//*for(String key : rawfileData.get(0).keySet()){
-                int i = 0;
-                Object[] column = new Object[columnSize];
-                for (Map<String, Object> map : rawfileData) {
-                    column[i] = map.get(key);
-                    i++;
+        for (Map<String, Object> entry : rawfileData) {
+            for (String key : entry.keySet()) {
+                Object value;
+                if(cbKeys.contains(key)){
+                    value = entry.get(key);
+                    StringBuilder toValue = new StringBuilder("");
+                    if(value!=null && value.toString().length()>0){
+                        String stringValue = value.toString();
+                        int index = 0;
+                        Long id;
+                        CodeValue codeValue;
+                        while(stringValue.indexOf(",",index)>0){
+                            int newIndex = stringValue.indexOf(",", index);
+                            id = Long.valueOf(stringValue.substring(index, newIndex));
+                            index = newIndex + 1;
+                            codeValue = this.codeValueRepository.findOne(id);
+                            toValue.append(codeValue.label() + ", ");
+                        }
+                        id = Long.valueOf(stringValue.substring(index));
+                        codeValue = this.codeValueRepository.findOne(id);
+                        toValue.append(codeValue.label());
+                        value = toValue.toString();
+                    }
+                }else {
+                    try {
+                        EntityLabel entityLabel = this.entityLabelRepository.findOneByTableAndJsonParam(entity.getTablename(), key);
+                        if (entityLabel != null) {
+                            String fieldName = entityLabel.getField();
+                            value = this.enumValueCollectionRepositoryWrapper.findOneByFieldNameAndId(fieldName, Long.valueOf(entry.get(key).toString())).getValue();
+                        } else {
+                            throw new Exception();
+                        }
+                    } catch (Exception e) {
+                        value = entry.get(key);
+                    }
                 }
-                fileData.put(key,column);
-            }*//*
-            return fileData;
-        } catch (InvalidParameterException ipe){return null;
-        } catch (IndexOutOfBoundsException iob){return null;
-        } catch (NullPointerException npe){return null;}
-    }*/
+                entry.put(key, value);
+            }
+            fileData.add(entry);
+        }
+        return fileData;
+    }
+
+    private List<String> findLabelsInSqlWithFieldCharactaristic(String sql, String with){
+        List<String> keys = new ArrayList<>();
+        int index = 0;
+
+        while (sql.indexOf(with, index) > 0) {
+            index = sql.indexOf(with, index) + 1;
+            Integer labelStart = sql.indexOf("'", index) + 1;
+            Integer labelEnd = sql.indexOf("'", labelStart + 1);
+            if (labelStart <= 0 || labelEnd <= 0 || labelEnd <= labelStart) {
+                throw new RuntimeException("while loop code in DataExportReadPlatformServiceImpl.findLabelsInSqlWith needs to be reevaluated");
+            }
+            String key = sql.substring(labelStart, labelEnd);
+            keys.add(key);
+        }
+        return keys;
+    }
 }

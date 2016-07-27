@@ -99,7 +99,6 @@ public class DataExportApiResource {
 
         final CommandWrapper commandRequest = new CommandWrapperBuilder() //
                 .createDataExport(apiRequestBodyAsJson) //
-                .withJson(apiRequestBodyAsJson) //
                 .build();
 
         final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);

@@ -28,23 +28,33 @@ public class XlsFileHelper {
 
         Set<String> keyset = data.get(0).keySet();
         int rownum = 0;
-        for (Map<String,Object> entry : data) {
-            Row row = sheet.createRow(rownum++);
-            //Object [] objArr = data.get(key);
-            int cellnum = 0;
-            for (String key : keyset) {
-                if(rownum<=1){
-                    Cell cell = row.createCell(cellnum++);
-                    cell.setCellValue(key);
-                } else {
-                    Object obj = entry.get(key);
-                    Cell cell = row.createCell(cellnum++);
-                    cell.setCellValue(obj.toString());
-                }
-            }
-        }
+        int cellnum = 0;
+        Row row = sheet.createRow(rownum++);
+
         try
         {
+        for (String paramkey : keyset) {
+            String key = paramkey;
+            if(key.startsWith("'")){
+                key = key.substring(1);
+            }
+            Cell cell = row.createCell(cellnum++);
+            cell.setCellValue(key);
+        }
+
+        for (Map<String,Object> entry : data) {
+            row = sheet.createRow(rownum++);
+            cellnum = 0;
+            for (String key : keyset) {
+                String value = entry.get(key)!=null?entry.get(key).toString():null;
+                if(value != null && value.startsWith("'")){
+                    value = value.substring(1);
+                }
+                Cell cell = row.createCell(cellnum++);
+                cell.setCellValue(value);
+            }
+        }
+
             //Write the workbook in file system
             FileOutputStream out = new FileOutputStream(file);
             workbook.write(out);

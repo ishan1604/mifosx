@@ -5,11 +5,13 @@
  */
 package org.mifosplatform.infrastructure.dataexport.service;
 
+import org.mifosplatform.infrastructure.dataexport.data.DataExportFilter;
 import org.mifosplatform.infrastructure.dataexport.data.DataExportRequestData;
 import org.mifosplatform.infrastructure.dataexport.data.DataExportTemplateData;
 import javax.ws.rs.core.Response;
 
 import java.util.Collection;
+import java.util.List;
 
 public interface DataExportReadPlatformService {
 
@@ -17,9 +19,9 @@ public interface DataExportReadPlatformService {
 
     DataExportRequestData retrieveDataExportRequestData (String entity);
 
+    DataExportRequestData retrieveDataExportRequestData (String entity, List<DataExportFilter> dataExportFilters, List<String> exportDatatables);
+
     Collection<DataExportRequestData> retrieveDataExportRequestDataCollection ();
 
     Response downloadDataExportFile(String entity, Long dataExportProcessId, String fileFormat);
-
-    //List<String> retrieveEntityParameters (DataExportBaseEntityEnum entity, JsonCommand command);
 }

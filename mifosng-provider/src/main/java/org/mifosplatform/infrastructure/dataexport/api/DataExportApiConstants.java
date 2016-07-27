@@ -17,7 +17,7 @@ import java.util.Set;
 
 public class DataExportApiConstants {
 
-    // base path constants
+    // base path and format constants
     public static final String SYSTEM_USER_HOME_PROPERTY_KEY = "user.home";
     public static final String SYSTEM_USER_HOME_DIR_PATH_STRING = System.getProperty(SYSTEM_USER_HOME_PROPERTY_KEY);
     public static final String APPLICATION_BASE_DIR_NAME = "mifosx\\mifosng-provider";
@@ -78,31 +78,9 @@ public class DataExportApiConstants {
     public final static String STAFF_ID = "staff_id";
     public final static String ACCOUNT_BALANCE = "account_balance_derived";
 
-    // supported parameter lists
-    public final static ImmutableList<String> CLIENT_SUPPORTED_PARAMETERS =
-            ImmutableList.of(ENTITY,ENTITY_ID,ENTITY_OFFICE,ENTITY_STATUS,ENTITY_SUBMITDATE);
-    public final static ImmutableList<String> GROUP_SUPPORTED_PARAMETERS =
-            ImmutableList.of(ENTITY,ENTITY_ID,ENTITY_OFFICE,ENTITY_STATUS,ENTITY_SUBMITDATE,ENTITY_STAFF);
-    public final static ImmutableList<String> LOAN_SUPPORTED_PARAMETERS =
-            ImmutableList.of(ENTITY,ENTITY_ID,ENTITY_CLIENT_ID,ENTITY_GROUP_ID,ENTITY_TYPE,ENTITY_STATUS,ENTITY_SUBMITDATE);
-    public final static ImmutableList<String> SAVINGS_ACCOUNT_SUPPORTED_PARAMETERS =
-            ImmutableList.of(ENTITY,ENTITY_ID,ENTITY_CLIENT_ID,ENTITY_GROUP_ID,ENTITY_TYPE,ENTITY_STATUS,ENTITY_SUBMITDATE);
-
-    // maps linking json parameter constants to matching field name constants
-    public final static ImmutableMap<String, String> CLIENT_PARAMETERS_TO_FIELD_NAMES =
-            ImmutableMap.of(ENTITY_STATUS,STATUS,ENTITY_OFFICE,OFFICE_ID,ENTITY_SUBMITDATE,SUBMITTED_ON_DATE);
-    public final static ImmutableMap<String, String> GROUP_PARAMETERS_TO_FIELD_NAMES =
-            ImmutableMap.of(ENTITY_STATUS,STATUS,ENTITY_OFFICE,OFFICE_ID,ENTITY_SUBMITDATE,SUBMITTED_ON_DATE,ENTITY_STAFF,STAFF_ID);
-    public final static ImmutableMap<String, String> LOAN_PARAMETERS_TO_FIELD_NAMES =
-            ImmutableMap.of(ENTITY_TYPE,LOAN_TYPE,ENTITY_STATUS,LOAN_STATUS,ENTITY_CLIENT_ID,CLIENT_ID,ENTITY_GROUP_ID,GROUP_ID,ENTITY_SUBMITDATE,SUBMITTED_ON_DATE);
-    public final static ImmutableMap<String, String> SAVINGS_ACCOUNT_PARAMETERS_TO_FIELD_NAMES =
-            ImmutableMap.of(ENTITY_STATUS,STATUS,ENTITY_TYPE,SAVINGS_PRODUCT_TYPE,ENTITY_SUBMITDATE,SUBMITTED_ON_DATE,ENTITY_CLIENT_ID,CLIENT_ID,ENTITY_GROUP_ID,GROUP_ID);
-
-    // map giving user friendly labels to field names
-    public final static ImmutableMap<Object, Object> FIELD_NAME_LABELS =
-            ImmutableMap.builder().put(CLIENT_ID,"Client").put(GROUP_ID,"Group").put(OFFICE_NAME,"Office").put(FULL_NAME,"Name")
-            .put(STATUS, "Status").put(LOAN_PRINCIPAL, "Principal").put(TOTAL_OUTSTANDING, "Outstanding").put(MOBILE_NO, "Mobile")
-            .put(SUBMITTED_ON_DATE, "Submitted On").put(ACCOUNT_BALANCE, "Account Balance").build();
+    // entity-independent supported parameter list
+    public final static ImmutableList<String> BASIC_SUPPORTED_PARAMETERS =
+            ImmutableList.of(ENTITY,ENTITY_NAME,DATATABLE_NAME);
 
     // lists of fields to be entered in the data export for each entity type
     public final static ImmutableList<String> CLIENT_FIELD_NAMES =
@@ -113,9 +91,4 @@ public class DataExportApiConstants {
             ImmutableList.of(ENTITY_ID,ACCOUNT_NO,LOAN_TYPE,CLIENT_ID,GROUP_ID,LOAN_STATUS,SUBMITTED_ON_DATE,LOAN_PRINCIPAL,TOTAL_OUTSTANDING);
     public final static ImmutableList<String> SAVINGS_ACCOUNT_FIELD_NAMES =
             ImmutableList.of(ENTITY_ID,ACCOUNT_NO,CLIENT_ID,GROUP_ID,SAVINGS_PRODUCT_TYPE,STATUS, SUBMITTED_ON_DATE, ACCOUNT_BALANCE);
-
-    // list of field constants that refer to entities other than baseEntity
-    /*public final static ImmutableMap<String,String> ENTITY_REFERRAL =
-            ImmutableMap.of(OFFICE_ID,OFFICE_NAME,CLIENT_ID,FULL_NAME,GROUP_ID,FULL_NAME);
-            */
 }

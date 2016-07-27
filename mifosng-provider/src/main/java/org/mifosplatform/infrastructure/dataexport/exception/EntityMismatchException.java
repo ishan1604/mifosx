@@ -6,7 +6,9 @@
 package org.mifosplatform.infrastructure.dataexport.exception;
 
 
-public class EntityMismatchException extends IllegalArgumentException{
+import java.util.InputMismatchException;
+
+public class EntityMismatchException extends InputMismatchException{
 
     public EntityMismatchException(String entity1, String entity2){
         super("Error occurred: " + entity1 + " was the required entity, but " + entity2 + " was provided.");

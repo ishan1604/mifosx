@@ -48,4 +48,16 @@ public enum DataExportBaseEntityEnum {
      * @return true if enum is equal to DataExportBaseEntityEnum.SAVINGSACCOUNT, else false
      */
     public boolean isSavingsAccount(){return this.equals(SAVINGSACCOUNT);}
+
+    public DataExportBaseEntityEnum fromTable(String tableName){
+        DataExportBaseEntityEnum entity;
+        switch (tableName){
+            case "m_client": entity = CLIENT; break;
+            case "m_group": entity = GROUP; break;
+            case "m_loan": entity = LOAN; break;
+            case "m_savings_account": entity = SAVINGSACCOUNT; break;
+            default: entity = null;
+        }
+        return entity;
+    }
 }
