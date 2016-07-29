@@ -29,33 +29,48 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
     private final DataExportRepository dataExportRepository;
     private final DataExportProcessRepository dataExportProcessRepository;
     private final EnumValueCollectionRepositoryWrapper enumValueCollectionRepositoryWrapper;
+    private final EntityLabelRepository entityLabelRepository;
 
     @Autowired
     public DataExportReadPlatformServiceImpl(final RegisteredTableRepository registeredTableRepository, final RoutingDataSource dataSource,
             final DataExportRepository dataExportRepository, final DataExportProcessRepository dataExportProcessRepository,
-            final EnumValueCollectionRepositoryWrapper enumValueCollectionRepositoryWrapper) {
+            final EnumValueCollectionRepositoryWrapper enumValueCollectionRepositoryWrapper, final EntityLabelRepository entityLabelRepository) {
         this.registeredTableRepository = registeredTableRepository;
         this.dataExportRepository = dataExportRepository;
         this.dataExportProcessRepository = dataExportProcessRepository;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
         this.enumValueCollectionRepositoryWrapper = enumValueCollectionRepositoryWrapper;
+        this.entityLabelRepository = entityLabelRepository;
     }
 
     @Override
     public DataExportRequestData retrieveDataExportRequestData(final String entity){
+        return retrieveDataExportRequestData(entity, new ArrayList<DataExportFilter>(), new ArrayList<String>());
+    }
+
+    @Override
+    public DataExportRequestData retrieveDataExportRequestData(final String entity,
+            final List<DataExportFilter> filters, final List<String> exportDatatables){
         try {
             DataExportBaseEntityEnum baseEntity = null;
+
             if (entity != null) {
                 baseEntity = DataExportBaseEntityEnum.valueOf(entity.toUpperCase());
             }
-            if (baseEntity == null || baseEntity.getTablename().isEmpty()) {
+            if (baseEntity == null || baseEntity.getTablename().isEmpty() || filters == null || exportDatatables == null) {
                 throw new InvalidParameterException(entity);
             }
 
-            final List<DataExportFilter> filters = new ArrayList<>();
-            final List<String> exportDatatables = new ArrayList<>();
+            final Set<String> supportedParameters = new HashSet<>();
+            final List<EntityLabel> entityLabels = new ArrayList<>(this.entityLabelRepository.findAllByTable(baseEntity.getTablename()));
 
-            return new DataExportRequestData(baseEntity, filters, exportDatatables);
+            supportedParameters.add(DataExportApiConstants.ENTITY);
+            supportedParameters.add(DataExportApiConstants.ENTITY_ID);
+            for(EntityLabel entityLabel : entityLabels){
+                supportedParameters.add(entityLabel.getJsonParam());
+            }
+
+            return new DataExportRequestData(baseEntity, filters, exportDatatables,supportedParameters);
         } catch(InvalidParameterException e){return null;}
     }
 
@@ -220,7 +235,9 @@ public class DataExportReadPlatformServiceImpl implements DataExportReadPlatform
         for(Map<String, Object> entry : rawfileData) {
             for (String key : entry.keySet()) {
                 Object value;
-                try{String fieldName = DataExportFieldLabel.fromLabel(key,entity).getField();
+                try{
+                    EntityLabel entityLabel = this.entityLabelRepository.findOneByTableAndJsonParam(entity.getTablename(),key);
+                    String fieldName = entityLabel.getField();
                     value = this.enumValueCollectionRepositoryWrapper.findOneByFieldNameAndId(fieldName,Long.valueOf(entry.get(key).toString())).getValue();
                 }catch (Exception e){value = entry.get(key);}
                 entry.put(key,value);

@@ -31,6 +31,8 @@ public class XlsFileHelper {
         int cellnum = 0;
         Row row = sheet.createRow(rownum++);
 
+        try
+        {
         for (String paramkey : keyset) {
             String key = paramkey;
             if(key.startsWith("'")){
@@ -44,16 +46,15 @@ public class XlsFileHelper {
             row = sheet.createRow(rownum++);
             cellnum = 0;
             for (String key : keyset) {
-                String obj = entry.get(key)!=null?entry.get(key).toString():null;
-                if(obj.startsWith("'")){
-                    obj = obj.substring(1);
+                String value = entry.get(key)!=null?entry.get(key).toString():null;
+                if(value != null && value.startsWith("'")){
+                    value = value.substring(1);
                 }
                 Cell cell = row.createCell(cellnum++);
-                cell.setCellValue(obj);
+                cell.setCellValue(value);
             }
         }
-        try
-        {
+
             //Write the workbook in file system
             FileOutputStream out = new FileOutputStream(file);
             workbook.write(out);

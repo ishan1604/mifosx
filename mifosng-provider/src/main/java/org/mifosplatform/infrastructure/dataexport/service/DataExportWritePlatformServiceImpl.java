@@ -8,6 +8,7 @@ package org.mifosplatform.infrastructure.dataexport.service;
 
 import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
+import org.hibernate.JDBCException;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalDateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -21,21 +22,32 @@ import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.infrastructure.dataexport.api.DataExportApiConstants;
 import org.mifosplatform.infrastructure.dataexport.data.*;
-import org.mifosplatform.infrastructure.dataexport.domain.DataExport;
-import org.mifosplatform.infrastructure.dataexport.domain.DataExportProcess;
-import org.mifosplatform.infrastructure.dataexport.domain.DataExportProcessRepository;
-import org.mifosplatform.infrastructure.dataexport.domain.DataExportRepository;
+import org.mifosplatform.infrastructure.dataexport.domain.*;
+import org.mifosplatform.infrastructure.hooks.data.Entity;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.client.domain.ClientRepository;
+import org.mifosplatform.portfolio.group.domain.Group;
+import org.mifosplatform.portfolio.group.domain.GroupRepository;
+import org.mifosplatform.portfolio.loanaccount.domain.LoanRepository;
+import org.mifosplatform.portfolio.savings.domain.SavingsAccountRepository;
 import org.mifosplatform.useradministration.domain.AppUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.AbstractPersistable;
+import org.springframework.data.jpa.repository.Temporal;
+import org.springframework.orm.jpa.JpaObjectRetrievalFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.Column;
+import javax.persistence.EntityNotFoundException;
+import javax.persistence.JoinColumn;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.sql.SQLException;
 import java.util.*;
 
 import static org.mifosplatform.infrastructure.dataexport.api.DataExportApiConstants.DATA_EXPORT_FILENAME_DATETIME_FORMAT_PATTERN;
@@ -51,7 +63,9 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
     private final FromJsonHelper fromApiJsonHelper;
     private final DataExportRepository dataExportRepository;
     private final DataExportProcessRepository dataExportProcessRepository;
+    private final GroupRepository groupRepository;
     private final ClientRepository clientRepository;
+    private final EntityLabelRepository entityLabelRepository;
 
     @Autowired
     public DataExportWritePlatformServiceImpl(final PlatformSecurityContext context, final FromJsonHelper fromApiJsonHelper,
@@ -59,7 +73,9 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
                                               final DataExportReadPlatformService readPlatformService,
                                               final DataExportRepository dataExportRepository,
                                               final DataExportProcessRepository dataExportProcessRepository,
-                                              final ClientRepository clientRepository){
+                                              final ClientRepository clientRepository,
+                                              final GroupRepository groupRepository,
+                                              final EntityLabelRepository entityLabelRepository){
         this.context = context;
         this.fromApiJsonHelper = fromApiJsonHelper;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
@@ -67,6 +83,8 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
         this.dataExportRepository = dataExportRepository;
         this.clientRepository = clientRepository;
         this.dataExportProcessRepository = dataExportProcessRepository;
+        this.groupRepository = groupRepository;
+        this.entityLabelRepository = entityLabelRepository;
     }
 
     @Transactional
@@ -94,9 +112,9 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
                 String paramValue = jsonRequestMap.get(paramKey);
                 if(paramValue != null && paramValue.length()>0 && !paramKey.equals(DataExportApiConstants.ENTITY)){
                     String fieldName = paramKey;
-                    DataExportFieldLabel param = DataExportFieldLabel.fromParam(paramValue,entity);
-                    if(!param.isInvalid()){
-                        fieldName = param.getField();
+                    EntityLabel label = this.entityLabelRepository.findOneByTableAndJsonParam(entity.getTablename(),paramValue);
+                    if(label != null){
+                        fieldName = label.getField();
                     }
                     DataExportFilter dataExportFilter = new DataExportFilter(entity.getTablename(),paramValue,fieldName);
                     requestData.addDataExportFilter(dataExportFilter);
@@ -113,8 +131,9 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
             final Integer status = this.fromApiJsonHelper.extractIntegerSansLocaleNamed(DataExportApiConstants.ENTITY_STATUS,element);
             final String accountNo = this.fromApiJsonHelper.extractStringNamed(DataExportApiConstants.ACCOUNT_NO,element);
             final Long officeId = this.fromApiJsonHelper.extractLongNamed(DataExportApiConstants.ENTITY_OFFICE,element);
-            final Client client = (entityId != null ? this.clientRepository.findOne(entityId) : null);
-            final String displayName = (client != null ? client.getDisplayName() : null);
+            final Client client = (entityId != null && entity.isClient()? this.clientRepository.findOne(entityId) : null);
+            final Group group = (entityId != null && entity.isGroup()? this.groupRepository.findOne(entityId) : null);
+            final String displayName = (client != null ? client.getDisplayName() : group != null ? group.getName() : null);
             final String mobileNo = (client != null ? client.mobileNo() : null);
             final String sql = assembleSqlString(sqlMap);
 
@@ -151,11 +170,11 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
         final DataExportBaseEntityEnum entity = requestData.getBaseEntity();
         final List<String> fieldNames = requestData.getDisplayedFieldNames();
         final List<DataExportFilter> dataExportFilters = requestData.getDataExportFiltersList();
-        final List<DataExportFieldLabel> labels = new ArrayList<>();
+        final List<EntityLabel> labels = new ArrayList<>();
 
         for(String fieldName : fieldNames){
-            DataExportFieldLabel label = DataExportFieldLabel.fromField(fieldName);
-            if(label.isInvalid()){throw new InputMismatchException("No DataExportFieldLabel found with field name " + fieldName);}
+            EntityLabel label = this.entityLabelRepository.findOneByTableAndField(entity.getTablename(),fieldName);
+            if(label == null){throw new InputMismatchException("No EntityLabel found with entity table " + entity.getTablename() + " and field name " + fieldName + ".");}
             if(label.getReferenceTable()!=null) {
                 labels.add(label);
             } else {select.add(entity.getTablename() + "." + fieldName + " as " + label.getLabel());}
@@ -164,9 +183,8 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
          from.add(entity.getTablename());
 
         if(labels.size()>0){
-            for(DataExportFieldLabel label : labels){
-                DataExportFieldLabel referral = DataExportFieldLabel.refer(label.getReferenceTable());
-                select.add(label.getReferenceTable() + "." + referral.getField() + " as " + label.getLabel());
+            for(EntityLabel label : labels){
+                select.add(label.getReferenceTable() + "." + label.getReferenceField() + " as " + label.getLabel());
                 from.add("left join " + label.getReferenceTable() + " on " + label.getReferenceTable() + "." + DataExportApiConstants.ENTITY_ID
                         + " = " + entity.getTablename() + "." + label.getField());
             }
