@@ -111,6 +111,8 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
         boolean isAccountTransfer = true;
         Long fromLoanAccountId = null;
         boolean isWithdrawBalance = false;
+        Long fromClientId = null;
+        Long fromOfficeId = null;
 
         if (isSavingsToSavingsAccountTransfer(fromAccountType, toAccountType)) {
 
@@ -132,6 +134,8 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
                     fromSavingsAccount, toSavingsAccount, withdrawal, deposit);
             this.accountTransferDetailRepository.saveAndFlush(accountTransferDetails);
             transferDetailId = accountTransferDetails.getId();
+            fromClientId = fromSavingsAccount.clientId();
+            fromOfficeId = fromSavingsAccount.getClient().officeId();
 
         } else if (isSavingsToLoanAccountTransfer(fromAccountType, toAccountType)) {
             //
@@ -155,6 +159,8 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
                     fromSavingsAccount, toLoanAccount, withdrawal, loanRepaymentTransaction);
             this.accountTransferDetailRepository.saveAndFlush(accountTransferDetails);
             transferDetailId = accountTransferDetails.getId();
+            fromClientId = fromSavingsAccount.clientId();
+            fromOfficeId = fromSavingsAccount.getClient().officeId();
 
         } else if (isLoanToSavingsAccountTransfer(fromAccountType, toAccountType)) {
             // FIXME - kw - ADD overpaid loan to savings account transfer
@@ -176,6 +182,8 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
                     fromLoanAccount, toSavingsAccount, deposit, loanRefundTransaction);
             this.accountTransferDetailRepository.saveAndFlush(accountTransferDetails);
             transferDetailId = accountTransferDetails.getId();
+            fromClientId = fromLoanAccount.getClientId();
+            fromOfficeId = fromLoanAccount.getClient().officeId();
 
         } else if (isLoanToLoanAccountTransfer(fromAccountType, toAccountType)) {
             // FIXME - kw - ADD overpaid loan to loan account transfer
@@ -199,6 +207,8 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
                     fromLoanAccount, toLoanAccount, loanRefundTransaction, loanRepaymentTransaction);
             this.accountTransferDetailRepository.saveAndFlush(accountTransferDetails);
             transferDetailId = accountTransferDetails.getId();
+            fromClientId = fromLoanAccount.getClientId();
+            fromOfficeId = fromLoanAccount.getClient().officeId();
 
         } else {
             /**  throw an exception here for loan to loan transfer not supported */
@@ -207,6 +217,8 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
         }
 
         final CommandProcessingResultBuilder builder = new CommandProcessingResultBuilder().withEntityId(transferDetailId);
+        builder.withClientId(fromClientId);
+        builder.withOfficeId(fromOfficeId);
 
         if (fromAccountType.isSavingsAccount()) {
             builder.withSavingsId(fromSavingsAccountId);
