@@ -233,6 +233,10 @@ public final class ResultsetColumnHeaderData {
         return false;
     }
 
+    public boolean isImage(){
+        return "IMAGE".equalsIgnoreCase(this.columnDisplayType);
+    }
+
     public boolean isCodeLookupDisplayType() {
         return "CODELOOKUP".equalsIgnoreCase(this.columnDisplayType);
     }

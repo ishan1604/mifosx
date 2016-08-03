@@ -1972,11 +1972,11 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                 affectedAndChangedColumns.put(key, getObjectValueforColumn(colHeader, columnValue, locale));
 
             }else{
-
-
                 // put in the current value stored in the db
                 //  affectedAndChangedColumns.put(key, grs.getColTypeOfColumnNamed());
-                affectedAndChangedColumns.put(key,getObjectValueforColumn(colHeader, grs.getValueForColumnNamed(key), locale));
+                if(!colHeader.isImage()) {
+                    affectedAndChangedColumns.put(key, getObjectValueforColumn(colHeader, grs.getValueForColumnNamed(key), locale));
+                }
             }
         }
 
@@ -1986,7 +1986,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
             final String key = grs.getColumnHeaders().get(i).getColumnName();
 
-            if (!affectedAndChangedColumns.containsKey(key)) {
+            if (!affectedAndChangedColumns.containsKey(key) && !grs.getColumnHeaders().get(i).isImage()) {
                     affectedAndChangedColumns.put(key,getObjectValueforColumn(grs.getColumnHeaders().get(i), grs.getValueForColumnNamed(key), locale));
             }
         }
