@@ -1721,6 +1721,9 @@ public class Loan extends AbstractPersistable<Long> {
     }
 
     private void recalculateLoanCharge(final LoanCharge loanCharge, final int penaltyWaitPeriod) {
+        final RoundingMode roundingMode = MoneyHelper.getRoundingMode();
+        final MathContext mc = new MathContext(8, roundingMode);
+
         BigDecimal amount = BigDecimal.ZERO;
         if (loanCharge.isOverdueInstallmentCharge()) {
             amount = calculateOverdueAmountPercentageAppliedTo(loanCharge, penaltyWaitPeriod);
@@ -1738,7 +1741,7 @@ public class Loan extends AbstractPersistable<Long> {
         } else {
             chargeAmt = loanCharge.amountOrPercentage();
             if (loanCharge.isInstalmentFee()) {
-                chargeAmt =  chargeAmt.divide(BigDecimal.valueOf(repaymentScheduleDetail().getNumberOfRepayments()));
+                chargeAmt =  chargeAmt.divide(BigDecimal.valueOf(repaymentScheduleDetail().getNumberOfRepayments()), mc);
             }
         }
         if (loanCharge.isActive()) {
