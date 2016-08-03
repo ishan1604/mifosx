@@ -651,4 +651,6 @@ public final class Group extends AbstractPersistable<Long> {
     public void updateExternalId(String externalId){
         this.externalId = externalId;
     }
+
+    public String getName() {return this.name;}
 }
