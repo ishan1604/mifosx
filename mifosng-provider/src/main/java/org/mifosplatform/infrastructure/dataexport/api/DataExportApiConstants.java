@@ -78,16 +78,9 @@ public class DataExportApiConstants {
     public final static String STAFF_ID = "staff_id";
     public final static String ACCOUNT_BALANCE = "account_balance_derived";
 
-    // supported parameter lists
-    public final static ImmutableList<String> CLIENT_SUPPORTED_PARAMETERS =
-            ImmutableList.of(ENTITY,ENTITY_ID,ENTITY_OFFICE,ENTITY_STATUS,ENTITY_SUBMITDATE);
-    public final static ImmutableList<String> GROUP_SUPPORTED_PARAMETERS =
-            ImmutableList.of(ENTITY,ENTITY_ID,ENTITY_OFFICE,ENTITY_STATUS,ENTITY_SUBMITDATE,ENTITY_STAFF);
-    public final static ImmutableList<String> LOAN_SUPPORTED_PARAMETERS =
-            ImmutableList.of(ENTITY,ENTITY_ID,ENTITY_CLIENT_ID,ENTITY_GROUP_ID,ENTITY_TYPE,ENTITY_STATUS,ENTITY_SUBMITDATE);
-    public final static ImmutableList<String> SAVINGS_ACCOUNT_SUPPORTED_PARAMETERS =
-            ImmutableList.of(ENTITY,ENTITY_ID,ENTITY_CLIENT_ID,ENTITY_GROUP_ID,ENTITY_TYPE,ENTITY_STATUS,ENTITY_SUBMITDATE);
-
+    // entity-independent supported parameter list
+    public final static ImmutableList<String> BASIC_SUPPORTED_PARAMETERS =
+            ImmutableList.of(ENTITY,ENTITY_NAME,DATATABLE_NAME);
 
     // lists of fields to be entered in the data export for each entity type
     public final static ImmutableList<String> CLIENT_FIELD_NAMES =

@@ -9,9 +9,7 @@ import org.joda.time.LocalDateTime;
 import org.mifosplatform.useradministration.domain.AppUser;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.util.Date;
 
 @Entity
@@ -30,9 +28,11 @@ public class DataExportProcess extends AbstractPersistable<Long> {
     @Column(name = "started_by_user_id", nullable = false)
     private Long startedByUser;
 
+    @Temporal(TemporalType.DATE)
     @Column(name = "started_date", nullable = false)
     private Date startDate;
 
+    @Temporal(TemporalType.DATE)
     @Column(name = "ended_date")
     private Date endDate;
 

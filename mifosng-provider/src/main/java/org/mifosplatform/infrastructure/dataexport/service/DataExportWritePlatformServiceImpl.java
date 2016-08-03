@@ -23,6 +23,10 @@ import org.mifosplatform.infrastructure.core.service.DateUtils;
 import org.mifosplatform.infrastructure.dataexport.api.DataExportApiConstants;
 import org.mifosplatform.infrastructure.dataexport.data.*;
 import org.mifosplatform.infrastructure.dataexport.domain.*;
+import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTable;
+import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableMetaData;
+import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableMetaDataRepository;
+import org.mifosplatform.infrastructure.dataqueries.domain.RegisteredTableRepository;
 import org.mifosplatform.infrastructure.hooks.data.Entity;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.portfolio.client.domain.Client;
@@ -63,9 +67,9 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
     private final FromJsonHelper fromApiJsonHelper;
     private final DataExportRepository dataExportRepository;
     private final DataExportProcessRepository dataExportProcessRepository;
-    private final GroupRepository groupRepository;
-    private final ClientRepository clientRepository;
     private final EntityLabelRepository entityLabelRepository;
+    private final RegisteredTableRepository registeredTableRepository;
+    private final RegisteredTableMetaDataRepository registeredTableMetaDataRepository;
 
     @Autowired
     public DataExportWritePlatformServiceImpl(final PlatformSecurityContext context, final FromJsonHelper fromApiJsonHelper,
@@ -73,18 +77,18 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
                                               final DataExportReadPlatformService readPlatformService,
                                               final DataExportRepository dataExportRepository,
                                               final DataExportProcessRepository dataExportProcessRepository,
-                                              final ClientRepository clientRepository,
-                                              final GroupRepository groupRepository,
-                                              final EntityLabelRepository entityLabelRepository){
+                                              final EntityLabelRepository entityLabelRepository,
+                                              final RegisteredTableMetaDataRepository registeredTableMetaDataRepository,
+                                              final RegisteredTableRepository registeredTableRepository){
         this.context = context;
         this.fromApiJsonHelper = fromApiJsonHelper;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.readPlatformService = readPlatformService;
         this.dataExportRepository = dataExportRepository;
-        this.clientRepository = clientRepository;
         this.dataExportProcessRepository = dataExportProcessRepository;
-        this.groupRepository = groupRepository;
         this.entityLabelRepository = entityLabelRepository;
+        this.registeredTableMetaDataRepository = registeredTableMetaDataRepository;
+        this.registeredTableRepository = registeredTableRepository;
     }
 
     @Transactional
@@ -99,26 +103,44 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
             JsonElement element = command.parsedJson();
 
             final String entityName = this.fromApiJsonHelper.extractStringNamed(DataExportApiConstants.ENTITY,element);
-            final DataExportRequestData requestData = this.readPlatformService.retrieveDataExportRequestData(entityName);
+            DataExportRequestData requestData = this.readPlatformService.retrieveDataExportRequestData(entityName);
             final DataExportBaseEntityEnum entity = requestData.getBaseEntity();
 
             final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
             this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, command.json(),
                     requestData.getSupportedParameters());
 
+            final List<String> exportDataTables = new ArrayList<>();
+            final List<DataExportFilter> dataExportFilters = new ArrayList<>();
+
+            String[] dataTables = this.fromApiJsonHelper.extractArrayNamed(DataExportApiConstants.DATATABLE_NAME,element);
+
+            if(dataTables!=null && dataTables.length>0){
+                for(String dataTable : dataTables){
+                    exportDataTables.add(dataTable);
+                }
+            }
+
             final Map<String, String> jsonRequestMap = this.fromApiJsonHelper.extractDataMap(typeOfMap, command.json());
 
             for (String paramKey : jsonRequestMap.keySet()){
-                String paramValue = jsonRequestMap.get(paramKey);
-                if(paramValue != null && paramValue.length()>0 && !paramKey.equals(DataExportApiConstants.ENTITY)){
+                final String paramValue;
+                if(!DataExportApiConstants.BASIC_SUPPORTED_PARAMETERS.contains(paramKey)) {
+                    paramValue = jsonRequestMap.get(paramKey);
+                }else{paramValue = null;}
+                if(paramValue != null && paramValue.length()>0){
                     String fieldName = paramKey;
                     EntityLabel label = this.entityLabelRepository.findOneByTableAndJsonParam(entity.getTablename(),paramValue);
                     if(label != null){
                         fieldName = label.getField();
                     }
                     DataExportFilter dataExportFilter = new DataExportFilter(entity.getTablename(),paramValue,fieldName);
-                    requestData.addDataExportFilter(dataExportFilter);
+                    dataExportFilters.add(dataExportFilter);
                 }
+            }
+
+            if(exportDataTables.size()>0 || dataExportFilters.size()>0){
+                requestData = this.readPlatformService.retrieveDataExportRequestData(entityName,dataExportFilters,exportDataTables);
             }
 
             final Map<String, List<String>> sqlMap = getBaseEntitySql(requestData);
@@ -127,18 +149,10 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
             final String submitDate = this.fromApiJsonHelper.extractStringNamed(DataExportApiConstants.ENTITY_SUBMITDATE,element);
             final Date submittedOnDate = (submitDate != null && submitDate.length()>0 ? dateStringFormat.parseLocalDate(submitDate).toDate() : LocalDate.now().toDate());
 
-            final Long entityId = this.fromApiJsonHelper.extractLongNamed(DataExportApiConstants.ENTITY_ID,element);
-            final Integer status = this.fromApiJsonHelper.extractIntegerSansLocaleNamed(DataExportApiConstants.ENTITY_STATUS,element);
-            final String accountNo = this.fromApiJsonHelper.extractStringNamed(DataExportApiConstants.ACCOUNT_NO,element);
-            final Long officeId = this.fromApiJsonHelper.extractLongNamed(DataExportApiConstants.ENTITY_OFFICE,element);
-            final Client client = (entityId != null && entity.isClient()? this.clientRepository.findOne(entityId) : null);
-            final Group group = (entityId != null && entity.isGroup()? this.groupRepository.findOne(entityId) : null);
-            final String displayName = (client != null ? client.getDisplayName() : group != null ? group.getName() : null);
-            final String mobileNo = (client != null ? client.mobileNo() : null);
             final String sql = assembleSqlString(sqlMap);
 
 
-            final DataExport newDataExport = DataExport.instance(entity.getName(),entityId,status,submittedOnDate,accountNo,officeId,displayName,mobileNo,sql);
+            final DataExport newDataExport = DataExport.instance(entity.getName(),command.json(),sql);
 
             this.dataExportRepository.save(newDataExport);
 
@@ -160,6 +174,9 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
         }catch(final UnsupportedParameterException upe){return CommandProcessingResult.empty();}
     }
 
+    /*
+    * Sorts the data from the DataExportRequestData into a HashMap that's more easily converted into an sql String
+    */
     private Map<String, List<String>> getBaseEntitySql (final DataExportRequestData requestData){
         final Map<String,List<String>> sql = new HashMap<>();
         final List<String> select = new ArrayList<>();
@@ -170,23 +187,40 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
         final DataExportBaseEntityEnum entity = requestData.getBaseEntity();
         final List<String> fieldNames = requestData.getDisplayedFieldNames();
         final List<DataExportFilter> dataExportFilters = requestData.getDataExportFiltersList();
+        final List<String> exportDataTables = requestData.getExportDatatables();
         final List<EntityLabel> labels = new ArrayList<>();
+        final List<String> labelConflictChecklist = new ArrayList<>();
+        Integer codeValueTranslations = 0;
 
         for(String fieldName : fieldNames){
-            EntityLabel label = this.entityLabelRepository.findOneByTableAndField(entity.getTablename(),fieldName);
-            if(label == null){throw new InputMismatchException("No EntityLabel found with entity table " + entity.getTablename() + " and field name " + fieldName + ".");}
-            if(label.getReferenceTable()!=null) {
-                labels.add(label);
-            } else {select.add(entity.getTablename() + "." + fieldName + " as " + label.getLabel());}
+            EntityLabel entityLabel = this.entityLabelRepository.findOneByTableAndField(entity.getTablename(),fieldName);
+
+            if(entityLabel == null){throw new InputMismatchException("No EntityLabel found with entity table " + entity.getTablename() + " and field name " + fieldName + ".");}
+
+            String label = checkForDuplicateLabels(entityLabel.getLabel(),labelConflictChecklist,null);
+            labelConflictChecklist.add(label);
+
+            if(fieldName.contains("userid") || fieldName.endsWith("_by")){
+                String user = "user" + codeValueTranslations++;
+                select.add(user + ".username as " + label);
+                from.add("left join m_appuser " + user + " on " + user + ".id = " +
+                        entity.getTablename() + "." + fieldName);
+            }else {
+                if (entityLabel.getReferenceTable() != null) {
+                    labels.add(entityLabel);
+                } else {
+                    select.add(entity.getTablename() + ".`" + fieldName + "` as " + label);
+                }
+            }
         }
 
          from.add(entity.getTablename());
 
         if(labels.size()>0){
             for(EntityLabel label : labels){
-                select.add(label.getReferenceTable() + "." + label.getReferenceField() + " as " + label.getLabel());
-                from.add("left join " + label.getReferenceTable() + " on " + label.getReferenceTable() + "." + DataExportApiConstants.ENTITY_ID
-                        + " = " + entity.getTablename() + "." + label.getField());
+                select.add(label.getReferenceTable() + ".`" + label.getReferenceField() + "` as " + label.getLabel());
+                from.add("left join " + label.getReferenceTable() + " on " + label.getReferenceTable() + ".`" + DataExportApiConstants.ENTITY_ID
+                        + "` = " + entity.getTablename() + ".`" + label.getField() + "`");
             }
         }
 
@@ -196,19 +230,86 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
             }
         }
 
+        if(exportDataTables.size()>0){
+            for(String dataTable : exportDataTables){
+                String entityReference = entity.getName().concat("_id");
+                String prefix = this.registeredTableRepository.findOneByRegisteredTableName(dataTable).getDisplayName();
+                from.add("left join " + dataTable + " on " + dataTable + ".`" + entityReference
+                        + "` = " + entity.getTablename() + "." + DataExportApiConstants.ENTITY_ID);
+                for(RegisteredTableMetaData metaData : this.registeredTableMetaDataRepository.findAllByTableName(dataTable)){
+                    String label = checkForDuplicateLabels(metaData.getLabelName(),labelConflictChecklist,prefix);
+                    labelConflictChecklist.add(label);
+                    String fieldName = metaData.getFieldName();
+
+                    if(fieldName.contains("_cd_")){
+                        String mcv = "mcv" + codeValueTranslations++;
+                        select.add(mcv + ".code_value as " + label);
+                        from.add("left join m_code_value " + mcv + " on " + mcv + ".id = " +
+                        metaData.getTableName() + "." + fieldName);
+                    } else if(fieldName.contains("userid") || fieldName.endsWith("_by")){
+                        String user = "user" + codeValueTranslations++;
+                        select.add(user + ".username as " + label);
+                        from.add("left join m_appuser " + user + " on " + user + ".id = " +
+                                metaData.getTableName() + "." + fieldName);
+                    } else{
+                        select.add(metaData.getTableName() + ".`" + fieldName + "` as " + label);
+                    }
+                }
+            }
+        }
+
         sql.put("select",select);
         sql.put("from",from);
         sql.put("where",where);
-        sql.put("group by",group);
-        sql.put("order by",order);
+        sql.put("group",group);
+        sql.put("order",order);
 
         return sql;
     }
 
+    private String checkForDuplicateLabels(String label, List<String> checkList, String prefix){
+        String newLabel = label.replaceAll("'", "");
+        Integer i = 1;
+
+        while(checkList.contains("'" + newLabel + "'")){
+            if(prefix!=null && prefix.length()>0 && i == 1){
+                newLabel = prefix.replaceAll("'", "") + " " + newLabel;
+            }else {
+                if (newLabel.endsWith((i.toString()))) {
+                    newLabel = newLabel.substring(0, newLabel.length() - 2);
+                    i++;
+                }
+                newLabel += i;
+            }
+        }
+
+        if(!newLabel.startsWith("'")){
+            newLabel = "'" + newLabel;
+        }
+
+        if(!newLabel.endsWith("'")){
+            newLabel += "'";
+        }
+
+        return newLabel;
+    }
+
+    /*
+    * assembles the data from the sqlMap into an sql String
+    */
     private String assembleSqlString (final Map<String, List<String>> sqlMap){
         StringBuilder sql = new StringBuilder("");
 
-        for (String key : sqlMap.keySet()){
+        for (Integer i = 0 ; i < sqlMap.keySet().size() ; i++){
+            String key;
+            switch(i){
+                case 0: key = "select"; break;
+                case 1: key = "from"; break;
+                case 2: key = "where"; break;
+                case 3: key = "group"; break;
+                case 4: key = "order"; break;
+                default: key = null;
+            }
             if(sqlMap.get(key).size()>0){sql.append(" " + key + " ");}
             for(String param : sqlMap.get(key)){
                 if(key.equals("select") && sqlMap.get(key).indexOf(param)>0){sql.append(", ");}
