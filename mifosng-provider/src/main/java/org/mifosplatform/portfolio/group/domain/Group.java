@@ -27,18 +27,7 @@ import org.mifosplatform.portfolio.group.exception.InvalidGroupStateTransitionEx
 import org.mifosplatform.useradministration.domain.AppUser;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.persistence.Transient;
+import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -121,6 +110,9 @@ public final class Group extends AbstractPersistable<Long> {
     @ManyToOne(optional = true)
     @JoinColumn(name = "submittedon_userid", nullable = true)
     private AppUser submittedBy;
+
+    @OneToMany(mappedBy="group",cascade = CascadeType.REMOVE)
+    private Set<GroupRole> groupRole;
 
     // JPA default constructor for entity
     protected Group() {
@@ -651,4 +643,6 @@ public final class Group extends AbstractPersistable<Long> {
     public void updateExternalId(String externalId){
         this.externalId = externalId;
     }
+
+
 }
