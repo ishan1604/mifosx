@@ -1031,7 +1031,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             }
         }
 
-        this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_REJECTED, loan);
+        this.businessEventNotifierService.notifyBusinessEventWasExecuted(BUSINESS_EVENTS.LOAN_REJECTED, constructEntityMap(BUSINESS_ENTITY.LOAN, loan));
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //

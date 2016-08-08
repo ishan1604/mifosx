@@ -18,6 +18,7 @@ import org.mifosplatform.portfolio.account.service.AccountTransfersReadPlatformS
 import org.mifosplatform.portfolio.account.service.AccountTransfersWritePlatformService;
 import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.client.domain.ClientRepository;
+import org.mifosplatform.portfolio.common.BusinessEventNotificationConstants;
 import org.mifosplatform.portfolio.common.service.BusinessEventListner;
 import org.mifosplatform.portfolio.common.service.BusinessEventNotifierService;
 import org.mifosplatform.portfolio.common.BusinessEventNotificationConstants.BUSINESS_EVENTS;
@@ -188,14 +189,15 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
     private class SendSmsOnLoanApproved implements BusinessEventListner{
 
         @Override
-        public void businessEventToBeExecuted(@SuppressWarnings("unused") AbstractPersistable<Long> businessEventEntity) {
+        public void businessEventToBeExecuted(@SuppressWarnings("unused") Map<BusinessEventNotificationConstants.BUSINESS_ENTITY, Object> businessEventEntity) {
 
         }
 
         @Override
-        public void businessEventWasExecuted(AbstractPersistable<Long> businessEventEntity) {
-            if (businessEventEntity instanceof Loan) {
-                Loan loan = (Loan) businessEventEntity;
+        public void businessEventWasExecuted(Map<BusinessEventNotificationConstants.BUSINESS_ENTITY, Object> businessEventEntity) {
+            Object entity = businessEventEntity.get(BusinessEventNotificationConstants.BUSINESS_ENTITY.LOAN);
+            if (entity instanceof Loan) {
+                Loan loan = (Loan) entity;
                 notifyAcceptedLoanOwner(loan);
             }
         }
@@ -204,14 +206,15 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
     private class SendSmsOnLoanRejected implements BusinessEventListner{
 
         @Override
-        public void businessEventToBeExecuted(AbstractPersistable<Long> businessEventEntity) {
+        public void businessEventToBeExecuted(Map<BusinessEventNotificationConstants.BUSINESS_ENTITY, Object> businessEventEntity) {
 
         }
 
         @Override
-        public void businessEventWasExecuted(AbstractPersistable<Long> businessEventEntity) {
-            if (businessEventEntity instanceof Loan) {
-                Loan loan = (Loan) businessEventEntity;
+        public void businessEventWasExecuted(Map<BusinessEventNotificationConstants.BUSINESS_ENTITY, Object> businessEventEntity) {
+            Object entity = businessEventEntity.get(BusinessEventNotificationConstants.BUSINESS_ENTITY.LOAN);
+            if (entity instanceof Loan) {
+                Loan loan = (Loan) entity;
                 notifyRejectedLoanOwner(loan);
             }
         }
@@ -220,14 +223,15 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
     private class SendSmsOnLoanRepayment implements BusinessEventListner{
 
         @Override
-        public void businessEventToBeExecuted(@SuppressWarnings("unused") AbstractPersistable<Long> businessEventEntity) {
+        public void businessEventToBeExecuted(@SuppressWarnings("unused") Map<BusinessEventNotificationConstants.BUSINESS_ENTITY, Object> businessEventEntity) {
 
         }
 
         @Override
-        public void businessEventWasExecuted(AbstractPersistable<Long> businessEventEntity) {
-            if (businessEventEntity instanceof LoanTransaction) {
-                LoanTransaction loanTransaction = (LoanTransaction) businessEventEntity;
+        public void businessEventWasExecuted(Map<BusinessEventNotificationConstants.BUSINESS_ENTITY, Object> businessEventEntity) {
+            Object entity = businessEventEntity.get(BusinessEventNotificationConstants.BUSINESS_ENTITY.LOAN);
+            if (entity instanceof LoanTransaction) {
+                LoanTransaction loanTransaction = (LoanTransaction) entity;
                 sendSmsForLoanRepayment(loanTransaction);
             }
         }
