@@ -35,21 +35,26 @@ public class Code extends AbstractPersistable<Long> {
     @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, mappedBy = "code", orphanRemoval = true)
     private Set<CodeValue> values;
 
+    @Column(name = "code_label", nullable = false, length = 100)
+    private String codeLabel;
+
     public static Code fromJson(final JsonCommand command) {
         final String name = command.stringValueOfParameterNamed("name");
-        return new Code(name);
+        final String codeLabel = command.stringValueOfParameterNamed("codeLabel");
+        return new Code(name,codeLabel);
     }
     
-    public static Code createNew(final String name) {
-        return new Code(name);
+    public static Code createNew(final String name,final String codeLabel) {
+        return new Code(name,codeLabel);
     }
 
     protected Code() {
         this.systemDefined = false;
     }
 
-    private Code(final String name) {
+    private Code(final String name,final String codeLabel) {
         this.name = name;
+        this.codeLabel = codeLabel;
         this.systemDefined = false;
     }
 
@@ -61,17 +66,27 @@ public class Code extends AbstractPersistable<Long> {
         return this.systemDefined;
     }
 
+    public String getcodeLabel() {return this.codeLabel;}
+
     public Map<String, Object> update(final JsonCommand command) {
 
-        if (this.systemDefined) { throw new SystemDefinedCodeCannotBeChangedException(); }
 
         final Map<String, Object> actualChanges = new LinkedHashMap<>(1);
 
         final String firstnameParamName = "name";
+        //validate if changed in system defined name if not a allow update since code_labels can be updated
+        if (this.systemDefined && command.isChangeInStringParameterNamed(firstnameParamName, this.name)) { throw new SystemDefinedCodeCannotBeChangedException(); }
+
         if (command.isChangeInStringParameterNamed(firstnameParamName, this.name)) {
             final String newValue = command.stringValueOfParameterNamed(firstnameParamName);
             actualChanges.put(firstnameParamName, newValue);
             this.name = StringUtils.defaultIfEmpty(newValue, null);
+        }
+        final String labelParamName = "codeLabel";
+        if (command.isChangeInStringParameterNamed(labelParamName, this.codeLabel)) {
+            final String newValue = command.stringValueOfParameterNamed(labelParamName);
+            actualChanges.put(labelParamName , newValue);
+            this.codeLabel = StringUtils.defaultIfEmpty(newValue, null);
         }
 
         return actualChanges;
