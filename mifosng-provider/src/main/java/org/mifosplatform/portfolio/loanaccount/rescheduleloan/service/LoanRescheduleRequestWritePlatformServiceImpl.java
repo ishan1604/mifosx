@@ -12,8 +12,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.joda.time.LocalDate;
@@ -27,6 +29,9 @@ import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.mifosplatform.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.mifosplatform.infrastructure.core.exception.PlatformInternalServerException;
+import org.mifosplatform.infrastructure.core.exceptionmapper.PlatformInternalServerExceptionMapper;
+import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.organisation.holiday.domain.Holiday;
 import org.mifosplatform.organisation.holiday.domain.HolidayRepositoryWrapper;
@@ -68,6 +73,7 @@ import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanScheduleG
 import org.mifosplatform.portfolio.loanaccount.loanschedule.service.LoanScheduleHistoryWritePlatformService;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.RescheduleLoansApiConstants;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.data.LoanRescheduleRequestDataValidator;
+import org.mifosplatform.portfolio.loanaccount.rescheduleloan.data.WaiveLoanChargeRequest;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.DefaultLoanReschedulerFactory;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleModel;
 import org.mifosplatform.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleModelRepaymentPeriod;
@@ -87,6 +93,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 
 @Service
 public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanRescheduleRequestWritePlatformService {
@@ -339,7 +348,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 
                 final Collection<LoanRescheduleModelRepaymentPeriod> periods = loanRescheduleModel.getPeriods();
                 List<LoanRepaymentScheduleInstallment> repaymentScheduleInstallments = loan.getRepaymentScheduleInstallments();
-                Collection<LoanCharge> waiveLoanCharges = new ArrayList<>();
+                final Map<LoanCharge, WaiveLoanChargeRequest> waiveLoanChargeRequestMap = new HashMap<>();
 
                 for (LoanRescheduleModelRepaymentPeriod period : periods) {
 
@@ -358,7 +367,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 
                                 LocalDate periodDueDate = repaymentScheduleInstallment.getDueDate();
                                 Money zeroAmount = Money.of(currency, new BigDecimal(0));
-
+                                
                                 repaymentScheduleInstallment.updateInstallmentNumber(period.periodNumber());
                                 repaymentScheduleInstallment.updateFromDate(period.periodFromDate());
                                 repaymentScheduleInstallment.updateDueDate(period.periodDueDate());
@@ -370,8 +379,9 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 
                                     if (repaymentScheduleInstallment.getPenaltyChargesOutstanding(currency).isGreaterThan(zeroAmount)
                                             || repaymentScheduleInstallment.getFeeChargesOutstanding(currency).isGreaterThan(zeroAmount)) {
-
-                                        waiveLoanCharges.addAll(loan.getLoanCharges(periodDueDate));
+                                        
+                                        waiveLoanChargeRequestMap.putAll(this.createWaiveLoanChargeRequestMap(loan, jsonCommand, 
+                                                period.periodNumber(), periodDueDate));
                                     }
                                 }
 
@@ -392,7 +402,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                 loan.updateRescheduledOnDate(new LocalDate());
 
                 // waive all loan charges of zero instalments
-                waiveLoanCharges(loan, waiveLoanCharges);
+                //waiveLoanCharges(loan, waiveLoanCharges);
 
                 // update the Loan summary
                 loanSummary.updateSummary(currency, loan.getPrincpal(), repaymentScheduleInstallments, new LoanSummaryWrapper(), true);
@@ -412,9 +422,14 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                 for (final LoanRepaymentScheduleInstallment repaymentScheduleInstallment : repaymentScheduleInstallments) {
                     repaymentScheduleInstallment.updateDerivedFields(currency, new LocalDate());
                 }
-
+                
+                //throw new PlatformInternalServerException(null, null);
+                
                 // update the loan object
-                this.loanRepository.save(loan);
+                this.loanRepository.saveAndFlush(loan);
+                
+                // waive all zero installment loan charges
+                this.waiveLoanCharges(loan, waiveLoanChargeRequestMap);
             }
 
             return new CommandProcessingResultBuilder().withCommandId(jsonCommand.commandId()).withEntityId(loanRescheduleRequestId)
@@ -431,6 +446,81 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 
             // return an empty command processing result object
             return CommandProcessingResult.empty();
+        }
+    }
+    
+    /**
+     * Gets all loan charges linked to the specified installment
+     * 
+     * @param loan
+     * @param jsonCommand
+     * @param installmentDueDate
+     * @param installmentNumber
+     * @return collection of {@link LoanCharge} objects
+     */
+    private Collection<LoanCharge> getInstallmentLoanCharges(final Loan loan, final JsonCommand jsonCommand, final LocalDate installmentDueDate, 
+            final int installmentNumber) {
+        final Collection<LoanCharge> loanCharges = loan.getLoanCharges(installmentDueDate);
+        
+        for (LoanCharge loanCharge : loan.charges()) {
+            if (loanCharge.isInstalmentFee() && loanCharge.isNotFullyPaid() && !loanCharge.isWaived()) {
+                loanCharges.add(loanCharge);
+            }
+        }
+        
+        return loanCharges;
+    }
+    
+    /**
+     * Creates a {@link Map} with {@link LoanCharge} as key and {@link WaiveLoanChargeRequest} as value. This will be passed to the waiveloanCharges method.
+     * 
+     * @param loan
+     * @param jsonCommand
+     * @param installmentNumber
+     * @param installmentDueDate
+     * @return {@link Map} with {@link LoanCharge} as key and {@link WaiveLoanChargeRequest} as value
+     */
+    private Map<LoanCharge, WaiveLoanChargeRequest> createWaiveLoanChargeRequestMap(final Loan loan, final JsonCommand jsonCommand, 
+            final int installmentNumber, final LocalDate installmentDueDate) {
+        final Map<LoanCharge, WaiveLoanChargeRequest> waiveLoanChargeRequestMap = new HashMap<>();
+        final Collection<LoanCharge> loanCharges = this.getInstallmentLoanCharges(loan, jsonCommand, installmentDueDate, installmentNumber);
+        
+        if (loanCharges != null) {
+            for (LoanCharge loanCharge : loanCharges) {
+                final Locale locale = jsonCommand.extractLocale();
+                final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(jsonCommand.dateFormat()).withLocale(
+                        locale);
+                final String localeString = (locale != null) ? locale.toString() : "en_US";
+                final String dueDate = (installmentDueDate != null) ? installmentDueDate.toString(dateTimeFormatter) : "";
+                final WaiveLoanChargeRequest waiveLoanChargeRequest = WaiveLoanChargeRequest.newInstance(dueDate, 
+                        localeString, jsonCommand.dateFormat(), installmentNumber);
+                
+                waiveLoanChargeRequestMap.put(loanCharge, waiveLoanChargeRequest);
+            }
+        }
+        
+        return waiveLoanChargeRequestMap;
+    }
+    
+    /**
+     * Waive the loan charges in the map passed
+     * 
+     * @param loan
+     * @param waiveLoanChargeRequestMap
+     */
+    private void waiveLoanCharges(final Loan loan, final Map<LoanCharge, WaiveLoanChargeRequest> waiveLoanChargeRequestMap) {
+        
+        for (Map.Entry<LoanCharge, WaiveLoanChargeRequest> entry : waiveLoanChargeRequestMap.entrySet()) {
+            final FromJsonHelper fromJsonHelper = new FromJsonHelper();
+            
+            LoanCharge loanCharge = entry.getKey();
+            WaiveLoanChargeRequest waiveLoanChargeRequest = entry.getValue();
+            
+            JsonCommand jsonCommand = JsonCommand.from(waiveLoanChargeRequest.toJson(), 
+                    waiveLoanChargeRequest.toJsonElement(), fromJsonHelper, "LOANCHARGE", null, null, 
+                    loan.getGroupId(), loan.getClientId(), loan.getId(), null, null, null, loan.productId());
+            
+            this.loanWritePlatformService.waiveLoanCharge(loan.getId(), loanCharge.getId(), jsonCommand);
         }
     }
 
