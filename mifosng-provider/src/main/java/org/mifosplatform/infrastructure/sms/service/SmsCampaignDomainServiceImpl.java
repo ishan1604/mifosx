@@ -117,17 +117,21 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
         ArrayList<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("loan rejected");
         if(smsCampaigns.size()>0){
             for (SmsCampaign campaign:smsCampaigns){
-                this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan,campaign);
+                if(campaign.isActive()) {
+                    this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan, campaign);
+                }
             }
         }
     }
 
     private void notifyAcceptedLoanOwner(Loan loan) {
-        ArrayList<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("loan accepted");
+        ArrayList<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("loan approved");
 
         if(smsCampaigns.size()>0){
             for (SmsCampaign campaign:smsCampaigns){
-                this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan,campaign);
+                if(campaign.isActive()) {
+                    this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan, campaign);
+                }
             }
         }
     }
@@ -137,14 +141,35 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
 
         if(smsCampaigns.size()>0){
             for (SmsCampaign smsCampaign:smsCampaigns){
-                HashMap<String, Object> smsParams = processRepaymentDataForSms(loanTransaction);
-                String message = this.smsCampaignWritePlatformCommandHandler.compileSmsTemplate(smsCampaign.getMessage(),smsCampaign.getCampaignName(),smsParams);
-                Client client = loanTransaction.getLoan().getClient();
-                Object mobileNo = smsParams.get("mobileNo");
+                if(smsCampaign.isActive()) {
+                    try {
+                        HashMap<String, String> campaignParams = new ObjectMapper().readValue(smsCampaign.getParamValue(), new TypeReference<HashMap<String, String>>() {
+                        });
+                        HashMap<String, Object> smsParams = processRepaymentDataForSms(loanTransaction);
+                        for (String key : campaignParams.keySet()) {
+                            String value = campaignParams.get(key);
+                            String spvalue = null;
+                            boolean spkeycheck = smsParams.containsKey(key);
+                            if (spkeycheck) {
+                                spvalue = smsParams.get(key).toString();
+                            }
+                            if (spkeycheck && !(value.equals("-1") || spvalue.equals(value))) {
+                                throw new RuntimeException();
+                            }
+                        }
+                        String message = this.smsCampaignWritePlatformCommandHandler.compileSmsTemplate(smsCampaign.getMessage(), smsCampaign.getCampaignName(), smsParams);
+                        Client client = loanTransaction.getLoan().getClient();
+                        Object mobileNo = smsParams.get("mobileNo");
 
-                if(mobileNo !=null) {
-                    SmsMessage smsMessage = SmsMessage.pendingSms(null,null,client,null,message,null,mobileNo.toString(),smsCampaign.getCampaignName());
-                    this.smsMessageRepository.save(smsMessage);
+                        if (mobileNo != null) {
+                            SmsMessage smsMessage = SmsMessage.pendingSms(null, null, client, null, message, null, mobileNo.toString(), smsCampaign.getCampaignName());
+                            this.smsMessageRepository.save(smsMessage);
+                        }
+                    } catch (final IOException e) {
+                        System.out.println("smsParams does not contain the following key: " + e.getMessage());
+                    } catch (final RuntimeException e) {
+                        System.out.println("RuntimeException: " + e.getMessage());
+                    }
                 }
             }
         }
@@ -178,7 +203,10 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
         smsParams.put("mobileNo",client.mobileNo());
         smsParams.put("LoanAmount",loan.getPrincpal());
         smsParams.put("LoanOutstanding",loanTransaction.getOutstandingLoanBalance());
+        smsParams.put("loanId",loan.getId());
         smsParams.put("LoanAccountId", loan.getAccountNumber());
+        smsParams.put("${officeId}", client.getOffice().getId());
+        smsParams.put("${staffId}", client.getStaff().getId());
         smsParams.put("repaymentAmount", loanTransaction.getAmount(loan.getCurrency()));
         smsParams.put("RepaymentDate", loanTransaction.getCreatedDateTime().toLocalDate().toString(dateFormatter));
         smsParams.put("RepaymentTime", loanTransaction.getCreatedDateTime().toLocalTime().toString(timeFormatter));
@@ -229,7 +257,7 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
 
         @Override
         public void businessEventWasExecuted(Map<BusinessEventNotificationConstants.BUSINESS_ENTITY, Object> businessEventEntity) {
-            Object entity = businessEventEntity.get(BusinessEventNotificationConstants.BUSINESS_ENTITY.LOAN);
+            Object entity = businessEventEntity.get(BusinessEventNotificationConstants.BUSINESS_ENTITY.LOAN_TRANSACTION);
             if (entity instanceof LoanTransaction) {
                 LoanTransaction loanTransaction = (LoanTransaction) entity;
                 sendSmsForLoanRepayment(loanTransaction);

@@ -94,6 +94,7 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
     private final GenericDataService genericDataService;
     private final FromJsonHelper fromJsonHelper;
     private final LoanRepository loanRepository;
+    //private final HashMap<>
 
 
 
@@ -242,7 +243,7 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
 
             List<HashMap<String,Object>> runReportObject = this.getRunReportByServiceImpl(campaignParams.get("reportName"),queryParamForRunReport);
 
-            if(runReportObject !=null){
+            if(runReportObject !=null && runReportObject.size()>0){
                 for(HashMap<String,Object> entry : runReportObject){
                     String textMessage = this.compileSmsTemplate(smsCampaign.getMessage(), smsCampaign.getCampaignName(), entry);
                     Long clientId = loan.getClientId();
