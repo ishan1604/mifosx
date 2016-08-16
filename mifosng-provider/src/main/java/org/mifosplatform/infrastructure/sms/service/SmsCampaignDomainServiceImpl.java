@@ -11,6 +11,7 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.mifosplatform.infrastructure.codes.domain.CodeValueRepository;
 import org.mifosplatform.infrastructure.dataqueries.data.GenericResultsetData;
+import org.mifosplatform.infrastructure.dataqueries.exception.ReportParameterNotFoundException;
 import org.mifosplatform.infrastructure.dataqueries.service.GenericDataService;
 import org.mifosplatform.infrastructure.dataqueries.service.ReadReportingService;
 import org.mifosplatform.infrastructure.sms.domain.*;
@@ -22,9 +23,12 @@ import org.mifosplatform.portfolio.common.BusinessEventNotificationConstants;
 import org.mifosplatform.portfolio.common.service.BusinessEventListner;
 import org.mifosplatform.portfolio.common.service.BusinessEventNotifierService;
 import org.mifosplatform.portfolio.common.BusinessEventNotificationConstants.BUSINESS_EVENTS;
+import org.mifosplatform.portfolio.group.domain.Group;
+import org.mifosplatform.portfolio.group.domain.GroupRepository;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransaction;
 import org.mifosplatform.portfolio.loanaccount.domain.LoanTransactionRepository;
+import org.mifosplatform.portfolio.loanaccount.exception.InvalidLoanTypeException;
 import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetailRepository;
 import org.mifosplatform.portfolio.savings.domain.DepositAccountOnHoldTransactionRepository;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountDomainService;
@@ -45,11 +49,9 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import java.io.IOException;
 import java.math.RoundingMode;
+import java.security.InvalidParameterException;
 import java.sql.Time;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by Stefan on 4-7-2016.
@@ -71,7 +73,7 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
     private final SavingsHelper savingsHelper;
     private final AccountTransfersReadPlatformService accountTransfersReadPlatformService;
     private final SmsCampaignWritePlatformService smsCampaignWritePlatformCommandHandler;
-    private final LoanTransactionRepository loanTransactionRepository;
+    private final GroupRepository groupRepository;
     private final CodeValueRepository codeValueRepository;
     private final PaymentDetailRepository paymentDetailRepository;
     private final ReadReportingService readReportingService;
@@ -87,7 +89,7 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
                                         final AccountTransfersReadPlatformService accountTransfersReadPlatformService,
                                         final CodeValueRepository codeValueRepository, final ClientRepository clientRepository,
                                         final PaymentDetailRepository paymentDetailRepository, final SmsCampaignWritePlatformService smsCampaignWritePlatformCommandHandler,
-                                        final LoanTransactionRepository loanTransactionRepository, final ReadReportingService readReportingService){
+                                        final GroupRepository groupRepository, final ReadReportingService readReportingService){
         this.smsCampaignRepository = smsCampaignRepository;
         this.smsMessageRepository = smsMessageRepository;
         this.accountTransfersWritePlatformService = accountTransfersWritePlatformService;
@@ -101,7 +103,7 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
         this.paymentDetailRepository = paymentDetailRepository;
         this.clientRepository = clientRepository;
         this.smsCampaignWritePlatformCommandHandler = smsCampaignWritePlatformCommandHandler;
-        this.loanTransactionRepository = loanTransactionRepository;
+        this.groupRepository = groupRepository;
         this.readReportingService = readReportingService;
         this.genericDataService = genericDataService;
     }
@@ -143,27 +145,41 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
             for (SmsCampaign smsCampaign:smsCampaigns){
                 if(smsCampaign.isActive()) {
                     try {
-                        HashMap<String, String> campaignParams = new ObjectMapper().readValue(smsCampaign.getParamValue(), new TypeReference<HashMap<String, String>>() {
-                        });
-                        HashMap<String, Object> smsParams = processRepaymentDataForSms(loanTransaction);
-                        for (String key : campaignParams.keySet()) {
-                            String value = campaignParams.get(key);
-                            String spvalue = null;
-                            boolean spkeycheck = smsParams.containsKey(key);
-                            if (spkeycheck) {
-                                spvalue = smsParams.get(key).toString();
-                            }
-                            if (spkeycheck && !(value.equals("-1") || spvalue.equals(value))) {
-                                throw new RuntimeException();
-                            }
+                        Loan loan = loanTransaction.getLoan();
+                        final Set<Client> groupClients = new HashSet<>();
+                        if(loan.hasInvalidLoanType()){
+                            throw new InvalidLoanTypeException("Loan Type cannot be 0 for the Triggered Sms Campaign");
                         }
-                        String message = this.smsCampaignWritePlatformCommandHandler.compileSmsTemplate(smsCampaign.getMessage(), smsCampaign.getCampaignName(), smsParams);
-                        Client client = loanTransaction.getLoan().getClient();
-                        Object mobileNo = smsParams.get("mobileNo");
+                        if(loan.isGroupLoan()){
+                            Group group = this.groupRepository.findOne(loan.getGroupId());
+                            groupClients.addAll(group.getClientMembers());
+                        }else{
+                            groupClients.add(loan.client());
+                        }
+                        HashMap<String, String> campaignParams = new ObjectMapper().readValue(smsCampaign.getParamValue(), new TypeReference<HashMap<String, String>>() {});
 
-                        if (mobileNo != null) {
-                            SmsMessage smsMessage = SmsMessage.pendingSms(null, null, client, null, message, null, mobileNo.toString(), smsCampaign.getCampaignName());
-                            this.smsMessageRepository.save(smsMessage);
+                        if(groupClients.size()>0) {
+                            for(Client client : groupClients) {
+                                HashMap<String, Object> smsParams = processRepaymentDataForSms(loanTransaction, client);
+                                for (String key : campaignParams.keySet()) {
+                                    String value = campaignParams.get(key);
+                                    String spvalue = null;
+                                    boolean spkeycheck = smsParams.containsKey(key);
+                                    if (spkeycheck) {
+                                        spvalue = smsParams.get(key).toString();
+                                    }
+                                    if (spkeycheck && !(value.equals("-1") || spvalue.equals(value))) {
+                                        throw new RuntimeException();
+                                    }
+                                }
+                                String message = this.smsCampaignWritePlatformCommandHandler.compileSmsTemplate(smsCampaign.getMessage(), smsCampaign.getCampaignName(), smsParams);
+                                Object mobileNo = smsParams.get("mobileNo");
+
+                                if (mobileNo != null) {
+                                    SmsMessage smsMessage = SmsMessage.pendingSms(null, null, client, null, message, null, mobileNo.toString(), smsCampaign.getCampaignName());
+                                    this.smsMessageRepository.save(smsMessage);
+                                }
+                            }
                         }
                     } catch (final IOException e) {
                         System.out.println("smsParams does not contain the following key: " + e.getMessage());
@@ -187,11 +203,19 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
         return smsCampaigns;
     }
 
-    private HashMap<String, Object> processRepaymentDataForSms(final LoanTransaction loanTransaction){
+    private HashMap<String, Object> processRepaymentDataForSms(final LoanTransaction loanTransaction, Client groupClient){
 
         HashMap<String, Object> smsParams = new HashMap<String, Object>();
         Loan loan = loanTransaction.getLoan();
-        Client client = loan.getClient();
+        final Client client;
+        if(loan.isGroupLoan() && groupClient != null){
+            client = groupClient;
+        }else if(loan.isIndividualLoan()){
+            client = loan.getClient();
+        }else{
+            throw new InvalidParameterException("");
+        }
+
         DateTimeFormatter timeFormatter = DateTimeFormat.forPattern("HH:mm");
         DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("MMM:d:yyyy");
 
