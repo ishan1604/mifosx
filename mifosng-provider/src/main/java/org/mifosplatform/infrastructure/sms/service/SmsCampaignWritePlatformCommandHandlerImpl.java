@@ -8,6 +8,7 @@ package org.mifosplatform.infrastructure.sms.service;
 import com.github.mustachejava.DefaultMustacheFactory;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
+import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.joda.time.DateTimeZone;
@@ -431,8 +432,16 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
         List<HashMap<String, Object>> resultList = new ArrayList<HashMap<String, Object>>();
         final GenericResultsetData results = this.readReportingService.retrieveGenericResultSetForSmsCampaign(reportName,
                 reportType, queryParams);
-        final String response = this.genericDataService.generateJsonFromGenericResultsetData(results);
-        resultList = new ObjectMapper().readValue(response, new TypeReference<List<HashMap<String,Object>>>(){});
+
+        try{
+            final String response = this.genericDataService.generateJsonFromGenericResultsetData(results);
+            resultList = new ObjectMapper().readValue(response, new TypeReference<List<HashMap<String,Object>>>(){});
+        }
+        catch(JsonParseException e)
+        {
+            logger.info("Conversion of report query results to JSON failed: " + e.getMessage() + " - Location: " + e.getLocation());
+            return resultList;
+        }
         //loop changes array date to string date
         for(HashMap<String,Object> entry : resultList){
             for(Map.Entry<String,Object> map: entry.entrySet()){
@@ -475,6 +484,7 @@ public class SmsCampaignWritePlatformCommandHandlerImpl implements SmsCampaignWr
             }
         }catch(final IOException e){
             // TODO throw something here
+
         }
 
         return campaignMessage;
