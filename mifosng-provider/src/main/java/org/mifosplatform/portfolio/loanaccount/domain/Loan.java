@@ -3369,7 +3369,7 @@ public class Loan extends AbstractPersistable<Long> {
 
         final LocalDate currentTransactionDate = loanTransaction.getTransactionDate();
         for (final LoanTransaction previousTransaction : loanTransactions) {
-            if (!previousTransaction.isDisbursement() && previousTransaction.isNotReversed()) {
+            if (!previousTransaction.isDisbursement() && previousTransaction.isNotReversed() && !previousTransaction.isAccrual()) {
                 if (currentTransactionDate.isBefore(previousTransaction.getTransactionDate())
                         || currentTransactionDate.isEqual(previousTransaction.getTransactionDate())) {
                     isChronologicallyLatestRepaymentOrWaiver = false;
