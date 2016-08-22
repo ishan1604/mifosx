@@ -156,9 +156,9 @@ public class DataExportWritePlatformServiceImpl implements DataExportWritePlatfo
 
             this.dataExportRepository.save(newDataExport);
 
-            final Integer processStatus = DataExportProcessStatus.PROCESSING.getId();
             final LocalDateTime processEndDate = DateUtils.getLocalDateTimeOfTenant();
             final String fileName = processEndDate.toString(DATA_EXPORT_FILENAME_DATETIME_FORMAT_PATTERN);
+            final Integer processStatus = DataExportProcessStatus.FINISHED_OK.getId();
 
             final DataExportProcess dataExportProcess = DataExportProcess.instance(newDataExport.getId(),fileName,processStatus,currentUser.getId(),submittedOnDate,null,null,0);
 

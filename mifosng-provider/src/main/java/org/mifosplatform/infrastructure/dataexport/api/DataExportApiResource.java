@@ -15,8 +15,10 @@ import org.mifosplatform.infrastructure.core.serialization.ToApiJsonSerializer;
 import org.mifosplatform.infrastructure.dataexport.data.DataExportBaseEntityEnum;
 import org.mifosplatform.infrastructure.dataexport.data.DataExportRequestData;
 import org.mifosplatform.infrastructure.dataexport.data.DataExportTemplateData;
+import org.mifosplatform.infrastructure.dataexport.domain.DataExport;
 import org.mifosplatform.infrastructure.dataexport.domain.DataExportProcess;
 import org.mifosplatform.infrastructure.dataexport.domain.DataExportProcessRepository;
+import org.mifosplatform.infrastructure.dataexport.domain.DataExportRepository;
 import org.mifosplatform.infrastructure.dataexport.service.DataExportReadPlatformService;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,18 +44,21 @@ public class DataExportApiResource {
     private final ToApiJsonSerializer<Object> toApiJsonSerializer;
     private final ApiRequestParameterHelper apiRequestParameterHelper;
     private final DataExportProcessRepository dataExportProcessRepository;
+    private final DataExportRepository dataExportRepository;
 
     @Autowired
     public DataExportApiResource(final DataExportReadPlatformService dataExportReadPlatformService,
                                  final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
                                  final PlatformSecurityContext platformSecurityContext, final DataExportProcessRepository dataExportProcessRepository,
-                                 final ToApiJsonSerializer<Object> toApiJsonSerializer, final ApiRequestParameterHelper apiRequestParameterHelper) {
+                                 final ToApiJsonSerializer<Object> toApiJsonSerializer, final ApiRequestParameterHelper apiRequestParameterHelper,
+                                 final DataExportRepository dataExportRepository) {
         this.platformSecurityContext = platformSecurityContext;
         this.dataExportReadPlatformService = dataExportReadPlatformService;
         this.toApiJsonSerializer = toApiJsonSerializer;
         this.apiRequestParameterHelper = apiRequestParameterHelper;
         this.commandsSourceWritePlatformService = commandsSourceWritePlatformService;
         this.dataExportProcessRepository = dataExportProcessRepository;
+        this.dataExportRepository = dataExportRepository;
     }
 
     @GET
@@ -66,6 +71,19 @@ public class DataExportApiResource {
         final Collection<DataExportProcess> dataExportProcesses = this.dataExportProcessRepository.findAll();
 
         return this.toApiJsonSerializer.serialize(dataExportProcesses);
+    }
+
+    @GET
+    @Path("{resourceId}")
+    @Consumes({ MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON})
+    public String retrieveOneDataExport(@PathParam("resourceId") final Long resourceId, @Context final UriInfo uriInfo){
+
+        this.platformSecurityContext.authenticatedUser().validateHasReadPermission(DataExportApiConstants.DATA_EXPORT);
+
+        final DataExport dataExport = this.dataExportRepository.findOne(resourceId);
+
+        return this.toApiJsonSerializer.serialize(dataExport);
     }
 
     @GET
