@@ -31,6 +31,10 @@ public class LoanTransactionComparator implements Comparator<LoanTransaction> {
                     compareResult = 0;
                 }
             }
+            else
+            {
+                compareResult = comparsionCreate;
+            }
         } else {
             compareResult = comparsion;
         }
