@@ -511,8 +511,9 @@ public class LoanTransactionHelper {
         for (int i = 0; i < transactions.size(); i++) {
             HashMap transactionType = (HashMap) transactions.get(i).get("type");
             boolean isAccrualTransaction = (Boolean) transactionType.get("accrual");
+            boolean isReversed = Boolean.parseBoolean(String.valueOf(transactions.get(i).get("isReversed")));
 
-            if (isAccrualTransaction) {
+            if (isAccrualTransaction && !isReversed) {
                 ArrayList<Integer> accrualEntryDateAsArray = (ArrayList<Integer>) transactions.get(i).get("date");
                 LocalDate accrualEntryDate = new LocalDate(accrualEntryDateAsArray.get(0), accrualEntryDateAsArray.get(1),
                         accrualEntryDateAsArray.get(2));

@@ -152,6 +152,11 @@ tomcatRun {
     stopKey=   'stopKey'
     enableSSL = true
     configFile = file('src/test/resources/META-INF/context.xml')
+    copy {
+        from 'src/test/resources/META-INF/'
+        into 'build/tmp/tomcatRunWar/conf'
+        include '*.properties'
+    }
 }
 
 tomcatRunWar {
@@ -163,6 +168,7 @@ tomcatRunWar {
     keystoreFile = file('src/main/resources/keystore.jks')
     keystorePass = 'openmf'
     configFile = file('src/test/resources/META-INF/context.xml')
+
 }
 
 /* http://stackoverflow.com/questions/19653311/jpa-repository-works-in-idea-and-production-but-not-in-gradle */
@@ -205,6 +211,11 @@ task integrationTest(type:Test){
     doFirst {
         tomcatRunWar.daemon = true
         tomcatRunWar.execute()
+        copy {
+            from 'src/test/resources/'
+            into 'build/tmp/tomcatRunWar/conf/'
+            include '*.properties'
+        }
     }
 
 

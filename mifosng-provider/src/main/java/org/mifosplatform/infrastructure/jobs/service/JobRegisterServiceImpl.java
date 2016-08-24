@@ -136,7 +136,7 @@ public class JobRegisterServiceImpl implements JobRegisterService, ApplicationLi
      **/
     private boolean isSchedulerEnabledInQuartzPropertiesFile() {
         // scheduler is disabled by default
-        boolean isEnabled = false;
+        boolean isEnabled = true;
         Properties quartzProperties = new Properties();
         InputStream quartzPropertiesInputStream = null;
         File catalinaBaseConfDirectory = null;
@@ -148,7 +148,7 @@ public class JobRegisterServiceImpl implements JobRegisterService, ApplicationLi
             catalinaBaseConfDirectory = new File(System.getProperty("catalina.base"), "conf");
             
             // create a new File instance for the quartz properties file
-            quartzPropertiesFile = new File(catalinaBaseConfDirectory, "quartz.properties");
+            quartzPropertiesFile = new File(catalinaBaseConfDirectory, "WEB-INF/quartz.properties");
             
             // create file inputstream to the quartz properties file
             quartzPropertiesInputStream = new FileInputStream(quartzPropertiesFile);

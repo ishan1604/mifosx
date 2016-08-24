@@ -98,11 +98,11 @@ public class LoanRepaymentScheduleProcessingWrapper {
                     // specified due date charges are usually attached to loan installments, therefore:
                     // totalPrincipal = the loan installment principal
                     // totalInterest = the loan installment interest
-                    if (loanCharge.isSpecifiedDueDate()) {
-                        totalPrincipal = period.getPrincipal(monetaryCurrency);
-                        totalInterest = period.getInterestCharged(monetaryCurrency);
-                    }
-                    
+//                    if (loanCharge.isSpecifiedDueDate()) {
+//                        totalPrincipal = period.getPrincipal(monetaryCurrency);
+//                        totalInterest = period.getInterestCharged(monetaryCurrency);
+//                    }
+
                     if (loanCharge.getChargeCalculation().isPercentageOfAmountAndInterest()) {
                         amount = amount.add(totalPrincipal.getAmount()).add(totalInterest.getAmount());
                     } else if (loanCharge.getChargeCalculation().isPercentageOfInterest()) {
@@ -118,7 +118,6 @@ public class LoanRepaymentScheduleProcessingWrapper {
                             loanCharge.getChargeCalculation().isPercentageOfOriginalPrincipal()) {
                         cumulative = cumulative.plus(loanCharge.amount());
                     }
-                    
                     else {
                         cumulative = cumulative.plus(loanChargeAmt);
                     }
@@ -216,10 +215,10 @@ public class LoanRepaymentScheduleProcessingWrapper {
                     // specified due date charges are usually attached to loan installments, therefore:
                     // totalPrincipal = the loan installment principal
                     // totalInterest = the loan installment interest
-                    if (loanCharge.isSpecifiedDueDate()) {
-                        totalPrincipal = period.getPrincipal(currency);
-                        totalInterest = period.getInterestCharged(currency);
-                    }
+//                    if (loanCharge.isSpecifiedDueDate()) {
+//                        totalPrincipal = period.getPrincipal(currency);
+//                        totalInterest = period.getInterestCharged(currency);
+//                    }
                     
                     if (loanCharge.getChargeCalculation().isPercentageOfAmountAndInterest()) {
                         amount = amount.add(totalPrincipal.getAmount()).add(totalInterest.getAmount());
