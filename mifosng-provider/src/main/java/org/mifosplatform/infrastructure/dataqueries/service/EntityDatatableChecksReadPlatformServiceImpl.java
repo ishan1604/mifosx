@@ -32,12 +32,32 @@ public class EntityDatatableChecksReadPlatformServiceImpl implements EntityDatat
     }
 
     @Override
-    public List<EntityDataTableChecksData> retrieveAll (final Long status){
+    public List<EntityDataTableChecksData> retrieveAll (final Long status, final String entity, final Long productLoanId){
 
 
         String sql = "select " + this.entityDataTableChecksMapper.schema();
 
-        if(status !=null) sql +=" where status_enum ="+ status;
+        String and="";
+
+        if(status !=null || entity !=null || productLoanId !=null )
+        sql +=" where ";
+
+        if(status !=null) {
+
+            sql +="  status_enum ="+ status;
+            and = " and ";
+        }
+
+        if(entity !=null){
+
+            sql += and + " t.application_table_name = '"+ entity+"'";
+            and = " and ";
+        }
+
+        if(productLoanId !=null){
+
+            sql += and + " t.product_loan_id = "+ productLoanId;
+        }
 
         return this.jdbcTemplate.query(sql, this.entityDataTableChecksMapper);
 
@@ -88,12 +108,13 @@ public class EntityDatatableChecksReadPlatformServiceImpl implements EntityDatat
             final String datatableName = rs.getString("datatableName");
             final String displayName = rs.getString("displayName");
             final boolean systemDefined = rs.getBoolean("systemDefined");
+            final Long loanProductId =JdbcSupport.getLong(rs, "loanProductId");
 
-            return new EntityDataTableChecksData(id,entity,status,datatableName,systemDefined,displayName);
+            return new EntityDataTableChecksData(id,entity,status,datatableName,systemDefined,displayName,loanProductId);
         }
 
         public String schema() {
-            return " rt.display_name as displayName, t.id as id,t.application_table_name as entity, t.status_enum as status, t.system_defined as systemDefined, rt.registered_table_name as datatableName from m_entity_datatable_check as t join x_registered_table rt on rt.id = t.x_registered_table_id";
+            return " rt.display_name as displayName, t.id as id,t.application_table_name as entity, t.status_enum as status, t.system_defined as systemDefined, rt.registered_table_name as datatableName, t.product_loan_id as loanProductId from m_entity_datatable_check as t join x_registered_table rt on rt.id = t.x_registered_table_id";
         }
     }
 
