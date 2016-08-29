@@ -526,7 +526,7 @@ public final class Group extends AbstractPersistable<Long> {
 
     public boolean hasActiveClients() {
         for (final Client client : this.clientMembers) {
-            if (!client.isClosed()) { return true; }
+            if (!client.isClosed() && !client.isRejected()) { return true; }
         }
         return false;
     }
