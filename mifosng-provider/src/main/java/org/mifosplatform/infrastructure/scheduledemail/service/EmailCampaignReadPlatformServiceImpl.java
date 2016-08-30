@@ -158,6 +158,7 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
             sql.append("sr.id as id, ");
             sql.append("sr.report_name as reportName, ");
             sql.append("sr.report_type as reportType, ");
+            sql.append("sr.report_subtype as reportSubType, ");
             sql.append("sr.description as description, ");
             sql.append("sp.parameter_variable as params, ");
             sql.append("sp.parameter_FormatType as paramType, ");
@@ -188,13 +189,14 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
                 if(emailBusinessRulesData == null){
                     final String reportName = rs.getString("reportName") ;
                     final String reportType = rs.getString("reportType");
+                    final String reportSubType = rs.getString("reportSubType");
                     final String paramName  = rs.getString("paramName");
                     final String paramLabel = rs.getString("paramLabel");
                     final String description = rs.getString("description");
 
                     Map<String,Object> hashMap = new HashMap<String, Object>();
                     hashMap.put(paramLabel,paramName);
-                    emailBusinessRulesData = EmailBusinessRulesData.instance(id,reportName,reportType,hashMap,description);
+                    emailBusinessRulesData = EmailBusinessRulesData.instance(id,reportName,reportType,hashMap,reportSubType,description);
                     mapOfSameObjects.put(id,emailBusinessRulesData);
                     //add to the list
                     emailBusinessRulesDataList.add(emailBusinessRulesData);

@@ -19,6 +19,9 @@ public class EmailBusinessRulesData {
     private final String reportType;
 
     @SuppressWarnings("unused")
+    private final String reportSubType;
+
+    @SuppressWarnings("unused")
     private final String reportDescription;
 
     @SuppressWarnings("unused")
@@ -27,18 +30,19 @@ public class EmailBusinessRulesData {
 
 
     public EmailBusinessRulesData(final Long reportId, final String reportName,final String reportType, final Map<String,Object> reportParamName,
-                                final String reportDescription) {
+                                  final String reportSubType, final String reportDescription) {
         this.reportId = reportId;
         this.reportName = reportName;
         this.reportType = reportType;
         this.reportParamName = reportParamName;
         this.reportDescription = reportDescription;
+        this.reportSubType = reportSubType;
     }
 
 
     public static EmailBusinessRulesData instance(final Long reportId, final String reportName, final String reportType, final Map<String,Object> reportParamName,
-                                                final String reportDescription){
-        return new EmailBusinessRulesData(reportId,reportName,reportType,reportParamName,reportDescription);
+                                                  final String reportSubType, final String reportDescription){
+        return new EmailBusinessRulesData(reportId,reportName,reportType,reportParamName,reportSubType,reportDescription);
     }
 
     public Map<String, Object> getReportParamName() {
