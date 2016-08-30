@@ -473,6 +473,16 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
 
         switch (transferEventType) {
             case ACCEPTANCE:
+                Integer oldStatus = client.getStatus();
+
+                // If client has rejected status, the office joining date is not available:
+                Date officeJoiningDate = null;
+                if(client.getStatus().equals(ClientStatus.REJECTED.getValue()) || client.getStatus().equals(ClientStatus.PENDING.getValue()))
+                {
+                    officeJoiningDate = client.getOfficeJoiningLocalDate().toDate();
+                }
+
+                // Set clientstatus to active, as some of the actions below require it to be active before transfer.
                 client.setStatus(ClientStatus.ACTIVE.getValue());
 
                 Long sourceGroupId = null;
@@ -480,8 +490,9 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                     Group getSourceGroup = Iterables.get(client.getGroups(),0);
                     sourceGroupId = getSourceGroup.getId();
                 }
+
                 final UndoTransfer undoTransfer = UndoTransfer.instance(client,null,null,client.getOffice().getId(),sourceGroupId,client.getStaff().getId(),todaysDate,this.context.authenticatedUser(),
-                        todaysDate,this.context.authenticatedUser(),client.getOfficeJoiningLocalDate().toDate());
+                        todaysDate,this.context.authenticatedUser(),officeJoiningDate);
                 this.undoTransferRepositoryWrapper.saveAndFlush(undoTransfer);
                 client.updateTransferToOffice(null);
                 client.updateOffice(destinationOffice);
@@ -501,9 +512,13 @@ public class TransferWritePlatformServiceJpaRepositoryImpl implements TransferWr
                 }else if(destinationGroup == null) { /** for individual with no groups  **/
                     if(staff !=null){ client.updateStaff(staff);}
                 }
+
+                client.setStatus(oldStatus);
             break;
             case PROPOSAL:
-                client.setStatus(ClientStatus.TRANSFER_IN_PROGRESS.getValue());
+                if(client.getStatus().equals(ClientStatus.ACTIVE)) {
+                    client.setStatus(ClientStatus.TRANSFER_IN_PROGRESS.getValue());
+                }
                 client.updateTransferToOffice(destinationOffice);
             break;
             case REJECTION:
