@@ -83,11 +83,11 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
                 if it is the case, then one without product id cannot be allow.
                 Mainly because a check without product id means the check applies to all product
             **/
-            if(productLoanId==null){
+            if(productLoanId==null && entity.equals("m_loan")){
 
                 List<EntityDatatableChecks> entityDatatableCheck = this.entityDatatableChecksRepository.findByEntityStatusAndDatatableId(entity,status,datatableId);
 
-                if(entityDatatableCheck!=null){
+                if(!entityDatatableCheck.isEmpty()){
 
                     throw new EntityDatatableCheckNotAllow(entity);
 
@@ -116,6 +116,25 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
         if(tableRequiredBeforeClientActivation != null){
 
             for(EntityDatatableChecks t : tableRequiredBeforeClientActivation){
+
+                final String datatableName = t.getDatatable().getRegisteredTableName();
+                final String displayName = t.getDatatable().getDisplayName();
+                final Long countEntries = readWriteNonCoreDataService.countDatatableEntries(datatableName,entityId,foreignKeyColumn);
+
+                logger.info("The are "+countEntries+" entries in the table "+ datatableName);
+                if(countEntries.intValue()==0){throw new DatatabaleEntryRequiredException(datatableName,displayName);}
+            }
+        }
+
+    }
+
+    public void runTheCheckForLoan(final Long entityId,final String entityName,final Long statusCode,String foreignKeyColumn,long productLoanId)
+    {
+        final List<EntityDatatableChecks> tableRequiredBeforAction= entityDatatableChecksRepository.findByEntityStatusAndLoanProduct(entityName, statusCode, productLoanId);
+
+        if(tableRequiredBeforAction != null){
+
+            for(EntityDatatableChecks t : tableRequiredBeforAction){
 
                 final String datatableName = t.getDatatable().getRegisteredTableName();
                 final String displayName = t.getDatatable().getDisplayName();

@@ -8,6 +8,8 @@ package org.mifosplatform.infrastructure.dataqueries.service;
 import org.mifosplatform.infrastructure.core.domain.JdbcSupport;
 import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.infrastructure.dataqueries.data.*;
+import org.mifosplatform.portfolio.loanproduct.data.LoanProductData;
+import org.mifosplatform.portfolio.loanproduct.service.LoanProductReadPlatformService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -24,11 +27,16 @@ public class EntityDatatableChecksReadPlatformServiceImpl implements EntityDatat
     private final RegisterDataTableMapper registerDataTableMapper;
     private  final EntityDataTableChecksMapper entityDataTableChecksMapper;
 
+    private final LoanProductReadPlatformService loanProductReadPlatformService;
+
     @Autowired
-    public EntityDatatableChecksReadPlatformServiceImpl(final RoutingDataSource dataSource) {
+    public EntityDatatableChecksReadPlatformServiceImpl(final RoutingDataSource dataSource,final LoanProductReadPlatformService loanProductReadPlatformService) {
+
         this.jdbcTemplate = new JdbcTemplate(dataSource);
         this.registerDataTableMapper = new RegisterDataTableMapper();
         this.entityDataTableChecksMapper = new EntityDataTableChecksMapper();
+        this.loanProductReadPlatformService = loanProductReadPlatformService;
+
     }
 
     @Override
@@ -70,7 +78,9 @@ public class EntityDatatableChecksReadPlatformServiceImpl implements EntityDatat
         List<String> entities = EntityTables.getEntitiesList();
         List<DatatableCheckStatusData> status = StatusEnum.getStatusList();
 
-        return new EntityDataTableChecksTemplateData(entities,status,dataTables);
+        Collection<LoanProductData>loanProductDatas =  this.loanProductReadPlatformService.retrieveAllLoanProducts();
+
+        return new EntityDataTableChecksTemplateData(entities,status,dataTables,loanProductDatas);
 
     }
 
@@ -109,12 +119,19 @@ public class EntityDatatableChecksReadPlatformServiceImpl implements EntityDatat
             final String displayName = rs.getString("displayName");
             final boolean systemDefined = rs.getBoolean("systemDefined");
             final Long loanProductId =JdbcSupport.getLong(rs, "loanProductId");
+            final String productName = rs.getString("productName");
 
-            return new EntityDataTableChecksData(id,entity,status,datatableName,systemDefined,displayName,loanProductId);
+            return new EntityDataTableChecksData(id,entity,status,datatableName,systemDefined,displayName,loanProductId, productName);
         }
 
         public String schema() {
-            return " rt.display_name as displayName, t.id as id,t.application_table_name as entity, t.status_enum as status, t.system_defined as systemDefined, rt.registered_table_name as datatableName, t.product_loan_id as loanProductId from m_entity_datatable_check as t join x_registered_table rt on rt.id = t.x_registered_table_id";
+            return " rt.display_name as displayName, t.id as id,t.application_table_name as entity," +
+                    " t.status_enum as status, t.system_defined as systemDefined, " +
+                    "rt.registered_table_name as datatableName, t.product_loan_id as loanProductId, " +
+                    "p.name as productName " +
+                    "from m_entity_datatable_check as t " +
+                    "join x_registered_table rt on rt.id = t.x_registered_table_id " +
+                    "left join m_product_loan p on p.id = t.product_loan_id ";
         }
     }
 
