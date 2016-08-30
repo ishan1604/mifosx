@@ -84,5 +84,5 @@ VALUES ('organisation', 'ACTIVATE_EMAIL_CAMPAIGN', 'EMAIL_CAMPAIGN', 'ACTIVATE',
 Alter table m_client
 ADD Column email_address nvarchar(255);
 
-Alter table m_saff
+Alter table m_staff
 ADD Column email_address nvarchar(255);
