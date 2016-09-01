@@ -70,8 +70,8 @@ public class EntityDatatableChecks extends AbstractPersistable<Long> {
 
         Long productLoanId =null;
 
-        if(command.parameterExists("productLoanId")){
-           productLoanId = command.longValueOfParameterNamed("productLoanId");
+        if(command.parameterExists("productId")){
+           productLoanId = command.longValueOfParameterNamed("productId");
         }
 
         return new EntityDatatableChecks(entity,datatableId,status,systemDefined,productLoanId);

@@ -19,7 +19,7 @@ public class EntityDataTableChecksData implements Serializable {
     private final String displayName;
     private final boolean systemDefined;
     private final Long order;
-    private final Long loanProductId;
+    private final Long productId;
     private final String productName;
 
 
@@ -31,7 +31,7 @@ public class EntityDataTableChecksData implements Serializable {
          this.systemDefined = systemDefined;
          this.order = id;
          this.displayName = displayName;
-         this.loanProductId = loanProductId;
+         this.productId = loanProductId;
          this.productName = productName;
     }
 

@@ -74,7 +74,7 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
 
             if(!columnExist){ throw new EntityDatatableCheckNotSupportedException(datatableData.getRegisteredTableName(), entity);}
 
-            final Long productLoanId = command.longValueOfParameterNamed("productLoanId");
+            final Long productLoanId = command.longValueOfParameterNamed("productId");
             final Long status = command.longValueOfParameterNamed("status");
 
             /**
