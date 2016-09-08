@@ -23,6 +23,7 @@ import org.mifosplatform.useradministration.domain.AppUser;
 import org.springframework.data.jpa.domain.AbstractPersistable;
 
 import javax.persistence.*;
+import java.security.InvalidParameterException;
 import java.util.*;
 
 @Entity
@@ -152,7 +153,10 @@ public class EmailCampaign extends AbstractPersistable<Long> {
         final String emailMessage   = command.stringValueOfParameterNamed(EmailCampaignValidator.emailMessage);
         final String stretchyReportParamMap = command.stringValueOfParameterNamed(ScheduledEmailConstants.STRETCHY_REPORT_PARAM_MAP_PARAM_NAME);
         final Integer emailAttachmentFileFormatId = command.integerValueOfParameterNamed(ScheduledEmailConstants.EMAIL_ATTACHMENT_FILE_FORMAT_ID_PARAM_NAME);
-        final ScheduledEmailAttachmentFileFormat emailAttachmentFileFormat = ScheduledEmailAttachmentFileFormat.instance(emailAttachmentFileFormatId);
+        final ScheduledEmailAttachmentFileFormat emailAttachmentFileFormat;
+        if (emailAttachmentFileFormatId!=null) {
+            emailAttachmentFileFormat = ScheduledEmailAttachmentFileFormat.instance(emailAttachmentFileFormatId);
+        }else{emailAttachmentFileFormat = ScheduledEmailAttachmentFileFormat.instance(2);}
         LocalDate submittedOnDate = new LocalDate();
         if (command.hasParameter(EmailCampaignValidator.submittedOnDateParamName)) {
             submittedOnDate = command.localDateValueOfParameterNamed(EmailCampaignValidator.submittedOnDateParamName);
