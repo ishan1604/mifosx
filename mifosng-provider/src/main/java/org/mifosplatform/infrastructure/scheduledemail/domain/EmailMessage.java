@@ -62,7 +62,7 @@ public class EmailMessage extends AbstractPersistable<Long> {
 
     public static EmailMessage pendingEmail(final Long externalId, final Group group, final Client client, final Staff staff, final String emailSubject, final String message,
                                         final String sourceAddress, final String emailAddress, final String campaignName) {
-        return new EmailMessage(externalId, group, client, staff, EmailMessageStatusType.PENDING, message, sourceAddress, emailSubject, emailAddress,campaignName);
+        return new EmailMessage(externalId, group, client, staff, EmailMessageStatusType.PENDING, emailSubject, message, sourceAddress, emailAddress,campaignName);
     }
     
     public static EmailMessage instance(final Long externalId, final Group group, final Client client, final Staff staff, final EmailMessageStatusType statusType,

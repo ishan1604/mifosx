@@ -111,6 +111,8 @@ public class EmailCampaignData {
         return this.campaignStatus;
     }
 
+    public String getEmailSubject() { return this.emailSubject; }
+
     public String getMessage() {
         return this.emailMessage;
     }

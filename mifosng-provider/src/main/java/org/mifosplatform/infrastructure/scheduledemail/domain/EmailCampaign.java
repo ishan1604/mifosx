@@ -449,6 +449,7 @@ public class EmailCampaign extends AbstractPersistable<Long> {
         return this.campaignName;
     }
 
+    public String getEmailSubject() { return this.emailSubject; }
 
     public String getEmailMessage() {
         return this.emailMessage;

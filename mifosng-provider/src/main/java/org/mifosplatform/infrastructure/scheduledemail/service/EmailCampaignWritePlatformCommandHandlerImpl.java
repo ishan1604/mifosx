@@ -195,7 +195,7 @@ public class EmailCampaignWritePlatformCommandHandlerImpl implements EmailCampai
     }
 
 
-    private void insertDirectCampaignIntoEmailOutboundTable(final String emailParams,
+    private void insertDirectCampaignIntoEmailOutboundTable(final String emailParams, final String emailSubject,
                                                           final String messageTemplate,final String campaignName){
         try{
             HashMap<String,String> campaignParams = new ObjectMapper().readValue(emailParams, new TypeReference<HashMap<String,String>>(){});
@@ -208,12 +208,12 @@ public class EmailCampaignWritePlatformCommandHandlerImpl implements EmailCampai
                 for(HashMap<String,Object> entry : runReportObject){
                     String message = this.compileEmailTemplate(messageTemplate, campaignName, entry);
                     Integer clientId = (Integer)entry.get("id");
-                    Object emailAddress = entry.get("emailAddress");
-                    String emailSubject = (String)entry.get("emailSubject");
 
                     Client client =  this.clientRepository.findOne(clientId.longValue());
+                    String emailAddress = client.emailAddress();
+
                     if(emailAddress !=null) {
-                        EmailMessage emailMessage = EmailMessage.pendingEmail(null,null,client,null,emailSubject,message,null,emailAddress.toString(),campaignName);
+                        EmailMessage emailMessage = EmailMessage.pendingEmail(null,null,client,null,emailSubject,message,null,emailAddress,campaignName);
                         this.emailMessageRepository.save(emailMessage);
                     }
                 }
@@ -235,7 +235,7 @@ public class EmailCampaignWritePlatformCommandHandlerImpl implements EmailCampai
 
                 logger.info("tenant time " + tenantDateNow.toString() + " trigger time "+nextTriggerDate.toString());
                 if(nextTriggerDate.isBefore(tenantDateNow)){
-                    insertDirectCampaignIntoEmailOutboundTable(emailCampaignData.getParamValue(),emailCampaignData.getMessage(),emailCampaignData.getCampaignName());
+                    insertDirectCampaignIntoEmailOutboundTable(emailCampaignData.getParamValue(),emailCampaignData.getEmailSubject(), emailCampaignData.getMessage(),emailCampaignData.getCampaignName());
                     this.updateTriggerDates(emailCampaignData.getId());
                 }
             }
@@ -292,7 +292,7 @@ public class EmailCampaignWritePlatformCommandHandlerImpl implements EmailCampai
         this.emailCampaignRepository.saveAndFlush(emailCampaign);
 
         if(emailCampaign.isDirect()){
-            insertDirectCampaignIntoEmailOutboundTable(emailCampaign.getParamValue(),emailCampaign.getEmailMessage(),emailCampaign.getCampaignName());
+            insertDirectCampaignIntoEmailOutboundTable(emailCampaign.getParamValue(),emailCampaign.getEmailSubject(),emailCampaign.getEmailMessage(),emailCampaign.getCampaignName());
         }else {
             if (emailCampaign.isSchedule()) {
 
@@ -393,7 +393,7 @@ public class EmailCampaignWritePlatformCommandHandlerImpl implements EmailCampai
         final AppUser currentUser = this.context.authenticatedUser();
         this.emailCampaignValidator.validatePreviewMessage(query.json());
         final String emailParams = this.fromJsonHelper.extractStringNamed("paramValue", query.parsedJson()) ;
-        final String textMessageTemplate = this.fromJsonHelper.extractStringNamed("message", query.parsedJson());
+        final String textMessageTemplate = this.fromJsonHelper.extractStringNamed("emailMessage", query.parsedJson());
 
         try{
             HashMap<String,String> campaignParams = new ObjectMapper().readValue(emailParams, new TypeReference<HashMap<String,String>>(){});
