@@ -225,6 +225,12 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
 
             fromLoanAccountId = command.longValueOfParameterNamed(fromAccountIdParamName);
             final Loan fromLoanAccount = this.loanAccountAssembler.assembleFrom(fromLoanAccountId);
+            /**
+             * throw an exception if the from loan account is not an overpaid loan
+             */
+            if(fromLoanAccount.getTotalOverpaid() != null && !(fromLoanAccount.getTotalOverpaid().compareTo(BigDecimal.ZERO) == 1)){
+                throw new AccountTransferLoanToLoanException(fromLoanAccountId);
+            }
 
             final LoanTransaction loanRefundTransaction = this.loanAccountDomainService.makeRefund(fromLoanAccountId,
                     new CommandProcessingResultBuilder(), transactionDate, transactionAmount, paymentDetail, null, null);
@@ -244,10 +250,6 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             this.accountTransferDetailRepository.saveAndFlush(accountTransferDetails);
             transferDetailId = accountTransferDetails.getId();
 
-        }else {
-            /**  throw an exception here for loan to loan transfer not supported */
-            fromLoanAccountId = command.longValueOfParameterNamed(fromAccountIdParamName);
-            throw new AccountTransferLoanToLoanException(fromLoanAccountId);
         }
 
         final CommandProcessingResultBuilder builder = new CommandProcessingResultBuilder().withEntityId(transferDetailId);
