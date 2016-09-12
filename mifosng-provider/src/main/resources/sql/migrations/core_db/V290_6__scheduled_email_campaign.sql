@@ -122,8 +122,12 @@ DELETE FROM `m_permission` WHERE `code`='ACTIVATE_EMAIL_CAMPAIGN';
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
 VALUES ('organisation', 'ACTIVATE_EMAIL_CAMPAIGN', 'EMAIL_CAMPAIGN', 'ACTIVATE', 0);
 
+DELETE FROM `m_permission` WHERE `code`='REACTIVATE_EMAIL_CAMPAIGN';
+INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
+VALUES ('organisation', 'REACTIVATE_EMAIL_CAMPAIGN', 'EMAIL_CAMPAIGN', 'REACTIVATE', 0);
+
 Alter table m_client
-ADD Column email_address nvarchar(255);
+ADD Column email_address nvarchar(150);
 
 Alter table m_staff
-ADD Column email_address nvarchar(255);
+ADD Column email_address nvarchar(150);
