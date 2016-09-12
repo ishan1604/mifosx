@@ -217,7 +217,7 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
 
     @Override
     public Collection<EmailBusinessRulesData> retrieveAll() {
-        final String searchType = "sms";
+        final String searchType = "Email";
         final String sql = "select " + this.businessRuleMapper.schema() + " where sr.report_type = ?";
 
         return this.jdbcTemplate.query(sql, this.businessRuleMapper, searchType);
@@ -225,7 +225,7 @@ public class EmailCampaignReadPlatformServiceImpl implements EmailCampaignReadPl
 
     @Override
     public EmailBusinessRulesData retrieveOneTemplate(Long resourceId) {
-        final String searchType = "sms";
+        final String searchType = "Email";
 
         final String sql = "select " + this.businessRuleMapper.schema() + " where sr.report_type = ? and sr.id = ?";
 
