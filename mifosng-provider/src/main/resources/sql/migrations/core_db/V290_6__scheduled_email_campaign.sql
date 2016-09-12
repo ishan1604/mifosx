@@ -58,6 +58,34 @@ name varchar(50) not null,
 constraint unique_name unique (name)
 );
 
+DELETE FROM `m_permission` WHERE `code`='READ_EMAIL';
+INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
+VALUES ('organisation', 'READ_EMAIL', 'EMAIL', 'READ', 0);
+
+DELETE FROM `m_permission` WHERE `code`='CREATE_EMAIL';
+INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
+VALUES ('organisation', 'CREATE_EMAIL', 'EMAIL', 'CREATE', 0);
+
+DELETE FROM `m_permission` WHERE `code`='CREATE_EMAIL_CHECKER';
+INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
+VALUES ('organisation', 'CREATE_EMAIL_CHECKER', 'EMAIL', 'CREATE_CHECKER', 0);
+
+DELETE FROM `m_permission` WHERE `code`='UPDATE_EMAIL';
+INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
+VALUES ('organisation', 'UPDATE_EMAIL', 'EMAIL', 'UPDATE', 0);
+
+DELETE FROM `m_permission` WHERE `code`='UPDATE_EMAIL_CHECKER';
+INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
+VALUES ('organisation', 'UPDATE_EMAIL_CHECKER', 'EMAIL', 'UPDATE_CHECKER', 0);
+
+DELETE FROM `m_permission` WHERE `code`='DELETE_EMAIL';
+INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
+VALUES ('organisation', 'DELETE_EMAIL', 'EMAIL', 'DELETE', 0);
+
+DELETE FROM `m_permission` WHERE `code`='DELETE_EMAIL_CHECKER';
+INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
+VALUES ('organisation', 'DELETE_EMAIL_CHECKER', 'EMAIL', 'DELETE_CHECKER', 0);
+
 DELETE FROM `m_permission` WHERE `code`='READ_EMAIL_CAMPAIGN';
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
 VALUES ('organisation', 'READ_EMAIL_CAMPAIGN', 'EMAIL_CAMPAIGN', 'READ', 0);
@@ -66,13 +94,25 @@ DELETE FROM `m_permission` WHERE `code`='CREATE_EMAIL_CAMPAIGN';
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
 VALUES ('organisation', 'CREATE_EMAIL_CAMPAIGN', 'EMAIL_CAMPAIGN', 'CREATE', 0);
 
+DELETE FROM `m_permission` WHERE `code`='CREATE_EMAIL_CAMPAIGN_CHECKER';
+INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
+VALUES ('organisation', 'CREATE_EMAIL_CAMPAIGN_CHECKER', 'EMAIL_CAMPAIGN', 'CREATE_CHECKER', 0);
+
 DELETE FROM `m_permission` WHERE `code`='UPDATE_EMAIL_CAMPAIGN';
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
 VALUES ('organisation', 'UPDATE_EMAIL_CAMPAIGN', 'EMAIL_CAMPAIGN', 'UPDATE', 0);
 
+DELETE FROM `m_permission` WHERE `code`='UPDATE_EMAIL_CAMPAIGN_CHECKER';
+INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
+VALUES ('organisation', 'UPDATE_EMAIL_CAMPAIGN_CHECKER', 'EMAIL_CAMPAIGN', 'UPDATE_CHECKER', 0);
+
 DELETE FROM `m_permission` WHERE `code`='DELETE_EMAIL_CAMPAIGN';
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
 VALUES ('organisation', 'DELETE_EMAIL_CAMPAIGN', 'EMAIL_CAMPAIGN', 'DELETE', 0);
+
+DELETE FROM `m_permission` WHERE `code`='DELETE_EMAIL_CAMPAIGN_CHECKER';
+INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
+VALUES ('organisation', 'DELETE_EMAIL_CAMPAIGN_CHECKER', 'EMAIL_CAMPAIGN', 'DELETE_CHECKER', 0);
 
 DELETE FROM `m_permission` WHERE `code`='CLOSE_EMAIL_CAMPAIGN';
 INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `can_maker_checker`)
