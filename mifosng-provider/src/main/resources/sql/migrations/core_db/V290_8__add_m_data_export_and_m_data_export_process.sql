@@ -8,8 +8,8 @@ CREATE TABLE if NOT EXISTS `m_data_export` (
   `office_id` BIGINT(20) NULL DEFAULT NULL,
   `display_name` VARCHAR(100) NULL DEFAULT NULL,
   `mobile_no` VARCHAR(50) NULL DEFAULT NULL,
-  `data_sql` TEXT NOT NULL),
-  PRIMARY KEY (`id`)
+  `data_sql` TEXT NOT NULL,
+  PRIMARY KEY (`id`))
 ENGINE = InnoDB
 DEFAULT CHARSET = utf8;
 
@@ -23,8 +23,8 @@ CREATE TABLE if NOT EXISTS `m_data_export_process` (
   `started_date` DATE NOT NULL,
   `ended_date` DATE NULL,
   `error_message` MEDIUMTEXT NULL DEFAULT NULL,
-  `file_download_count` BIGINT(20) NOT NULL),
-  PRIMARY KEY (`id`)
+  `file_download_count` BIGINT(20) NOT NULL,
+  PRIMARY KEY (`id`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 
