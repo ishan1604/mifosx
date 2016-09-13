@@ -1,13 +1,7 @@
 CREATE TABLE if NOT EXISTS `m_data_export` (
   `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
   `base_entity` VARCHAR(20) NOT NULL,
-  `entity_id` BIGINT(20) NOT NULL,
-  `entity_status` INT(5) NOT NULL,
-  `submitted_on_date` DATE NOT NULL,
-  `account_no` VARCHAR(20) NULL,
-  `office_id` BIGINT(20) NULL DEFAULT NULL,
-  `display_name` VARCHAR(100) NULL DEFAULT NULL,
-  `mobile_no` VARCHAR(50) NULL DEFAULT NULL,
+  `json` VARCHAR(120) NULL,
   `data_sql` TEXT NOT NULL,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB
