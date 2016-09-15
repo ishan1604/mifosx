@@ -48,4 +48,12 @@ public enum EmailMessageStatusType {
     public String getCode() {
         return this.code;
     }
+
+    public boolean isPending(){
+        return this.value.equals(EmailMessageStatusType.PENDING.getValue());
+    }
+
+    public boolean isSent(){
+        return this.value.equals(EmailMessageStatusType.SENT.getValue());
+    }
 }

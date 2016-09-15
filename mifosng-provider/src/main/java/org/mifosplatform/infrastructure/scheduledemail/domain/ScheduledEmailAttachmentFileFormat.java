@@ -6,16 +6,16 @@
 package org.mifosplatform.infrastructure.scheduledemail.domain;
 
 public enum ScheduledEmailAttachmentFileFormat {
-    INVALID(0, "ReportMailingJobEmailAttachmentFileFormat.invalid", "invalid"),
-    XLS(1, "ReportMailingJobEmailAttachmentFileFormat.xls", "xls"),
-    PDF(2, "ReportMailingJobEmailAttachmentFileFormat.pdf", "pdf"),
-    CSV(3, "ReportMailingJobEmailAttachmentFileFormat.csv", "csv");
+    INVALID(0, "EmailAttachmentFileFormat.invalid", "invalid"),
+    XLS(1, "EmailAttachmentFileFormat.xls", "xls"),
+    PDF(2, "EmailAttachmentFileFormat.pdf", "pdf"),
+    CSV(3, "EmailAttachmentFileFormat.csv", "csv");
 
     private String code;
     private String value;
     private Integer id;
 
-    private ScheduledEmailAttachmentFileFormat(final Integer id, final String code, final String value) {
+    ScheduledEmailAttachmentFileFormat(final Integer id, final String code, final String value) {
         this.value = value;
         this.code = code;
         this.id = id;

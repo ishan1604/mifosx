@@ -500,4 +500,26 @@ public class EmailCampaign extends AbstractPersistable<Long> {
     public void updateBusinessRuleId(final Report report){
         this.businessRuleId = report;
     }
+
+    public String getEmailAttachmentFileFormat() {
+        return this.emailAttachmentFileFormat;
+    }
+
+    public Report getStretchyReport() {
+        return this.stretchyReport;
+    }
+
+    public String getStretchyReportParamMap() {
+        return this.stretchyReportParamMap;
+    }
+
+    public void setStretchyReportParamMap(String stretchyReportParamMap) {
+        this.stretchyReportParamMap = stretchyReportParamMap;
+    }
+
+    public AppUser getApprovedBy() {return this.approvedBy;}
+
+    public AppUser getClosedBy() {
+        return this.closedBy;
+    }
 }

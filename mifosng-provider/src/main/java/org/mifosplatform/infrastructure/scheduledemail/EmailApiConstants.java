@@ -33,4 +33,9 @@ public class EmailApiConstants {
 
     public static final Set<String> UPDATE_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(messageParamName));
 
+    public static final String GMAIL_SMTP_SERVER = "GMAIL_SMTP_SERVER";
+    public static final String GMAIL_SMTP_PORT = "GMAIL_SMTP_PORT";
+    public static final String GMAIL_SMTP_USERNAME = "GMAIL_SMTP_USERNAME";
+    public static final String GMAIL_SMTP_PASSWORD = "GMAIL_SMTP_PASSWORD";
+
 }

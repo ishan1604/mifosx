@@ -23,9 +23,6 @@ import java.util.Map;
 @Table(name = "scheduled_email_messages_outbound")
 public class EmailMessage extends AbstractPersistable<Long> {
 
-    @Column(name = "external_id", nullable = true)
-	private Long externalId;
-
     @ManyToOne
     @JoinColumn(name = "group_id", nullable = true)
     private Group group;
@@ -38,11 +35,12 @@ public class EmailMessage extends AbstractPersistable<Long> {
     @JoinColumn(name = "staff_id", nullable = true)
     private Staff staff;
 
+    @ManyToOne
+    @JoinColumn(name = "email_campaign_id", nullable = true)
+    private EmailCampaign emailCampaign;
+
     @Column(name = "status_enum", nullable = false)
     private Integer statusType;
-    
-    @Column(name = "source_address", nullable = true, length = 50)
-    private String sourceAddress;
 
     @Column(name = "email_address", nullable = false, length = 50)
     private String emailAddress;
@@ -60,30 +58,32 @@ public class EmailMessage extends AbstractPersistable<Long> {
     @Temporal(TemporalType.DATE)
     private Date submittedOnDate;
 
-    public static EmailMessage pendingEmail(final Long externalId, final Group group, final Client client, final Staff staff, final String emailSubject, final String message,
-                                        final String sourceAddress, final String emailAddress, final String campaignName) {
-        return new EmailMessage(externalId, group, client, staff, EmailMessageStatusType.PENDING, emailSubject, message, sourceAddress, emailAddress,campaignName);
+    @Column(name = "error_message")
+    private String errorMessage;
+
+
+    public static EmailMessage pendingEmail(final Group group, final Client client, final Staff staff,final EmailCampaign emailCampaign, final String emailSubject, final String message,
+                                        final String emailAddress, final String campaignName) {
+        return new EmailMessage(group, client, staff,emailCampaign,EmailMessageStatusType.PENDING, emailSubject, message, emailAddress,campaignName);
     }
     
-    public static EmailMessage instance(final Long externalId, final Group group, final Client client, final Staff staff, final EmailMessageStatusType statusType,
+    public static EmailMessage instance(final Group group, final Client client, final Staff staff, final EmailCampaign emailCampaign, final EmailMessageStatusType statusType,
                                       final String emailSubject, final String message, final String sourceAddress, final String emailAddress, final String campaignName) {
-    	
-    	return new EmailMessage(externalId, group, client, staff, statusType, emailSubject, message, sourceAddress, emailAddress, campaignName);
+    	return new EmailMessage(group, client, staff,emailCampaign, statusType, emailSubject, message, emailAddress, campaignName);
     }
 
     protected EmailMessage() {
         //
     }
 
-    private EmailMessage(final Long externalId, final Group group, final Client client, final Staff staff, final EmailMessageStatusType statusType,
-            final String emailSubject, final String message, final String sourceAddress, final String emailAddress, final String campaignName) {
-        this.externalId = externalId;
+    private EmailMessage(final Group group, final Client client, final Staff staff, final EmailCampaign emailCampaign, final EmailMessageStatusType statusType,
+            final String emailSubject, final String message, final String emailAddress, final String campaignName) {
     	this.group = group;
         this.client = client;
         this.staff = staff;
+        this.emailCampaign = emailCampaign;
         this.statusType = statusType.getValue();
         this.emailAddress = emailAddress;
-        this.sourceAddress = sourceAddress;
         this.emailSubject = emailSubject;
         this.message = message;
         this.campaignName = campaignName;
@@ -103,10 +103,7 @@ public class EmailMessage extends AbstractPersistable<Long> {
         return actualChanges;
     }
     
-    public Long getExternalId() {
-    	return externalId;
-    }
-    
+
     public Group getGroup() {
     	return group;
     }
@@ -122,14 +119,9 @@ public class EmailMessage extends AbstractPersistable<Long> {
     public Integer getStatusType() {
     	return statusType;
     }
-    
-    public String getSourceAddress() {
-    	return sourceAddress;
-    }
-    
-    public String getemailAddress() {
-    	return emailAddress;
-    }
+
+
+    public String getEmailAddress() {return this.emailAddress;}
 
     public String getEmailSubject() {return emailSubject; }
     
@@ -137,16 +129,9 @@ public class EmailMessage extends AbstractPersistable<Long> {
     	return message;
     }
     
-    public void setExternalId(final Long externalId) {
-    	this.externalId = externalId;
-    }
-    
+
     public void setStatusType(final Integer statusType) {
     	this.statusType = statusType;
-    }
-    
-    public void setSourceAddress(final String sourceAddress) {
-    	this.sourceAddress = sourceAddress;
     }
 
     public String getCampaignName() {
@@ -156,4 +141,11 @@ public class EmailMessage extends AbstractPersistable<Long> {
     public Date getSubmittedOnDate() {
         return this.submittedOnDate;
     }
+
+    public EmailCampaign getEmailCampaign() {return this.emailCampaign;}
+
+    public void updateErrorMessage(final String errorMessage) {this.errorMessage = errorMessage;}
+
+    public boolean isPending(){ return EmailMessageStatusType.fromInt(this.statusType).isPending();}
+    public boolean isSent(){ return EmailMessageStatusType.fromInt(this.statusType).isSent();}
 }

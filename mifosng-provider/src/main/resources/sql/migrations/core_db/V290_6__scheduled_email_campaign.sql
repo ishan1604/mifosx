@@ -31,24 +31,25 @@ foreign key (stretchy_report_id) references stretchy_report(id),
 
 CREATE TABLE IF NOT EXISTS scheduled_email_messages_outbound (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `external_id` bigint(20) DEFAULT NULL,
   `group_id` bigint(20) DEFAULT NULL,
   `client_id` bigint(20) DEFAULT NULL,
   `staff_id` bigint(20) DEFAULT NULL,
+  `email_campaign_id` bigint(20) DEFAULT NULL,
   `status_enum` int(5) NOT NULL DEFAULT '100',
-  `source_address` varchar(50) DEFAULT NULL,
   `email_address` varchar(50) NOT NULL,
   `email_subject` varchar(50) NOT NULL,
   `message` text NOT NULL,
   `campaign_name` varchar(200) DEFAULT NULL,
   `submittedon_date` date,
+  `error_message` text,
   PRIMARY KEY (`id`),
   KEY `SEFKGROUP000000001` (`group_id`),
   KEY `SEFKCLIENT00000001` (`client_id`),
   key `SEFKSTAFF000000001` (`staff_id`),
   CONSTRAINT `SEFKGROUP000000001` FOREIGN KEY (`group_id`) REFERENCES `m_group` (`id`),
   CONSTRAINT `SEFKCLIENT00000001` FOREIGN KEY (`client_id`) REFERENCES `m_client` (`id`),
-  CONSTRAINT `SEFKSTAFF000000001` FOREIGN KEY (`staff_id`) REFERENCES `m_staff` (`id`)
+  CONSTRAINT `SEFKSTAFF000000001` FOREIGN KEY (`staff_id`) REFERENCES `m_staff` (`id`),
+  CONSTRAINT `fk_schedule_email_campign` FOREIGN KEY (`email_campaign_id`) REFERENCES `scheduled_email_campaign` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 create table if not exists scheduled_email_configuration (
@@ -127,7 +128,11 @@ INSERT INTO `m_permission` (`grouping`, `code`, `entity_name`, `action_name`, `c
 VALUES ('organisation', 'REACTIVATE_EMAIL_CAMPAIGN', 'EMAIL_CAMPAIGN', 'REACTIVATE', 0);
 
 Alter table m_client
-ADD Column email_address nvarchar(150);
+ADD Column email_address varchar(150);
 
 Alter table m_staff
-ADD Column email_address nvarchar(150);
+ADD Column email_address varchar(150);
+
+
+insert into job (name, display_name, cron_expression, create_time)
+values ('Execute Email Jobs', 'Execute Email Jobs', '0 0/2 * * * ?', NOW());

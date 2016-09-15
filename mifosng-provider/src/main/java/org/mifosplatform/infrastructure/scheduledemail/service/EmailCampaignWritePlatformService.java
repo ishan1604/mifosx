@@ -29,5 +29,6 @@ public interface EmailCampaignWritePlatformService {
 
     PreviewCampaignMessage previewMessage(JsonQuery query);
 
+    void sendEmailMessage() throws JobExecutionException;
 
 }
